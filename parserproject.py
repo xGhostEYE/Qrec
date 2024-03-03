@@ -1,6 +1,6 @@
 import ast
 import os
-    
+
 directory = r"/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Test"
 files = os.listdir(directory)
 directoryPath = []

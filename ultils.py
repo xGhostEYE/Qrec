@@ -2,6 +2,25 @@ import astor
 import ast
 
 #Function to analyze code
+def parse_functions_and_classes(filedirectory):
+    with open (filedirectory, 'r') as file:
+        tree = ast.parse(file.read())
+    
+    class_functions_map = {"noclass": []}
+    current_class = None
+    
+    for node in ast.walk(tree):
+        if check_ast(node) == "ClassDef":
+            current_class = node.name
+            class_functions_map[current_class] = []
+        elif check_ast(node) == "FunctionDef":
+            if current_class:
+                class_functions_map[current_class].append(node.name)
+            else:
+                class_functions_map["noclass"].append(node.name)
+    return class_functions_map
+        
+        
 def node_analyzer(node):
     arg_value = []
 
