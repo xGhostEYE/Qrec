@@ -2,25 +2,54 @@ import astor
 import ast
 
 #Function to analyze code
+def extract_function_calls(node, parent_class=None):
+    """
+    Extract function calls and their line numbers, including the context leading up to those calls.
+    """
+    function_calls = {}
+
+    #helper function to process function/method calls
+    def process_call(call_node, lineno):
+        if isinstance(call_node.func, ast.Attribute):
+            func_name = call_node.func.attr
+            receiver = ast.unparse(call_node.func.value)
+            full_name = f"{receiver}.{func_name}"
+        elif isinstance(call_node.func, ast.Name):
+            full_name = call_node.func.id
+        else:
+            # Placeholder for more complex scenarios
+            full_name = "complex_call"
+
+        #extract arguments
+        args_repr = [ast.unparse(arg) for arg in call_node.args]
+        args_str = ", ".join(args_repr)
+
+        #create a readable representation of the call
+        call_repr = f"{full_name}({args_str})"
+        function_calls.setdefault((full_name, lineno), []).append(call_repr)
+
+    for node in ast.walk(node):
+        if isinstance(node, ast.FunctionDef):
+            for child in ast.walk(node):
+                if isinstance(child, ast.Call):
+                    process_call(child, node.lineno)
+        elif isinstance(node, ast.ClassDef):
+            class_name = node.name
+            for child in ast.walk(node):
+                if isinstance(child, ast.FunctionDef) or isinstance(child, ast.Call):
+                    extract_function_calls(child, class_name)
+        elif isinstance(node, ast.Call):
+            process_call(node, node.lineno)
+
+    return function_calls
+
 def parse_functions_and_classes(filedirectory):
-    with open (filedirectory, 'r') as file:
+    with open(filedirectory, 'r') as file:
         tree = ast.parse(file.read())
     
-    class_functions_map = {"noclass": []}
-    current_class = None
-    
-    for node in ast.walk(tree):
-        if check_ast(node) == "ClassDef":
-            current_class = node.name
-            class_functions_map[current_class] = []
-        elif check_ast(node) == "FunctionDef":
-            if current_class:
-                class_functions_map[current_class].append(node.name)
-            else:
-                class_functions_map["noclass"].append(node.name)
-    return class_functions_map
-        
-        
+    return extract_function_calls(tree)
+
+
 def node_analyzer(node):
     arg_value = []
 
