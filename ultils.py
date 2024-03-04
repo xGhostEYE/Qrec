@@ -2,11 +2,11 @@ import astor
 import ast
 import itertools
 #Function to analyze code
-def extract_function_calls(node):
+def extract_data_flows(node):
     """
     Extract function calls and their line numbers, including the context leading up to those calls.
     """
-    function_calls = {}
+    data_flows = {}
 
     #helper function to process function/method calls
     def process_call(call_node):
@@ -29,7 +29,7 @@ def extract_function_calls(node):
             call_repr = call_args + [func_name]
 
         lineno = call_node.lineno
-        function_calls.setdefault((func_name, lineno), []).append(call_repr)
+        data_flows.setdefault((func_name, lineno), []).append(call_repr)
     
     def transform_dictionary_entries(d):
         transformed = {}
@@ -45,39 +45,39 @@ def extract_function_calls(node):
         return transformed
 
     for node in ast.walk(node):
-        if isinstance(node, ast.For):
-            # Process for loop
-            iter_source = ast.unparse(node.iter)
-            loop_var = ast.unparse(node.target)
-            # Ensure iterable is a list
-            iter_list = [iter_source] if isinstance(iter_source, str) else list(iter_source)
-            function_calls.setdefault((loop_var, node.lineno), []).extend(iter_list)
+        # if isinstance(node, ast.For):
+        #     # Process for loop
+        #     iter_source = ast.unparse(node.iter)
+        #     loop_var = ast.unparse(node.target)
+        #     # Ensure iterable is a list
+        #     iter_list = [iter_source] if isinstance(iter_source, str) else list(iter_source)
+        #     data_flows.setdefault((loop_var, node.lineno), []).extend(iter_list)
 
-        elif isinstance(node, ast.Assign):
-            # Process assignment
-            target = ast.unparse(node.targets[0])
-            value = ast.unparse(node.value)
+        # elif isinstance(node, ast.Assign):
+        #     # Process assignment
+        #     target = ast.unparse(node.targets[0])
+        #     value = ast.unparse(node.value)
 
-            # Ensure value is a list
-            value_list = [value] if isinstance(value, str) else list(value)
-            function_calls.setdefault((target, node.lineno), []).extend(value_list)
+        #     # Ensure value is a list
+        #     value_list = [value] if isinstance(value, str) else list(value)
+        #     data_flows.setdefault((target, node.lineno), []).extend(value_list)
 
-        elif isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
             process_call(node)
     
     # Remove duplicate lists
-    for key, value in function_calls.items():
+    for key, value in data_flows.items():
         unique_tuples = set(tuple(x) for x in value)
         unique_lists = [list(x) for x in unique_tuples]
-        function_calls[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
+        data_flows[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
 
-    return transform_dictionary_entries(function_calls)
+    return transform_dictionary_entries(data_flows)
 
 def parse_functions_and_classes(filedirectory):
     with open(filedirectory, 'r') as file:
         tree = ast.parse(file.read())
     
-    return extract_function_calls(tree)
+    return extract_data_flows(tree)
 
 
 def node_analyzer(node):
