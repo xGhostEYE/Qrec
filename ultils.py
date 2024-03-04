@@ -1,68 +1,53 @@
 import astor
 import ast
 import itertools
-#Function to analyze code
-def extract_function_calls(node, parent_class=None):
-    """
-    Extract function calls and their line numbers, including the context leading up to those calls.
-    """
-    function_calls = {}
+import os
+import DataExtractor.FeatureCollector as fc
+import DataExtractor.CandidateGenerator as cg
 
-    #helper function to process function/method calls
-    def process_call(call_node):
-            func_name = "complex_call"
-            call_object = None
-            call_args = []
-            
-            if isinstance(call_node.func, ast.Attribute):
-                func_name = call_node.func.attr
-                call_object = ast.unparse(call_node.func.value)  # The object the method is called on
-            elif isinstance(call_node.func, ast.Name):
-                func_name = call_node.func.id  # For direct function calls
-            
-            # get arguments in a readable format
-            call_args = [ast.unparse(arg) for arg in call_node.args]
-            
-            if call_object:
-                call_repr = call_args + [func_name, call_object]
-            else:
-                call_repr = call_args + [func_name]
 
-            # Use the call node's lineno for accurate line numbers
-            lineno = call_node.lineno
-            function_calls.setdefault((func_name, lineno), []).append(call_repr)
+def analyze_directory(directory):
+    files = os.listdir(directory)
+    directoryPath = []
+    undefined_projects = []
 
-    for node in ast.walk(node):
-        if isinstance(node, ast.FunctionDef):
-            for child in ast.walk(node):
-                if isinstance(child, ast.Call):
-                    process_call(child)
-        elif isinstance(node, ast.ClassDef):
-            class_name = node.name
-            for child in ast.walk(node):
-                if isinstance(child, ast.FunctionDef) or isinstance(child, ast.Call):
-                    extract_function_calls(child, class_name)
-        elif isinstance(node, ast.Call):
-            process_call(node)
-    
-    # remove duplicate lists
-    for key, value in function_calls.items():
-        unique_tuples = set(tuple(x) for x in value)
-        unique_lists = [list(x) for x in unique_tuples]
-        if len(unique_lists) == 1:
-            function_calls[key] = unique_lists[0]
-        else:
-            function_calls[key] = unique_lists
+    for file in files:
+        file_path = os.path.join(directory, file)
+        # print(file_path)
+        directoryPath.append(file_path)
+
+    for path in directoryPath:
+        try:
+            internal_folder = path.split('/')[-1]
+            unparser_def = []
+            for root, directories, files in os.walk(path, topdown=False):
+                        for name in files:
+                            file_path = (os.path.join(root, name))
+                            file_name = file_path
+
+                            if file_name.endswith(".py") or file_name.endswith(".pyi"):
+
+                                try:
+                                    with open(file_path, encoding='utf-8') as file:
+                                        # tree = ast.parse(file.read())
+                                        # print(cg.get_inferred_type_dynamic(file,file_path))
+                                        print(cg.get_inferred_type_dynamic(file))
+
+                                    # print(file_path, fc.extract_function_calls(tree))
+                                    
+                                
+                                except Exception as e:
+                                    print(e.__traceback__.tb_lineno)
+                                    print(e.__traceback__)
+                                    unparser_def.append(file_name)
+                                                                
+        except Exception as e:
+            print(e)
+            print(e.__traceback__.tb_lineno)
+            undefined_projects.append(internal_folder)
+
+      
         
-    return function_calls
-
-def parse_functions_and_classes(filedirectory):
-    with open(filedirectory, 'r') as file:
-        tree = ast.parse(file.read())
-    
-    return extract_function_calls(tree)
-
-
 def node_analyzer(node):
     arg_value = []
 
