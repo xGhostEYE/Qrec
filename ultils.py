@@ -7,7 +7,8 @@ def extract_data_flows(node):
     Extract function calls and their line numbers, including the context leading up to those calls.
     """
     data_flows = {}
-
+    assign_name = ""
+    assign_lines = []
     #helper function to process function/method calls
     def process_call(call_node):
         func_name = None
@@ -30,21 +31,23 @@ def extract_data_flows(node):
 
         lineno = call_node.lineno
         data_flows.setdefault((func_name, lineno), []).append(call_repr)
+        
     
-    def transform_dictionary_entries(d):
-        transformed = {}
-        for key, value in d.items():
-            if all(len(item) == 1 for item in value):
-                joined_str = ''.join(value)
-                for char in ['.', '(', ')', ',']:
-                    joined_str = joined_str.replace(char, ' ')
-                words = list(filter(None, joined_str.split(' ')))
-                transformed[key] = words
-            else:
-                transformed[key] = value
-        return transformed
+    # def transform_dictionary_entries(d):
+    #     transformed = {}
+    #     for key, value in d.items():
+    #         if all(len(item) == 1 for item in value):
+    #             joined_str = ''.join(value)
+    #             for char in ['.', '(', ')', ',']:
+    #                 joined_str = joined_str.replace(char, ' ')
+    #             words = list(filter(None, joined_str.split(' ')))
+    #             transformed[key] = words
+    #         else:
+    #             transformed[key] = value
+    #     return transformed
 
     for node in ast.walk(node):
+
         # if isinstance(node, ast.For):
         #     # Process for loop
         #     iter_source = ast.unparse(node.iter)
@@ -64,14 +67,26 @@ def extract_data_flows(node):
 
         if isinstance(node, ast.Call):
             process_call(node)
-    
-    # Remove duplicate lists
+        
+        elif isinstance(node, ast.Assign):
+            # Process assignment
+            assign_name = ast.unparse(node.targets[0])
+            assign_line = node.lineno
+            assign_lines.append((assign_name, assign_line))
+            
+    # clean the dictionary
     for key, value in data_flows.items():
+        # remove duplicates
         unique_tuples = set(tuple(x) for x in value)
         unique_lists = [list(x) for x in unique_tuples]
         data_flows[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
+        # add variable names to the end of values
+        for word, number in assign_lines:
+            if key[1] == number:
+                data_flows[key].append(word)
 
-    return transform_dictionary_entries(data_flows)
+    assign_lines.clear()
+    return data_flows
 
 def parse_functions_and_classes(filedirectory):
     with open(filedirectory, 'r') as file:
