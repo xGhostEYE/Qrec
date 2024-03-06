@@ -20,6 +20,8 @@ def extract_data_flows(node):
             call_object = ast.unparse(call_node.func.value)
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
+        elif isinstance(node, ast.Call):
+            process_call(node)
         
         # get arguments in a readable format
         call_args = [ast.unparse(arg) for arg in call_node.args]
@@ -73,7 +75,11 @@ def extract_data_flows(node):
             assign_name = ast.unparse(node.targets[0])
             assign_line = node.lineno
             assign_lines.append((assign_name, assign_line))
-            
+        elif isinstance(node, ast.For):
+            # Word between 'for' and 'in'
+            target = node.target.id
+            assign_line = node.lineno
+            assign_lines.append((target, assign_line))
     # clean the dictionary
     for key, value in data_flows.items():
         # remove duplicates
