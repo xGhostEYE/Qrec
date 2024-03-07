@@ -31,14 +31,14 @@ def analyze_directory(directory):
                                     with open(file_path, encoding='utf-8') as file:
                                         # tree = ast.parse(file.read())
                                         # print(cg.get_inferred_type_dynamic(file,file_path))
-                                        print(cg.get_inferred_type_dynamic(file))
+                                        # cg.get_inferred_type_dynamic(file)
+                                        cg.CandidatesGenerator(file, file_path)
 
                                     # print(file_path, fc.extract_function_calls(tree))
                                     
                                 
                                 except Exception as e:
-                                    print(e.__traceback__.tb_lineno)
-                                    print(e.__traceback__)
+                                    print(e)
                                     unparser_def.append(file_name)
                                                                 
         except Exception as e:
