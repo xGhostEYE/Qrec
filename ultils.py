@@ -14,9 +14,10 @@ def extract_data_flows(node):
         func_name = None
         call_object = None
         call_args = []
-        
+        method_name = None
         if isinstance(call_node.func, ast.Attribute):
             func_name = call_node.func.attr
+            method_name = call_node.func.value.id
             call_object = ast.unparse(call_node.func.value)
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
@@ -25,14 +26,13 @@ def extract_data_flows(node):
         
         # get arguments in a readable format
         call_args = [ast.unparse(arg) for arg in call_node.args]
-        
         if call_object:
             call_repr = call_args + [func_name, call_object]
         else:
             call_repr = call_args + [func_name]
 
         lineno = call_node.lineno
-        data_flows.setdefault((func_name, lineno), []).append(call_repr)
+        data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
         
     
     # def transform_dictionary_entries(d):
@@ -97,8 +97,28 @@ def extract_data_flows(node):
 def parse_functions_and_classes(filedirectory):
     with open(filedirectory, 'r') as file:
         tree = ast.parse(file.read())
+    dataflows = extract_data_flows(tree)
+    for key, value in dataflows.items():
+        value.reverse()
+        new_words = []
+        more_words = []
+        for words in value:
+            if words.count('\'') == 2 and words.count('\"') == 0:
+                new_words.append(words)
+                continue
+            new_words.extend(words.split('.'))
+        for words in new_words:
+            more_words.extend(words.split('('))
+
+        new_words.clear()
+        for words in more_words:
+            new_words.extend(words.split(','))
+        for words in new_words:
+            if ')' in words:
+                words.replace(')', "")
+        dataflows[key] = new_words
     
-    return extract_data_flows(tree)
+    return dataflows
 
 
 def node_analyzer(node):
