@@ -4,6 +4,7 @@ import itertools
 import os
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
+import DataEncoder.DataEncoder as de
 
 
 def analyze_directory(directory):
@@ -21,27 +22,28 @@ def analyze_directory(directory):
             internal_folder = path.split('/')[-1]
             unparser_def = []
             for root, directories, files in os.walk(path, topdown=False):
-                        for name in files:
-                            file_path = (os.path.join(root, name))
-                            file_name = file_path
+                for name in files:
+                    file_path = (os.path.join(root, name))
+                    file_name = file_path
 
-                            if file_name.endswith(".py") or file_name.endswith(".pyi"):
+                    if file_name.endswith(".py") or file_name.endswith(".pyi"):
 
-                                try:
-                                    with open(file_path, encoding='utf-8') as file:
-                                        method_dict = fc.extract_data(file)
-                                    with open(file_path, encoding='utf-8') as file:
-                                        # tree = ast.parse(file.read())
-                                        # print(cg.get_inferred_type_dynamic(file,file_path))
-                                        # cg.get_inferred_type_dynamic(file)
-                                        cg.CandidatesGenerator(file, file_path, method_dict)
+                        try:
+                            with open(file_path, encoding='utf-8') as file:
+                                method_dict = fc.extract_data(file)
+                            with open(file_path, encoding='utf-8') as file:
+                                # tree = ast.parse(file.read())
+                                # print(cg.get_inferred_type_dynamic(file,file_path))
+                                # cg.get_inferred_type_dynamic(file)
+                                candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
 
-                                    # print(file_path, fc.extract_function_calls(tree))
-                                    
-                                
-                                except Exception as e:
-                                    print(e)
-                                    unparser_def.append(file_name)
+                            # print(file_path, fc.extract_function_calls(tree))
+                            
+                            de.DataEncoder(method_dict,candidate_dict)
+                            
+                        except Exception as e:
+                            print(e)
+                            unparser_def.append(file_name)
                                                                 
         except Exception as e:
             print(e)

@@ -53,17 +53,17 @@ def CandidatesGenerator ( file, file_path, method_dict):
     API_candidates_for_object = {} 
 
     for key in method_dict.keys():
-            the_object = key[0]
-            if the_object != None:
-                type = types_dict[the_object]
-                #get list of calls in the type inference
-                
-                calls = get_calls(the_object,type)
-                if ( len(calls) == 0):
-                    calls = default_calls
-                line_number = key[2]
-                API_candidates_key = (the_object, line_number )
-                API_candidates_for_object[API_candidates_key] = calls
+        the_object = key[0]
+        if the_object != None:
+            type = types_dict[the_object]
+            #get list of calls in the type inference
+            
+            calls = get_calls(the_object,type)
+            if ( len(calls) == 0):
+                calls = default_calls
+            line_number = key[2]
+            API_candidates_key = (the_object, line_number )
+            API_candidates_for_object[API_candidates_key] = calls
     
     #Check if we get the correct dict
     # for key,value in API_candidates_for_object.items():
