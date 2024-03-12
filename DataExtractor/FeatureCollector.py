@@ -92,9 +92,8 @@ def extract_data_flows(node):
     assign_lines.clear()
     return data_flows
 
-def extract_data(filedirectory):
-    with open(filedirectory, 'r') as file:
-        tree = ast.parse(file.read())
+def extract_data(rawfile):
+    tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         value.reverse()
@@ -117,3 +116,15 @@ def extract_data(filedirectory):
         dataflows[key] = new_words
     
     return dataflows
+
+def x3_extractor(dataflows):
+    x3_data = {}
+    for key, val in dataflows:
+        object_name = key[0]
+        function_name = key[1]
+        if object_name not in x3_data.keys():
+            x3_data[object_name] = [(function_name, 1)]
+        else:
+            count+=1
+        
+        
