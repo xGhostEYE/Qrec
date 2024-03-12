@@ -117,14 +117,22 @@ def extract_data(rawfile):
     
     return dataflows
 
+test = {('writer', 'encrypt', 24): ['writer', 'encrypt', 'password'],
+('writer', 'addPage', 18): ['writer', 'addPage', 'original_file', 'getPage', 'page)']}
+
 def x3_extractor(dataflows):
     x3_data = {}
-    for key, val in dataflows:
+    for key, val in dataflows.items():
         object_name = key[0]
         function_name = key[1]
-        if object_name not in x3_data.keys():
+        if object_name not in x3_data:
             x3_data[object_name] = [(function_name, 1)]
         else:
-            count+=1
-        
-        
+            if function_name not in x3_data[object_name]:
+                x3_data[object_name].append((function_name, 1))
+            else:   
+                for item in x3_data[object_name]:
+                    if item[0] == function_name:
+                        item[1] += 1
+                        break
+    return x3_data
