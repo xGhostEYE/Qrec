@@ -1,3 +1,5 @@
+import ast
+
 def extract_data_flows(node):
     """
     Extract function calls and their line numbers, including the context leading up to those calls.
