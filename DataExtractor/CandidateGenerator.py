@@ -58,8 +58,7 @@ def CandidatesGenerator ( file, file_path ):
                 calls = default_calls
 
             print("Object:", key, "| Type: ", value, "| Calls: ", len(calls))
-    # else:
-    #     return get_calls_from_others(file_path)
+
         
         
 def get_calls(object, type):
@@ -92,7 +91,7 @@ def get_calls_from_valid_type(object,type):
             calls = calls + dir(module)
         except Exception as error_2:
             print(error_2)
-            print("returning empty list of calls for type: " + type + " due to exception")
+            print("Returning empty list of calls for type: " + type + " due to exception")
             calls = []
     return calls
 
@@ -101,7 +100,7 @@ def get_calls_from_valid_type(object,type):
 #2. imported third-party libraries
 #3. all the callable methods declared in the current scope
 def get_calls_from_others(file_path):
-    return get_calls_from_standard_libs() + get_calls_from_third_party_libs(file_path) + get_calls_from_scope()
+    return get_calls_from_standard_libs() + get_calls_from_third_party_libs(file_path) + get_calls_from_scope(file_path)
 
 def get_calls_from_standard_libs():
     calls = []
@@ -157,10 +156,19 @@ def get_calls_from_third_party_libs(file_path):
                 print(e)
     return calls
 
-def get_calls_from_scope():
+def get_calls_from_scope(file_path):
     calls = []
-    return calls
+    class Traverser(ast.NodeTransformer):
 
+        def visit_FunctionDef(self, node):
+            calls.append( node.name)
+
+    with open(file_path) as file:      
+        code  = file.read()
+        node = ast.parse(code)
+        Traverser().visit(node)
+
+    return calls
 
 
 #The implementation is inspired by get_type that is used in PyART. 
