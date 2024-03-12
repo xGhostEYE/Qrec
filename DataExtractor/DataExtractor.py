@@ -90,7 +90,7 @@ def extract_data_flows(node):
     assign_lines.clear()
     return data_flows
 
-def parse_functions_and_classes(filedirectory):
+def extract_data(filedirectory):
     with open(filedirectory, 'r') as file:
         tree = ast.parse(file.read())
     dataflows = extract_data_flows(tree)
