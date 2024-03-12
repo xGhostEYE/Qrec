@@ -29,10 +29,12 @@ def analyze_directory(directory):
 
                                 try:
                                     with open(file_path, encoding='utf-8') as file:
+                                        method_dict = fc.extract_data(file)
+                                    with open(file_path, encoding='utf-8') as file:
                                         # tree = ast.parse(file.read())
                                         # print(cg.get_inferred_type_dynamic(file,file_path))
                                         # cg.get_inferred_type_dynamic(file)
-                                        cg.CandidatesGenerator(file, file_path)
+                                        cg.CandidatesGenerator(file, file_path, method_dict)
 
                                     # print(file_path, fc.extract_function_calls(tree))
                                     

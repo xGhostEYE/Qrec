@@ -39,26 +39,37 @@ stdlib=['string','re','difflib','textwrap','unicodedata','stringprep','readline'
 'resource','nis','optparse','imp']
 
 #TODO - doc
-#method_dict format: {(api, linenumber) [variables and methods in order of data flow]}                               
+#method_dict format: {(object, api, linenumber): [variables and methods in order of data flow]}                               
 #A recommendation point is an API call
-def CandidatesGenerator ( file, file_path ):
+def CandidatesGenerator ( file, file_path, method_dict):
 
     #perform type inference
     #types_dict format: {target object: target object type}
     raw_file = file.read()
-    # types_dict = get_inferred_type_dynamic(raw_file)
+
     types_dict = get_inferred_type_dynamic(raw_file)
     
-    default_calls = get_calls_from_others(file_path) 
-    for key,value in types_dict.items():
-            
-            #get list of calls in the type inference
-            calls = get_calls(key,value)
-            if ( len(calls) == 0):
-                calls = default_calls
+    default_calls = get_calls_from_others(file_path)
+    API_candidates_for_object = {} 
 
-            print("Object:", key, "| Type: ", value, "| Calls: ", len(calls))
-
+    for key in method_dict.keys():
+            the_object = key[0]
+            if the_object != None:
+                type = types_dict[the_object]
+                #get list of calls in the type inference
+                
+                calls = get_calls(the_object,type)
+                if ( len(calls) == 0):
+                    calls = default_calls
+                line_number = key[2]
+                API_candidates_key = (the_object, line_number )
+                API_candidates_for_object[API_candidates_key] = calls
+    
+    #Check if we get the correct dict
+    # for key,value in API_candidates_for_object.items():
+    #     print(key, len(value))
+                
+    return API_candidates_for_object
         
         
 def get_calls(object, type):
