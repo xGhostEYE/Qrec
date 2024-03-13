@@ -1,8 +1,6 @@
-import ast
-import os
 import ultils as ult
 
-directory = r"/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Test"
+directory = r"/student/mel196/Documents/comp470/Qrec/test"
 
 ult.analyze_directory(directory)
 

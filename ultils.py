@@ -1,6 +1,5 @@
 import astor
 import ast
-import itertools
 import os
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
@@ -22,10 +21,11 @@ def analyze_directory(directory):
             internal_folder = path.split('/')[-1]
             unparser_def = []
             for root, directories, files in os.walk(path, topdown=False):
+
                 for name in files:
+                    
                     file_path = (os.path.join(root, name))
                     file_name = file_path
-
                     if file_name.endswith(".py") or file_name.endswith(".pyi"):
 
                         try:
@@ -38,7 +38,6 @@ def analyze_directory(directory):
                                 candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
 
                             # print(file_path, fc.extract_function_calls(tree))
-                            
                             de.DataEncoder(method_dict,candidate_dict)
                             
                         except Exception as e:

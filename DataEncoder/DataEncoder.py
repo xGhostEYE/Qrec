@@ -11,11 +11,12 @@ def DataEncoder(method_dict, candidate_dict):
             line_number = key[2]
 
             candidates = candidate_dict[(the_object,line_number)]
-
+            candidates = candidates[:2]
             for candidate in candidates:
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict)
-                print (the_object + "." + candidate, x2,x3)
+                x4 = get_x4(method_dict, line_number, the_object)
+                # print (the_object + "." + candidate, x2,x3)
                 #vectorize this
                 #x = a vector. TODO
                 x = 0
@@ -89,5 +90,14 @@ def get_n_x_api(the_object, candidate, line_num, method_dict):
             count += 1
         
     return count
+
+def get_x4(method_dict, line_number, object_name, candidate):
+    THElist = []
+    for key, val in method_dict.items():
+       if key == object_name and line_number == key[2]:
+           continue
+       else:
+           THElist.append(val)
+    print(THElist)
 
 
