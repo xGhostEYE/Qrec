@@ -13,13 +13,19 @@ def DataEncoder(method_dict, candidate_dict):
             candidates = candidate_dict[(the_object,line_number)]
 
             for candidate in candidates:
-                x1 = get_x1(candidate, value, true_api)
-                data_dict[ (the_object, candidate, line_number)] = x1
+                x2 = get_x2(candidate, value, true_api)
+                x3 = get_x3(the_object, candidate, line_number, method_dict)
+                print (the_object + "." + candidate, x2,x3)
+                #vectorize this
+                #x = a vector. TODO
+                x = 0
+                data_dict[ (the_object, candidate, line_number)] = x
+
+
     
-    print("the data", data_dict)
         
         
-def get_x1(candidate, dataflow, true_api):
+def get_x2(candidate, dataflow, true_api):
     sum = 0
     true_api_idx = dataflow.index(true_api)
     for data in dataflow:
@@ -52,10 +58,36 @@ def sim(candidate, data, d):
     
     return (2 * lcs(candidate,data, len(candidate), len(data)))/ (d* (len(candidate) + len(data))) 
         
-    
 
 
+def get_x3(the_object, candidate, line_number, method_dict):
+    return get_confidence(the_object, candidate, line_number, method_dict)
 
+def get_confidence(the_object, candidate, line_number, method_dict):
+    n_x = get_n_x(the_object, line_number, method_dict)
+    n_x_api = get_n_x_api(the_object, candidate, line_number, method_dict)
+    if n_x == 0:
+        return 0
+    else:
+        return n_x_api/n_x
+def get_n_x(the_object, line_num, method_dict):
+    count = 0
+    for key in method_dict.keys():
+        object_in_dict = key[0]
+        line_num_in_dict = key[2]
+        if (the_object == object_in_dict and line_num > line_num_in_dict):
+            count += 1
 
+    return count
+def get_n_x_api(the_object, candidate, line_num, method_dict):
+    count = 0
+    for key in method_dict.keys():
+        object_in_dict = key[0]
+        api_in_dict = key[1]
+        line_num_in_dict = key[2]
+        if (the_object == object_in_dict and candidate == api_in_dict and line_num > line_num_in_dict ):
+            count += 1
+        
+    return count
 
 
