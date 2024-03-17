@@ -11,12 +11,12 @@ def DataEncoder(method_dict, candidate_dict):
             line_number = key[2]
 
             candidates = candidate_dict[(the_object,line_number)]
-            candidates = candidates[:2]
+
             for candidate in candidates:
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict)
-                x4 = get_x4(method_dict, line_number, the_object)
-                # print (the_object + "." + candidate, x2,x3)
+                x4 = get_x4(method_dict, line_number, the_object, candidate)
+                print (the_object + "." + candidate, x2,x3,x4)
                 #vectorize this
                 #x = a vector. TODO
                 x = 0
@@ -92,12 +92,42 @@ def get_n_x_api(the_object, candidate, line_num, method_dict):
     return count
 
 def get_x4(method_dict, line_number, object_name, candidate):
-    THElist = []
+
+    token_dict = {}
+    total_tokens_count = 0
     for key, val in method_dict.items():
-       if key == object_name and line_number == key[2]:
-           continue
-       else:
-           THElist.append(val)
-    print(THElist)
+       object_in_dict = key[0]
+       api_in_dict = key[1]
+       line_num_in_dict = key[2]
+       if object_in_dict == object_name and line_number == line_num_in_dict:
+           break
+       if line_num_in_dict <= line_number:
+           token_dict[line_num_in_dict] =  val
+           total_tokens_count = total_tokens_count + len(val)
+    
+    sum = 0
+    for line_number, tokens in token_dict.items():
+        for token in tokens:
+            confidence = get_confidence(token, candidate, line_number, method_dict )
+            distance = get_distance(token_dict, token, line_number)
+            sum = sum + (confidence/distance)
 
+    # print(sum/total_tokens_count)
+    return sum/total_tokens_count
 
+def get_distance(token_dict, token, token_line_number):
+    dist = 0
+    found = False
+    for key, value in token_dict.items():
+        if found:
+            dist = dist + found 
+        if key == token_line_number:
+            token_index = value.index(token)
+            token_dist = len(value) - token_index 
+            dist = dist + token_dist
+            found = True
+        else:
+            continue
+    return dist
+
+                
