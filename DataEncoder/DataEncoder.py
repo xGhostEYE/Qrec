@@ -1,4 +1,6 @@
 
+import os
+import re
 def DataEncoder(method_dict, candidate_dict):
 
     data_dict = {}
@@ -13,10 +15,13 @@ def DataEncoder(method_dict, candidate_dict):
             candidates = candidate_dict[(the_object,line_number)]
 
             for candidate in candidates:
+                if candidate.startswith('__') or re.match('[A-Z0-9_]+$',candidate) or candidate.strip()=='_':
+                    continue
+                # x1 = get_x1(candidate, value, the_object, true_api)
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict)
                 x4 = get_x4(method_dict, line_number, the_object, candidate)
-                print (the_object + "." + candidate, x2,x3,x4)
+                # print (the_object + "." + candidate, x1, x2,x3,x4)
                 #vectorize this
                 #x = a vector. TODO
                 x = 0
@@ -25,6 +30,46 @@ def DataEncoder(method_dict, candidate_dict):
 
     
         
+def get_x1(candidate, dataflow, the_object, true_api):
+    s = ""
+    for data in dataflow:
+        token = data
+        if data == true_api:
+            token = candidate
+        s = s + " " + token
+    s = s + "\n"
+    with open('test.txt','w+') as f:
+        f.write(s)
+    os.system('Tools/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm trainfile.lm -debug 2 > Ngram-output/output.ppl')
+        
+    with open('Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+         lines=f.readlines()
+	
+    for i in range(0,len(lines)):
+        # kname=lines[i].strip().split(' ')		
+        # for item in kname:
+        #     if item==candidate:
+        #         flag=1
+        #         break
+        # if flag==1:
+				#print(lines[i])
+            j=i+1
+            while 'logprob=' not in lines[j]:
+                j=j+1
+            score=re.findall('logprob=\s[0-9\-\.]+',lines[j])
+            os.system('rm Ngram-output/output.ppl')
+            return float(score[0][9:])
+          
+        # if flag==0:
+        #     return 0.0
+	
+	#ngramscore=standard(ngramscore)
+	#print(ngramscore)
+	#ngramscore=sorted(ngramscore.items(), key=lambda x: x[1], reverse=True)
+	#print(ngramscore)
+	# os.system('rm output/'+callee+'.ppl')
+	# #os.chdir('../')
+	# return ngramscore    
         
 def get_x2(candidate, dataflow, true_api):
     sum = 0
