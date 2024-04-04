@@ -1,6 +1,8 @@
 
 import os
 import re
+
+
 def DataEncoder(method_dict, candidate_dict):
 
     data_dict = {}
@@ -13,64 +15,62 @@ def DataEncoder(method_dict, candidate_dict):
             line_number = key[2]
 
             candidates = candidate_dict[(the_object,line_number)]
-
+            candidates[0:2]
+            x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
-                if candidate.startswith('__') or re.match('[A-Z0-9_]+$',candidate) or candidate.strip()=='_':
-                    continue
-                # x1 = get_x1(candidate, value, the_object, true_api)
+                x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict)
                 x4 = get_x4(method_dict, line_number, the_object, candidate)
-                # print (the_object + "." + candidate, x1, x2,x3,x4)
                 #vectorize this
                 #x = a vector. TODO
-                x = 0
+                x = [x1,x2,x3,x4]
                 data_dict[ (the_object, candidate, line_number)] = x
-
-
-    
+    print (data_dict)
         
-def get_x1(candidate, dataflow, the_object, true_api):
+def get_x1(candidates, dataflow, true_api):
     s = ""
-    for data in dataflow:
-        token = data
-        if data == true_api:
-            token = candidate
-        s = s + " " + token
-    s = s + "\n"
+    ngram_scores = {}
+    for candidate in candidates:
+        for data in dataflow:
+            token = data
+            if token == true_api:
+                token = candidate
+            if not s or s.split(" ")[-1] == "\n":
+                s = s + token
+            else:
+                s = s + " " + token
+        s = s + " \n"
+
     with open('test.txt','w+') as f:
         f.write(s)
-    os.system('Tools/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm trainfile.lm -debug 2 > Ngram-output/output.ppl')
-        
+    os.system('utils/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm trainfile.lm -debug 2 > Ngram-output/output.ppl')
+
     with open('Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
-    for i in range(0,len(lines)):
-        # kname=lines[i].strip().split(' ')		
-        # for item in kname:
-        #     if item==candidate:
-        #         flag=1
-        #         break
-        # if flag==1:
-				#print(lines[i])
-            j=i+1
-            while 'logprob=' not in lines[j]:
-                j=j+1
-            score=re.findall('logprob=\s[0-9\-\.]+',lines[j])
-            os.system('rm Ngram-output/output.ppl')
-            return float(score[0][9:])
+    for candidate in candidates:
+            flag=0
+            for i in range(0,len(lines)):
+                kname=lines[i].strip().split(' ')		
+                for item in kname:
+                    if item==candidate:
+                        flag=1
+                        break
+                if flag==1:
+                    #print(lines[i])
+                    j=i+1
+                    while 'logprob=' not in lines[j]:
+                        j=j+1
+                    score=re.findall('logprob=\s[0-9\-\.]+',lines[j])
+                    ngram_scores[candidate]=float(score[0][9:])
+                    break
+            if flag==0:
+                ngram_scores[candidate]=0.0
+    os.system('rm Ngram-output/output.ppl')
+    return ngram_scores  
           
-        # if flag==0:
-        #     return 0.0
-	
-	#ngramscore=standard(ngramscore)
-	#print(ngramscore)
-	#ngramscore=sorted(ngramscore.items(), key=lambda x: x[1], reverse=True)
-	#print(ngramscore)
-	# os.system('rm output/'+callee+'.ppl')
-	# #os.chdir('../')
-	# return ngramscore    
-        
+
 def get_x2(candidate, dataflow, true_api):
     sum = 0
     true_api_idx = dataflow.index(true_api)
@@ -79,7 +79,7 @@ def get_x2(candidate, dataflow, true_api):
             data_idx = dataflow.index(data)
             d = abs(true_api_idx - data_idx)
             sum = sum + sim(candidate, data, d)
-    return sum/ (len(dataflow) -1)
+    return float(sum/ (len(dataflow) -1))
 
 def sim(candidate, data, d):
     #Longest common sub-sequence: https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/

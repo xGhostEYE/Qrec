@@ -93,8 +93,7 @@ def extract_data_flows(node):
     return data_flows
 
 def extract_data(rawfile):
-    with open(rawfile, 'r') as file:
-        tree = ast.parse(file.read())
+    tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         value.reverse()
@@ -118,29 +117,3 @@ def extract_data(rawfile):
     
     return dataflows
 
-def x3_extractor(dataflows):
-    x3_data = []
-    for key, val in dataflows.items():
-        object_name = key[0]
-        function_name = key[1]
-        if len(x3_data) == 0:
-            x3_data.append([object_name, 1, function_name, 1])
-            continue
-        for i in range(len(x3_data)):
-
-            for j in range(len(x3_data[i])):
-                if object_name not in x3_data[i]:
-                    x3_data.append([object_name, 1, function_name, 1])
-                    
-                    break
-                else:
-                    x3_data[i][1] += 1
-                    if function_name not in x3_data[i]:
-                        x3_data[i].append(function_name)
-                        x3_data[i].append(1)
-                        break
-                    else:
-                        if x3_data[i][j] == function_name:
-                            x3_data[i][j+1] += 1
-                            break
-    return x3_data
