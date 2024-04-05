@@ -35,8 +35,8 @@ def analyze_directory(directory):
                                 candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
                             
                             #Format of data_dict:
-                            #Key = [object, api, line number, 0 if it is not true api, 1 otherwise]
-                            #Value = [x1,x2,x3,4]
+                            #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
+                            #Value = [x1,x2,x3,x4]
                             data_dict = de.DataEncoder(method_dict,candidate_dict)
                             
                             
