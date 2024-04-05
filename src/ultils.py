@@ -32,13 +32,13 @@ def analyze_directory(directory):
                             with open(file_path, encoding='utf-8') as file:
                                 method_dict = fc.extract_data(file)
                             with open(file_path, encoding='utf-8') as file:
-                                # tree = ast.parse(file.read())
-                                # print(cg.get_inferred_type_dynamic(file,file_path))
-                                # cg.get_inferred_type_dynamic(file)
                                 candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
-
-                            # print(file_path, fc.extract_function_calls(tree))
-                            de.DataEncoder(method_dict,candidate_dict)
+                            
+                            #Format of data_dict:
+                            #Key = [object, api, line number, 0 if it is not true api, 1 otherwise]
+                            #Value = [x1,x2,x3,4]
+                            data_dict = de.DataEncoder(method_dict,candidate_dict)
+                            
                             
                         except Exception as e:
                             print(e)

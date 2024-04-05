@@ -15,19 +15,23 @@ def DataEncoder(method_dict, candidate_dict):
             line_number = key[2]
 
             candidates = candidate_dict[(the_object,line_number)]
-            candidates[0:2]
+
+            if not (true_api in candidates):
+                candidates.append(true_api)
+            
             x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
+                isTrue = 0
+                if (candidate == true_api):
+                    isTrue = 1
+
                 x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict)
                 x4 = get_x4(method_dict, line_number, the_object, candidate)
-                #vectorize this
-                #x = a vector. TODO
                 x = [x1,x2,x3,x4]
-                data_dict[ (the_object, candidate, line_number)] = x
-    print (data_dict)
-        
+                data_dict[ (the_object, candidate, line_number, isTrue)] = x
+    return data_dict        
 def get_x1(candidates, dataflow, true_api):
     s = ""
     ngram_scores = {}
