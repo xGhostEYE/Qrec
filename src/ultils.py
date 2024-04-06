@@ -4,13 +4,13 @@ import os
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
-
+from Models.Rainforest import RunRandomForest
 
 def analyze_directory(directory):
     files = os.listdir(directory)
     directoryPath = []
     undefined_projects = []
-
+    data_dict
     for file in files:
         file_path = os.path.join(directory, file)
         # print(file_path)
@@ -48,8 +48,9 @@ def analyze_directory(directory):
             print(e)
             print(e.__traceback__.tb_lineno)
             undefined_projects.append(internal_folder)
-
-      
+    # run model here
+    RunRandomForest(data_dict.values, data_dict.keys[3])
+    
         
 def node_analyzer(node):
     arg_value = []
