@@ -6,11 +6,12 @@ import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
 from Models.Rainforest import RunRandomForest
 
+
 def analyze_directory(directory):
     files = os.listdir(directory)
     directoryPath = []
     undefined_projects = []
-    data_dict
+    data_dict = {}
     for file in files:
         file_path = os.path.join(directory, file)
         # print(file_path)
@@ -37,9 +38,9 @@ def analyze_directory(directory):
                             #Format of data_dict:
                             #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
                             #Value = [x1,x2,x3,x4]
-                            data_dict = de.DataEncoder(method_dict,candidate_dict)
+                            data_dict.update(de.DataEncoder(method_dict,candidate_dict))
                             
-                            
+
                         except Exception as e:
                             print(e)
                             unparser_def.append(file_name)
@@ -49,7 +50,10 @@ def analyze_directory(directory):
             print(e.__traceback__.tb_lineno)
             undefined_projects.append(internal_folder)
     # run model here
-    RunRandomForest(data_dict.values, data_dict.keys[3])
+    labels = []
+    for key,value in data_dict.items():
+        labels.append(key[3])
+    RunRandomForest(data_dict.values(), labels)
     
         
 def node_analyzer(node):
