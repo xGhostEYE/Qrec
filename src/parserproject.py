@@ -10,43 +10,49 @@ from collections import defaultdict
 import traceback 
 # from Evaluation import Evaluators
 
-directory = r"../test/Project1"
+directory = r"Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/test/"
 model = None
 data_dict = {}
 predictions = []
-probabilities = []
 probabilities_result_correct = []
+
+
+# Initialize a defaultdict to store grouped objects
+grouped_dict = defaultdict(list)
+
+# # Initialize a defaultdict to store grouped objects
+# probabilities_dict = defaultdict(list)
 
 def RunPrediction():
     model = load('./random_forest_model.joblib')
-    file_path = "../test/coloredTiles.py"
+    file_path = "./test/coloredTiles.py"
     print("test file exists: ",op.isfile(file_path), "\n")
     try:
         with open(file_path, encoding='utf-8') as file:
             method_dict = fc.extract_data(file)
         with open(file_path, encoding='utf-8') as file:
             candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
-            print(candidate_dict)
         #Format of data_dict:
         #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
         #Value = [x1,x2,x3,x4]
         data_dict.update(de.DataEncoder(method_dict,candidate_dict))
-        print("test")
-        print("data_doct len ",len(data_dict))
-        # Initialize a defaultdict to store grouped objects
-        grouped_dict = defaultdict(list)
 
         # Group objects by their key values
         for key, value in data_dict.items():
-            object_name, api_name, line_number, is_api = key
-            grouped_dict[(object_name, line_number)].append((api_name, value))
+            object_name, api_name, line_number, is_true_api = key
+            reshaped_value = np.array(value).reshape(1, -1)
+            grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
 
-        # Convert defaultdict back to a regular dictionary if needed
-        grouped_dict = dict(grouped_dict)
-        print("grouped_dict", grouped_dict)
+        # # Convert defaultdict back to a regular dictionary if needed
+        # grouped_dict = dict(grouped_dict)
+        # print("grouped_dict", grouped_dict)
         
-        for key,value in grouped_dict.items():
-            probabilities.append((key, model.predict_proba(value)))
+        # for key,value in grouped_dict.items():
+        #     object_name = key[0]
+        #     for candidate in value:
+        #         candidate_vector = candidate[2]
+        #         is_true_api = candidate[0]
+        #         probabilities_dict[(object_name, line_number)].append(is_true_api, candidate,(model.predict_proba(candidate_vector)))
         # probabilities = np.argsort(probabilities, axis=1)[:, ::-1]
 
     except Exception as e:
@@ -58,7 +64,7 @@ def RunPrediction():
 # if we don't then train a new one
 # if we do then train the already generated model
 RunPrediction()
-print(probabilities)
+print("probabilities", grouped_dict)
 
 # if op.isfile("./random_forest_model.joblib"):
 #     model = load('./random_forest_model.joblib')
