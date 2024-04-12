@@ -7,7 +7,32 @@ def extract_data_flows(node):
     data_flows = {}
     assign_name = ""
     assign_lines = []
+
+
     #helper function to process function/method calls
+    # def process_call(call_node):
+    #     func_name = None
+    #     call_object = None
+    #     call_args = []
+    #     method_name = None
+    #     if isinstance(call_node.func, ast.Attribute):
+    #         func_name = call_node.func.attr
+    #         method_name = call_node.func.value.id
+    #         call_object = ast.unparse(call_node.func.value)
+    #     elif isinstance(call_node.func, ast.Name):
+    #         func_name = call_node.func.id
+    #     elif isinstance(node, ast.Call):
+    #         process_call(node)
+        
+    #     # get arguments in a readable format
+    #     call_args = [ast.unparse(arg) for arg in call_node.args]
+    #     if call_object:
+    #         call_repr = call_args + [func_name, call_object]
+    #     else:
+    #         call_repr = call_args + [func_name]
+
+    #     lineno = call_node.lineno
+    #     data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
     def process_call(call_node):
         func_name = None
         call_object = None
@@ -15,14 +40,17 @@ def extract_data_flows(node):
         method_name = None
         if isinstance(call_node.func, ast.Attribute):
             func_name = call_node.func.attr
-            method_name = call_node.func.value.id
-            call_object = ast.unparse(call_node.func.value)
+            if isinstance(call_node.func.value, ast.Name):
+                method_name = call_node.func.value.id
+                call_object = method_name
+            elif isinstance(call_node.func.value, ast.Subscript):
+                call_object = ast.unparse(call_node.func.value)  # correctly parse the Subscript object
+                # Avoid accessing .id on Subscript; handle it separately or leave method_name as None if not applicable
+            else:
+                call_object = ast.unparse(call_node.func.value)  # handle other types like Member or Call etc.
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
-        elif isinstance(node, ast.Call):
-            process_call(node)
-        
-        # get arguments in a readable format
+
         call_args = [ast.unparse(arg) for arg in call_node.args]
         if call_object:
             call_repr = call_args + [func_name, call_object]
@@ -31,8 +59,35 @@ def extract_data_flows(node):
 
         lineno = call_node.lineno
         data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
-        
-    
+
+
+        # extract identifiers from an assignment target.
+    def get_identifiers_from_target(target):
+        if isinstance(target, ast.Name):
+            return [target.id]
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            identifiers = []
+            for element in target.elts:
+                identifiers.extend(get_identifiers_from_target(element))
+            return identifiers
+        return []
+
+    for node in ast.walk(node):
+        if isinstance(node, ast.Call):
+            process_call(node)
+
+        elif isinstance(node, ast.Assign):
+            # Process assignment
+            assign_name = ast.unparse(node.targets[0])
+            assign_line = node.lineno
+            assign_lines.append((assign_name, assign_line))
+
+        elif isinstance(node, ast.For):
+            # Handle complex 'for' targets
+            targets = get_identifiers_from_target(node.target)
+            assign_line = node.lineno
+            for target in targets:
+                assign_lines.append((target, assign_line))
     # def transform_dictionary_entries(d):
     #     transformed = {}
     #     for key, value in d.items():
@@ -69,15 +124,17 @@ def extract_data_flows(node):
             process_call(node)
         
         elif isinstance(node, ast.Assign):
-            # Process assignment
+            # process assignment
             assign_name = ast.unparse(node.targets[0])
             assign_line = node.lineno
             assign_lines.append((assign_name, assign_line))
         elif isinstance(node, ast.For):
-            # Word between 'for' and 'in'
-            target = node.target.id
+            # extract identifiers from the target of the 'for' loop
+            targets = get_identifiers_from_target(node.target)
             assign_line = node.lineno
-            assign_lines.append((target, assign_line))
+            for target in targets:
+                assign_lines.append((target, assign_line))
+
     # clean the dictionary
     for key, value in data_flows.items():
         # remove duplicates
@@ -96,6 +153,7 @@ def extract_data(rawfile):
     tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
+        #TODO: check for comments and skip them!!!!
         value.reverse()
         new_words = []
         more_words = []

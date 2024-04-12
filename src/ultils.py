@@ -4,7 +4,6 @@ import os
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
-from Models.Rainforest import RunRandomForest
 
 
 def analyze_directory(directory):
@@ -49,11 +48,7 @@ def analyze_directory(directory):
             print(e)
             print(e.__traceback__.tb_lineno)
             undefined_projects.append(internal_folder)
-    # run model here
-    labels = []
-    for key,value in data_dict.items():
-        labels.append(key[3])
-    RunRandomForest(data_dict.values(), labels)
+    return data_dict
     
         
 def node_analyzer(node):

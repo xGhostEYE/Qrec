@@ -48,10 +48,8 @@ def CandidatesGenerator ( file, file_path, method_dict):
     raw_file = file.read()
 
     types_dict = get_inferred_type_dynamic(raw_file)
-    
     default_calls = get_calls_from_others(file_path)
     API_candidates_for_object = {} 
-
     for key in method_dict.keys():
         the_object = key[0]
         if the_object != None:
@@ -149,11 +147,11 @@ def get_calls_from_third_party_libs(file_path):
             for n in node.names:
                 line_of_module_import = [module, n.name.split('.'), n.asname]
                 imports.append(line_of_module_import)
-            return imports
+        return imports
     
     calls = []
     imports = get_imports(file_path)
-    
+
     for import_statement in imports:
         from_module = import_statement[0]
         import_module = import_statement[1]
