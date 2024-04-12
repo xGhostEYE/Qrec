@@ -6,15 +6,9 @@ import torch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
-# df = pd.read_csv('data.csv');
 
-# # get all the data except the label (y)
-# X = df.drop('',axis=1)
-# # get the label
-# y = df['heart disease']
 def RunRandomForest(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=42)
-    X_train.shape, X_test.shape
     
     rf = RandomForestClassifier(random_state=42, n_jobs=-1)
     # find the best hyper parameters
@@ -35,3 +29,6 @@ def RunRandomForest(X, y):
     classifier_rf = grid_search.best_estimator_
 
     dump(classifier_rf, './random_forest_model.joblib')
+    y_pred = classifier_rf.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy:", accuracy)
