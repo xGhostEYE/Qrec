@@ -8,35 +8,36 @@ import ast
 from pytype import config
 from pytype.tools.annotate_ast import annotate_ast
 
-stdlib=['string','re','difflib','textwrap','unicodedata','stringprep','readline','rlcompleter',
-'struct','codecs','datatime','calendar','collections','collections.abc','heapq','bisect',
-'array','weakref','types','copy','pprint','reprlib','enum','numbers','math','cmath',
-'decimal','fractions','random','statistics','itertools','functools','operator','pathlib',
-'os.path','fileinput','stat','filecmp','tempfile','glob','fnmatch','linecache','shutil',
-'pickle','copyreg','shelve','marshal','dbm','sqlite3','zlib','gzip','bz2','lzma','zipfile',
-'tarfile','csv','configparser','netrc','xdrlib','plistlib','hashlib','hmac','secrets',
-'os','io','time','argparse','getopt','logging','logging.config','logging.handlers',
-'getpass','curses','curses.textpad','curses.ascii','curses.panel','platform','errno',
-'ctypes','threading','multiprocessing','multiprocessing.shared_memory','concurrent',
-'concurrent.futures','subprocess','sched','queue','_thread','_dummy_thread','dummy_threading',
-'contextvars','asyncio','socket','ssl','select','selectors','asyncore','asynchat','signal',
-'mmap','email','json','mailcap','mailbox','mimetypes','base64','binhex','binascii',
-'quopri','uu','html','html.parser','html.entities','xml','webbrowser','xml.etree.ElementTree',
-'xml.dom','xml.dom.minidom','xml.dom.pulldom','xml.sax','xml.sax.handler','xml.sax.saxutils',
-'xml.sax.xmlreader','xml.parsers.expat','cgi','cgitb','wsgiref','urllib','urllib.request',
-'urllib.response','urllib.parse','urllib.error','urllib.robotparser','http','http.client',
-'ftplib','poplib','imaplib','nntplib','smtplib','smtpd','telnetlib','uuid','socketserver',
-'http.server','http.cookies','http.cookiejar','xmlrpc','xmlrpc.client','xmlrpc.server',
-'ipaddress','audioop','aifc','sunau','wave','chunk','colorsys','imghdr','sndhdr','ossaudiodev',
-'gettext','locale','turtle','cmd','shlex','tkinter','tkinter.ttk','tkinter.tix','tkinter.scrolledtext',
-'typing','pydoc','doctest','unittest','unittest.mock','unittest.mock','test','test.support',
-'test.support.script_helper','bdb','faulthandler','pdb','timeit','trace','tracemalloc','distutils',
-'ensurepip','venv','zipapp','sys','sysconfig','builtins','__main__','warnings','dataclasses',
-'contextlib','abc','atexit','traceback','__future__','gc','inspect','site','code','codeop','zipimport',
-'pkgutil','modulefinder','runpy','importlib','ast','symtable','symbol','token','keyword',
-'tokenize','tabnanny','pyclbr','py_compile','compileall','dis','pickletools','formatter','msilib',
-'msvcrt','winreg','winsound','posix','pwd','spwd','grp','crypt','termios','tty','pty','fcntl','pipes',
-'resource','nis','optparse','imp']
+# stdlib=['string','re','difflib','textwrap','unicodedata','stringprep','readline','rlcompleter',
+# 'struct','codecs','datetime','calendar','collections','collections.abc','heapq','bisect',
+# 'array','weakref','types','copy','pprint','reprlib','enum','numbers','math','cmath',
+# 'decimal','fractions','random','statistics','itertools','functools','operator','pathlib',
+# 'os.path','fileinput','stat','filecmp','tempfile','glob','fnmatch','linecache','shutil',
+# 'pickle','copyreg','shelve','marshal','dbm','sqlite3','zlib','gzip','bz2','lzma','zipfile',
+# 'tarfile','csv','configparser','netrc','xdrlib','plistlib','hashlib','hmac','secrets',
+# 'os','io','time','argparse','getopt','logging','logging.config','logging.handlers',
+# 'getpass','curses','curses.textpad','curses.ascii','curses.panel','platform','errno',
+# 'ctypes','threading','multiprocessing','multiprocessing.shared_memory','concurrent',
+# 'concurrent.futures','subprocess','sched','queue','_thread',
+# 'contextvars','asyncio','socket','ssl','select','selectors','asyncore','asynchat','signal',
+# 'mmap','email','json','mailcap','mailbox','mimetypes','base64','binascii',
+# 'quopri','uu','html','html.parser','html.entities','xml','webbrowser','xml.etree.ElementTree',
+# 'xml.dom','xml.dom.minidom','xml.dom.pulldom','xml.sax','xml.sax.handler','xml.sax.saxutils',
+# 'xml.sax.xmlreader','xml.parsers.expat','cgi','cgitb','wsgiref','urllib','urllib.request',
+# 'urllib.response','urllib.parse','urllib.error','urllib.robotparser','http','http.client',
+# 'ftplib','poplib','imaplib','nntplib','smtplib','smtpd','telnetlib','uuid','socketserver',
+# 'http.server','http.cookies','http.cookiejar','xmlrpc','xmlrpc.client','xmlrpc.server',
+# 'ipaddress','audioop','aifc','sunau','wave','chunk','colorsys','imghdr','sndhdr','ossaudiodev',
+# 'gettext','locale','turtle','cmd','shlex','tkinter','tkinter.ttk','tkinter.tix','tkinter.scrolledtext',
+# 'typing','pydoc','doctest','unittest','unittest.mock','unittest.mock','test','test.support',
+# 'test.support.script_helper','bdb','faulthandler','pdb','timeit','trace','tracemalloc','distutils',
+# 'ensurepip','venv','zipapp','sys','sysconfig','builtins','__main__','warnings','dataclasses',
+# 'contextlib','abc','atexit','traceback','__future__','gc','inspect','site','code','codeop','zipimport',
+# 'pkgutil','modulefinder','runpy','importlib','ast','symtable','symbol','token','keyword',
+# 'tokenize','tabnanny','pyclbr','py_compile','compileall','dis','pickletools','formatter','msilib',
+# 'msvcrt','winreg','winsound','posix','pwd','spwd','grp','crypt','termios','tty','pty','fcntl','pipes',
+# 'resource','nis','optparse','imp', 'tuple', 'list', 'dict']
+stdlib = list(sys.stdlib_module_names)
 
 #TODO - doc
 #method_dict format: {(object, api, linenumber): [variables and methods in order of data flow]}                               
@@ -125,7 +126,18 @@ def get_calls_from_others(file_path):
 def get_calls_from_standard_libs():
     calls = []
     for lib in stdlib:
-        calls = calls + dir(lib)
+        
+        try:
+            module = importlib.import_module(lib)           
+            calls = calls + dir(module)
+        except Exception as e:
+            try:
+                module = eval(lib)           
+                calls = calls + dir(module)
+            #Continue to the extract the methods of the next module in the list if there is an exception.
+            except Exception as e:
+                continue
+
     return calls
          
 
