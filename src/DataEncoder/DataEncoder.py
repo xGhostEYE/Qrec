@@ -83,6 +83,9 @@ def get_x2(candidate, dataflow, true_api):
             data_idx = dataflow.index(data)
             d = abs(true_api_idx - data_idx)
             sum = sum + sim(candidate, data, d)
+
+    if (len(dataflow) -1 == 0):
+        return 0
     return float(sum/ (len(dataflow) -1))
 
 def sim(candidate, data, d):
@@ -160,8 +163,9 @@ def get_x4(method_dict, line_number, object_name, candidate):
             confidence = get_confidence(token, candidate, line_number, method_dict )
             distance = get_distance(token_dict, token, line_number)
             sum = sum + (confidence/distance)
-
-    # print(sum/total_tokens_count)
+    
+    if (total_tokens_count == 0):
+        return 0
     return sum/total_tokens_count
 
 def get_distance(token_dict, token, token_line_number):
