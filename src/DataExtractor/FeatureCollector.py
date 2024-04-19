@@ -8,31 +8,6 @@ def extract_data_flows(node):
     assign_name = ""
     assign_lines = []
 
-
-    #helper function to process function/method calls
-    # def process_call(call_node):
-    #     func_name = None
-    #     call_object = None
-    #     call_args = []
-    #     method_name = None
-    #     if isinstance(call_node.func, ast.Attribute):
-    #         func_name = call_node.func.attr
-    #         method_name = call_node.func.value.id
-    #         call_object = ast.unparse(call_node.func.value)
-    #     elif isinstance(call_node.func, ast.Name):
-    #         func_name = call_node.func.id
-    #     elif isinstance(node, ast.Call):
-    #         process_call(node)
-        
-    #     # get arguments in a readable format
-    #     call_args = [ast.unparse(arg) for arg in call_node.args]
-    #     if call_object:
-    #         call_repr = call_args + [func_name, call_object]
-    #     else:
-    #         call_repr = call_args + [func_name]
-
-    #     lineno = call_node.lineno
-    #     data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
     def process_call(call_node):
         func_name = None
         call_object = None
@@ -56,9 +31,10 @@ def extract_data_flows(node):
             call_repr = call_args + [func_name, call_object]
         else:
             call_repr = call_args + [func_name]
-
+        
         lineno = call_node.lineno
         data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
+        
 
 
         # extract identifiers from an assignment target.
@@ -88,37 +64,8 @@ def extract_data_flows(node):
             assign_line = node.lineno
             for target in targets:
                 assign_lines.append((target, assign_line))
-    # def transform_dictionary_entries(d):
-    #     transformed = {}
-    #     for key, value in d.items():
-    #         if all(len(item) == 1 for item in value):
-    #             joined_str = ''.join(value)
-    #             for char in ['.', '(', ')', ',']:
-    #                 joined_str = joined_str.replace(char, ' ')
-    #             words = list(filter(None, joined_str.split(' ')))
-    #             transformed[key] = words
-    #         else:
-    #             transformed[key] = value
-    #     return transformed
 
     for node in ast.walk(node):
-
-        # if isinstance(node, ast.For):
-        #     # Process for loop
-        #     iter_source = ast.unparse(node.iter)
-        #     loop_var = ast.unparse(node.target)
-        #     # Ensure iterable is a list
-        #     iter_list = [iter_source] if isinstance(iter_source, str) else list(iter_source)
-        #     data_flows.setdefault((loop_var, node.lineno), []).extend(iter_list)
-
-        # elif isinstance(node, ast.Assign):
-        #     # Process assignment
-        #     target = ast.unparse(node.targets[0])
-        #     value = ast.unparse(node.value)
-
-        #     # Ensure value is a list
-        #     value_list = [value] if isinstance(value, str) else list(value)
-        #     data_flows.setdefault((target, node.lineno), []).extend(value_list)
 
         if isinstance(node, ast.Call):
             process_call(node)
@@ -153,7 +100,18 @@ def extract_data(rawfile):
     tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
+        
+        
         #TODO: check for comments and skip them!!!!
+        new_values = []
+        for words in value:
+            if isinstance(words, list):
+                for word in words:
+                    new_values.append(word)
+            else:
+                new_values.append(words)
+        value = new_values
+                    
         value.reverse()
         new_words = []
         more_words = []

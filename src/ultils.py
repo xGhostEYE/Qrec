@@ -4,10 +4,11 @@ import os
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
-
+# from GetFiles import GetFilesInDirectory
 
 def analyze_directory(directory):
     files = os.listdir(directory)
+    # files = GetFilesInDirectory()
     directoryPath = []
     undefined_projects = []
     data_dict = {}
@@ -15,17 +16,21 @@ def analyze_directory(directory):
         file_path = os.path.join(directory, file)
         # print(file_path)
         directoryPath.append(file_path)
-
+    
     for path in directoryPath:
+        
         try:
             internal_folder = path.split('/')[-1]
             unparser_def = []
+            # os.walk NEEDS a subdirectory in the directory that it's walking for it to work.
+            # meaning that it needs 2 layers of folders to work
             for root, directories, files in os.walk(path, topdown=False):
-
+                
                 for name in files:
                     
                     file_path = (os.path.join(root, name))
                     file_name = file_path
+                    
                     if file_name.endswith(".py") or file_name.endswith(".pyi"):
 
                         try:
@@ -37,6 +42,7 @@ def analyze_directory(directory):
                             #Format of data_dict:
                             #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
                             #Value = [x1,x2,x3,x4]
+
                             data_dict.update(de.DataEncoder(method_dict,candidate_dict))
                             
 

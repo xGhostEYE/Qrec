@@ -8,24 +8,25 @@ import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
 from collections import defaultdict
 import traceback 
-# from Evaluation import Evaluators
+from Evaluation import Evaluators as ev
+from GitScrapper import Driller as dr
+import sys
 
-directory = r"Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/test/"
+directory = r"../test/convert_openie_to_conll.py"
 model = None
-data_dict = {}
 predictions = []
 probabilities_result_correct = []
 
-
-# Initialize a defaultdict to store grouped objects
-grouped_dict = defaultdict(list)
 
 # # Initialize a defaultdict to store grouped objects
 # probabilities_dict = defaultdict(list)
 
 def RunPrediction():
-    model = load('./random_forest_model.joblib')
-    file_path = "./test/coloredTiles.py"
+    # Initialize a defaultdict to store grouped objects
+    grouped_dict = defaultdict(list)
+    test_data_dict = {}
+    # model = load('./random_forest_model.joblib')
+    file_path = "../test/convert_openie_to_conll.py"
     print("test file exists: ",op.isfile(file_path), "\n")
     try:
         with open(file_path, encoding='utf-8') as file:
@@ -35,56 +36,86 @@ def RunPrediction():
         #Format of data_dict:
         #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
         #Value = [x1,x2,x3,x4]
-        data_dict.update(de.DataEncoder(method_dict,candidate_dict))
+        test_data_dict.update(de.DataEncoder(method_dict,candidate_dict))
 
         # Group objects by their key values
-        for key, value in data_dict.items():
+        for key, value in test_data_dict.items():
             object_name, api_name, line_number, is_true_api = key
             reshaped_value = np.array(value).reshape(1, -1)
             grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
-
-        # # Convert defaultdict back to a regular dictionary if needed
-        # grouped_dict = dict(grouped_dict)
-        # print("grouped_dict", grouped_dict)
-        
-        # for key,value in grouped_dict.items():
-        #     object_name = key[0]
-        #     for candidate in value:
-        #         candidate_vector = candidate[2]
-        #         is_true_api = candidate[0]
-        #         probabilities_dict[(object_name, line_number)].append(is_true_api, candidate,(model.predict_proba(candidate_vector)))
-        # probabilities = np.argsort(probabilities, axis=1)[:, ::-1]
+        return grouped_dict
 
     except Exception as e:
-        traceback.print_exc() 
+        traceback.print_exc()
         
+def SortTuples(tuples):
+    # sorting function
+    return sorted(tuples, key=lambda x: x[2][0, 1], reverse=True)
 
-    
+def GetTrainingData():
+    data_dict = {}
+    data_dict.update(ult.analyze_directory(directory))
+    labels = []
+    for key,value in data_dict.items():
+        labels.append(key[3])
+    return (list(data_dict.values()), labels)
+  
 # check if we already have a model
 # if we don't then train a new one
 # if we do then train the already generated model
-RunPrediction()
-print("probabilities", grouped_dict)
 
-# if op.isfile("./random_forest_model.joblib"):
-#     model = load('./random_forest_model.joblib')
-# else:
-#     data_dict = data_dict.update(ult.analyze_directory(directory))
-#     labels = []
-#     for key,value in data_dict.items():
-#         labels.append(key[3])
+print("checking if model exists")
+if op.isfile("./random_forest_model.joblib"):
+    print("model exists, checking if retrain is requested")
+    model = load('./random_forest_model.joblib')
+    if (not len(sys.argv) == 1):
+        if (sys.argv[1] == "retrain"):
+            print("retrain model requested, gathering training data")
+            data = GetTrainingData()
+            print("aquired training data with size: ", len(data[0]))
+            X =  data[0]
+            y = data[1]
+            model.partial_fit(X, y)
+            dump(model, './random_forest_model.joblib')
+            print("retrain training data aquired")
+    else:
+        print("retrain model not reqested")
+else:
+    print("no model detected, training a new one")
+    # urls = ["https://github.com/allenai/allennlp", "https://github.com/wention/BeautifulSoup4", "https://github.com/Cornices/cornice"]
+    # # for repo in urls:
+    # dr.GitRepoScrapper(urls[0])
+    print("gathering training data for new model")
+    data = GetTrainingData()
+    print("aquired training data with size: ", len(data[0]))
+    X =  data[0]
+    y = data[1]
+    print("running random forest model")
+    RunRandomForest(X, y)
+    print("done running random forest model")
+    model = load('./random_forest_model.joblib')
 
-#     RunRandomForest(list(data_dict.values()), labels)
-#     model = load('./random_forest_model.joblib')
 
 
-# RunPrediction()
-# for i in range(len(probabilities)):
-#     probabilities_result_correct.append(probabilities[i][1])
-# Evaluators.calculate_mrr()
+print("running prediction")
+grouped_dict = RunPrediction()
+print("done prediction, sorting data")
+sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
+print("done sorting data")
+# get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
+recommendation = []
+correct_apis = []
+for key, value in sorted_data.items():
+    temp_list = []
+    for tuple in value:
+        temp_list.append(tuple[1])
+        if tuple[0] == 1:
+            correct_apis.append(tuple[1])
+    recommendation.append(temp_list)
 
-
-
-
-
-
+print("calculating mrr")
+k = [1,2,3,4,5,10]
+print("MRR: ", ev.calculate_mrr(recommendation, correct_apis))
+for i in k:
+    print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(recommendation, correct_apis, i))
+# print("Precision Recall: ",ev.calculate_precision_recall(recommendation, correct_apis))
