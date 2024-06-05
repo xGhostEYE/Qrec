@@ -12,7 +12,8 @@ from Evaluation import Evaluators as ev
 from GitScrapper import Driller as dr
 import sys
 
-directory = r"../test/convert_openie_to_conll.py"
+#Please change the path of 'directory' into the path of your training data (projects)
+directory = r"../test/allennlp_training"
 model = None
 predictions = []
 probabilities_result_correct = []
@@ -82,9 +83,12 @@ if op.isfile("./random_forest_model.joblib"):
         print("retrain model not reqested")
 else:
     print("no model detected, training a new one")
+
+    #Please uncomment these lines to start scrapping projects for training. NOTE: The training data is very large, make sure to allocate enough disk space.
     # urls = ["https://github.com/allenai/allennlp", "https://github.com/wention/BeautifulSoup4", "https://github.com/Cornices/cornice"]
     # # for repo in urls:
     # dr.GitRepoScrapper(urls[0])
+
     print("gathering training data for new model")
     data = GetTrainingData()
     print("aquired training data with size: ", len(data[0]))
@@ -112,7 +116,8 @@ for key, value in sorted_data.items():
         if tuple[0] == 1:
             correct_apis.append(tuple[1])
     recommendation.append(temp_list)
-
+print("\ncorrect apis: ", correct_apis[0])
+print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",recommendation[0][:10])
 print("calculating mrr")
 k = [1,2,3,4,5,10]
 print("MRR: ", ev.calculate_mrr(recommendation, correct_apis))
