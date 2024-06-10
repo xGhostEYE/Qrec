@@ -48,9 +48,9 @@ def get_x1(candidates, dataflow, true_api):
 
     with open('test.txt','w+') as f:
         f.write(s)
-    os.system('.../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm .../Qrec/trainfile.lm -debug 2 > .../Qrec/Ngram-output/output.ppl')
+    os.system('../../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../../Qrec/trainfile.lm -debug 2 > ../../../Qrec/Ngram-output/output.ppl')
 
-    with open('.../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    with open('../../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -71,7 +71,7 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm .../Qrec/Ngram-output/output.ppl')
+    os.system('rm ../../../Qrec/Ngram-output/output.ppl')
     return ngram_scores  
           
 
