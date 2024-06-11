@@ -1,5 +1,5 @@
 import ast
-
+import sys
 def extract_data_flows(node):
     """
     Extract function calls and their line numbers, including the context leading up to those calls.
@@ -97,10 +97,22 @@ def extract_data_flows(node):
     return data_flows
 
 def extract_data(rawfile):
+    """
+    dictionary format:
+        key:[method name, function name, line number]
+            - method name would be foo in this case (foo.bar())
+            - method name would be bar in the above example
+            - line number for the line the code is at
+        value:[follows the data flow]
+        
+        
+    
+    """
     tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
+        print("key: ",key, "\nvalue: ",value)
         
         #TODO: check for comments and skip them!!!!
         new_values = []
@@ -130,6 +142,6 @@ def extract_data(rawfile):
             if ')' in words:
                 words.replace(')', "")
         dataflows[key] = new_words
-    
+    sys.exit()
     return dataflows
 

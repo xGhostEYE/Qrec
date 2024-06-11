@@ -1,7 +1,7 @@
 import ultils as ult
 import os.path as op
+from joblib import dump, load
 from Models.Randomforest import RunRandomForest
-from Models.ANN import RunANN
 import numpy as np
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
@@ -11,8 +11,6 @@ import traceback
 from Evaluation import Evaluators as ev
 from GitScrapper import Driller as dr
 import sys
-import torch
-import torch.nn.functional as F
 
 #Please change the path of 'directory' into the path of your training data (projects)
 directory = r"../test/training_test"
@@ -28,13 +26,8 @@ def RunPrediction():
     # Initialize a defaultdict to store grouped objects
     grouped_dict = defaultdict(list)
     test_data_dict = {}
-    model.eval()
-    logits = model(data)
-    probs = F.softmax(logits, dim=1) # assuming logits has the shape [batch_size, nb_classes]
-    # preds = torch.argmax(logits, dim=1)
-    # model = load('./random_forest_model.pth')
-    print("checking test file path")
-    file_path = "../test/Project1/passpdf.py"
+    # model = load('./random_forest_model.joblib')
+    file_path = "../test/convert_openie_to_conll.py"
     print("test file exists: ",op.isfile(file_path), "\n")
     try:
         with open(file_path, encoding='utf-8') as file:
@@ -50,7 +43,7 @@ def RunPrediction():
         for key, value in test_data_dict.items():
             object_name, api_name, line_number, is_true_api = key
             reshaped_value = np.array(value).reshape(1, -1)
-            grouped_dict[(object_name, line_number)].append((is_true_api, api_name, probs))
+            grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
         return grouped_dict
 
     except Exception as e:
@@ -72,46 +65,44 @@ def GetTrainingData():
 # if we don't then train a new one
 # if we do then train the already generated model
 
-# print("checking if model exists")
-# if op.isfile("./ANN_model.pth"):
-#     print("model exists, checking if retrain is requested")
-#     model = load('./ANN_model.pth')
-#     if (not len(sys.argv) == 1):
-#         if (sys.argv[1] == "retrain"):
-#             print("retrain model requested, gathering training data")
-#             data = GetTrainingData()
-#             print("aquired training data with size: ", len(data[0]))
-#             X =  data[0]
-#             y = data[1]
-#             model.partial_fit(X, y)
-#             dump(model, './ANN_model.pth')
-#             print("retrain training data aquired")
-#     else:
-#         print("retrain model not reqested")
-# else:
-print("no model detected, training a new one")
+print("checking if model exists")
+if op.isfile("./random_forest_model.joblib"):
+    print("model exists, checking if retrain is requested")
+    model = load('./random_forest_model.joblib')
+    if (not len(sys.argv) == 1):
+        if (sys.argv[1] == "retrain"):
+            print("retrain model requested, gathering training data")
+            data = GetTrainingData()
+            print("aquired training data with size: ", len(data[0]))
+            X =  data[0]
+            y = data[1]
+            model.partial_fit(X, y)
+            dump(model, './random_forest_model.joblib')
+            print("retrain training data aquired")
+    else:
+        print("retrain model not reqested")
+else:
+    print("no model detected, training a new one")
 
-#Please uncomment these lines to start scrapping projects for training. NOTE: The training data is very large, make sure to allocate enough disk space.
-# urls = ["https://github.com/allenai/allennlp", "https://github.com/wention/BeautifulSoup4", "https://github.com/Cornices/cornice"]
-# # for repo in urls:
-# dr.GitRepoScrapper(urls[0])
+    #Please uncomment these lines to start scrapping projects for training. NOTE: The training data is very large, make sure to allocate enough disk space.
+    # urls = ["https://github.com/allenai/allennlp", "https://github.com/wention/BeautifulSoup4", "https://github.com/Cornices/cornice"]
+    # # for repo in urls:
+    # dr.GitRepoScrapper(urls[0])
 
-print("gathering training data for new model")
-data = GetTrainingData()
-print("aquired training data with size: ", len(data[0]))
-X =  data[0]
-y = data[1]
-print("running random forest model")
-# RunRandomForest(X, y)
-RunANN(X, y)
-print("done running random forest model")
-model = model.load_state_dict(torch.load('./ANN_model.pth'))
+    print("gathering training data for new model")
+    data = GetTrainingData()
+    print("aquired training data with size: ", len(data[0]))
+    X =  data[0]
+    y = data[1]
+    print("running random forest model")
+    RunRandomForest(X, y)
+    print("done running random forest model")
+    model = load('./random_forest_model.joblib')
 
 
 
 print("running prediction")
 grouped_dict = RunPrediction()
-print(grouped_dict)
 print("done prediction, sorting data")
 sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
 print("done sorting data")
