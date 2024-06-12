@@ -33,7 +33,7 @@ def extract_data_flows(node):
             call_repr = call_args + [func_name]
         
         lineno = call_node.lineno
-        data_flows.setdefault((method_name, func_name, lineno), []).append(call_repr)
+        data_flows.setdefault((method_name, func_name, lineno), []).extend(call_repr)
         
 
 
@@ -51,13 +51,13 @@ def extract_data_flows(node):
     for node in ast.walk(node):
         if isinstance(node, ast.Call):
             process_call(node)
-
+        
         elif isinstance(node, ast.Assign):
             # Process assignment
             assign_name = ast.unparse(node.targets[0])
             assign_line = node.lineno
             assign_lines.append((assign_name, assign_line))
-
+                    
         elif isinstance(node, ast.For):
             # Handle complex 'for' targets
             targets = get_identifiers_from_target(node.target)
@@ -84,15 +84,15 @@ def extract_data_flows(node):
 
     # clean the dictionary
     for key, value in data_flows.items():
-        # remove duplicates
-        unique_tuples = set(tuple(x) for x in value)
-        unique_lists = [list(x) for x in unique_tuples]
-        data_flows[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
+        # # remove duplicates
+        # unique_tuples = set(tuple(x) for x in value)
+        # unique_lists = [list(x) for x in unique_tuples]
+        # data_flows[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
         # add variable names to the end of values
-        for word, number in assign_lines:
-            if key[1] == number:
-                data_flows[key].append(word)
-
+        for token, line_number in assign_lines:
+            if key[2] == line_number:
+                data_flows[key].append(token)
+    
     assign_lines.clear()
     return data_flows
 
