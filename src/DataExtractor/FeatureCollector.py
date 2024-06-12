@@ -65,22 +65,22 @@ def extract_data_flows(node):
             for target in targets:
                 assign_lines.append((target, assign_line))
 
-    for node in ast.walk(node):
+    # for node in ast.walk(node):
 
-        if isinstance(node, ast.Call):
-            process_call(node)
+    #     if isinstance(node, ast.Call):
+    #         process_call(node)
         
-        elif isinstance(node, ast.Assign):
-            # process assignment
-            assign_name = ast.unparse(node.targets[0])
-            assign_line = node.lineno
-            assign_lines.append((assign_name, assign_line))
-        elif isinstance(node, ast.For):
-            # extract identifiers from the target of the 'for' loop
-            targets = get_identifiers_from_target(node.target)
-            assign_line = node.lineno
-            for target in targets:
-                assign_lines.append((target, assign_line))
+    #     elif isinstance(node, ast.Assign):
+    #         # process assignment
+    #         assign_name = ast.unparse(node.targets[0])
+    #         assign_line = node.lineno
+    #         assign_lines.append((assign_name, assign_line))
+    #     elif isinstance(node, ast.For):
+    #         # extract identifiers from the target of the 'for' loop
+    #         targets = get_identifiers_from_target(node.target)
+    #         assign_line = node.lineno
+    #         for target in targets:
+    #             assign_lines.append((target, assign_line))
 
     # clean the dictionary
     for key, value in data_flows.items():
