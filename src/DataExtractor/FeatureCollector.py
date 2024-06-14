@@ -154,12 +154,50 @@ def extract_bag_of_tokens(file):
     bag_of_tokens = {}
     junk_tokens = []
     junk_nodes_lineno = []
+    exception_star_nodes = []
     vararg_arg_nodes = []
     kwarg_arg_nodes = []
+
     
     list_args_in_arg=[]
 
     class MyVisitor (ast.NodeVisitor):
+        #Try-Catch
+        def visit_Try(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["try"]
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_TryStar(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["try"]
+
+            for exception_node in node.handlers:
+                exception_star_nodes.append(exception_node)
+
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_ExceptHandler(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            
+            new_tokens = ["except"]
+            if node in exception_star_nodes:
+                new_tokens = ['except*']
+
+            if(list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            super().generic_visit(node)
         #Keyword 
         def visit_keyword(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -170,9 +208,9 @@ def extract_bag_of_tokens(file):
                 bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
 
-        # Function - TODO, test with more cases for FunctionType
+        # Function 
 
-        # def visit_FunctionType(self,node):
+        # def visit_FunctionType(self,node): - TODO, test with more cases for FunctionType
         #     junk_nodes_lineno.append(node.lineno)
         #     super().generic_visit(node)
 
@@ -185,6 +223,40 @@ def extract_bag_of_tokens(file):
             
             #Collecting useful tokens:
             new_tokens = ["def", node.name]
+
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+            list_args_in_arg.clear()
+
+        def visit_AsyncFunctionDef(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            #Collecting junk tokens:
+            for token_node in node.decorator_list:
+                junk_tokens.append(token_node)
+            
+            #Collecting useful tokens:
+            new_tokens = ["async" , "def", node.name]
+
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+            list_args_in_arg.clear()
+        
+        def visit_Await(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            #Collecting junk tokens:
+            for token_node in node.decorator_list:
+                junk_tokens.append(token_node)
+            
+            #Collecting useful tokens:
+            new_tokens = ["await"]
 
             if (list_of_tokens):
                 list_of_tokens.extend(new_tokens)
@@ -219,19 +291,31 @@ def extract_bag_of_tokens(file):
             list_of_tokens = bag_of_tokens[line_of_function] if line_of_function in bag_of_tokens else None
             new_nodes = []
 
-            # stop = 0-len(node.args) if len(node.args) != 0 else -1
+            #Get regular args
+            #Going backward in forloop because according to docs:
+            #If there are fewer defaults, they correspond to the last n arguments.
             for i in range (-1, 0-len(node.args)-1, -1):
                 if (-i <= len(node.defaults)):
                     new_nodes.insert(0,node.defaults[i])
                 new_nodes.insert(0,node.args[i])
-                
+            
+            #Get var arg
             vararg = node.vararg
             if (vararg):
                 vararg_arg_nodes.append(vararg)
-            
+                new_nodes.append(vararg)
+
+            #Get keyword-only arg
+            for i in range (0, len(node.kwonlyargs)):
+                new_nodes.append(node.kwonlyargs[i])
+                if (node.kw_defaults[i] != None):
+                    new_nodes.append(node.kw_defaults[i])
+
+            #Get keyword arg            
             kwarg = node.kwarg
             if (kwarg):
                 kwarg_arg_nodes.append(kwarg)
+                new_nodes.append(kwarg)
 
 
             if (list_of_tokens):
@@ -239,6 +323,34 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[line_of_function] = new_nodes
             super().generic_visit(node)
+        
+        def visit_Return(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["return"]
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_Yield(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["yield"]
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_YieldFrom(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["yield" ,"from"]
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
 
         #Class 
         def visit_ClassDef(self,node):
@@ -255,7 +367,83 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
+
+        #Control-flow
+        def visit_While(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["while"]
+            
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            #Getting the else token in for-loop statement if it exists
+            if (node.orelse):
+                end_of_body_lineno = 0
+                for the_node in node.body:
+                    end_of_body_lineno = the_node.end_lineno
+
+                else_lineno = end_of_body_lineno + 1
+
+                list_of_tokens = bag_of_tokens[else_lineno] if else_lineno in bag_of_tokens else None
+                new_tokens = ["else"]
+                if (list_of_tokens):
+                    list_of_tokens.extend(new_tokens)
+                else:
+                    bag_of_tokens[else_lineno] = new_tokens
+            super().generic_visit(node)
+        def visit_For(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["for", node.target, "in", node.iter]
+            
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            #Getting the else token in for-loop statement if it exists
+            if (node.orelse):
+                end_of_body_lineno = 0
+                for the_node in node.body:
+                    end_of_body_lineno = the_node.end_lineno
+
+                else_lineno = end_of_body_lineno + 1
+
+                list_of_tokens = bag_of_tokens[else_lineno] if else_lineno in bag_of_tokens else None
+                new_tokens = ["else"]
+                if (list_of_tokens):
+                    list_of_tokens.extend(new_tokens)
+                else:
+                    bag_of_tokens[else_lineno] = new_tokens
+            super().generic_visit(node)
         
+        def visit_AsyncFor(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["async","for", node.target, "in", node.iter]
+            
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            #Getting the else token in for-loop statement if it exists
+            if (node.orelse):
+                end_of_body_lineno = 0
+                for the_node in node.body:
+                    end_of_body_lineno = the_node.end_lineno
+
+                else_lineno = end_of_body_lineno + 1
+
+                list_of_tokens = bag_of_tokens[else_lineno] if else_lineno in bag_of_tokens else None
+                new_tokens = ["else"]
+                if (list_of_tokens):
+                    list_of_tokens.extend(new_tokens)
+                else:
+                    bag_of_tokens[else_lineno] = new_tokens
+
+            super().generic_visit(node)
+
         #Import statement
         def visit_ImportFrom(self, node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -292,14 +480,19 @@ def extract_bag_of_tokens(file):
             new_tokens = [node.id]
 
             #Check if junk
-            if ( (node not in junk_tokens)  
-                or not node.lineno in junk_nodes_lineno):
+            if ( (node not in junk_tokens)):  
+                # or not node.lineno in junk_nodes_lineno):
                 
                 if (list_of_tokens):
                     if list_of_tokens[-1] == "*":
                         list_of_tokens[-1] = list_of_tokens[-1] + node.id
                     else:
-                        list_of_tokens.extend(new_tokens)
+                        if (node in list_of_tokens):
+                            index = list_of_tokens.index(node)
+                            list_of_tokens[index] = node.id
+                        
+                        else:
+                            list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[node.lineno] = new_tokens
 
@@ -313,13 +506,41 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
+        
+        def visit_Constant(self, node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
             
-            
-        def generic_visit(self, node):
-            # print(node)
+            name = node.value
+            new_tokens = [name]
+            if(list_of_tokens):
+                if (node in list_of_tokens):
+                        index = list_of_tokens.index(node)
+                        list_of_tokens[index] = name
+                else:
+                    list_of_tokens.extend(new_tokens)
+
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
+        def visit_Del(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            new_tokens = ["del"]
+            if (list_of_tokens):
+                list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
     visitor.visit(tree)
     print(bag_of_tokens)
+
+    
+    
+    
+
+
+
