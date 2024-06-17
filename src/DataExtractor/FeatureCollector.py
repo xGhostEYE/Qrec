@@ -213,6 +213,22 @@ def extract_bag_of_tokens(file):
                 bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
 
+        #If exp
+        def visit_IfExp(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            
+            new_tokens = [node.body, "if", node.test, "else", node.orelse]
+
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    list_of_tokens[index] = node.arg
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
         #Attribute
         def visit_Attribute(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -238,17 +254,13 @@ def extract_bag_of_tokens(file):
         def visit_Lambda(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            #Collecting junk tokens:
-            for token_node in node.decorator_list:
-                junk_tokens.append(token_node)
-            
-            #Collecting useful tokens:
-            new_tokens = ["def", node.name]
+            new_tokens = ["lambda"]
 
             if (list_of_tokens):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
             super().generic_visit(node)
             list_args_in_arg.clear()
 
@@ -782,7 +794,129 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
             super().generic_visit(node)
+        
+        #Literals
+        def visit_Dict(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
+            new_tokens = []
+            for i in range (len(node.keys)):
+
+                if (node.keys[i]):
+                    new_tokens.append(node.keys[i])
+
+                new_tokens.append(node.values[i])
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_Set(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            new_tokens = []
+            for the_node in node.elts:
+                new_tokens.append(the_node)
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_Tuple(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            new_tokens = []
+            for the_node in node.elts:
+                new_tokens.append(the_node)
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        def visit_List(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            new_tokens = []
+            for the_node in node.elts:
+                new_tokens.append(the_node)
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+            super().generic_visit(node)
+
+        #Subscripting
+        def visit_Subscript(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            new_tokens = [node.value, node.slice]
+
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            super().generic_visit(node)
+
+        def visit_Slice(self,node):
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+
+            new_tokens = [node.lower, node.upper]
+
+                
+            if (list_of_tokens):
+                if (node in list_of_tokens):
+                    index = list_of_tokens.index(node)
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                else:
+                    list_of_tokens.extend(new_tokens)
+            else:
+                bag_of_tokens[node.lineno] = new_tokens
+
+            super().generic_visit(node)
+        
+
+        #generic visit to catch token types that have not been implemented
+        #TODO - ast.ListComp(); ast.SetComp(); ast.DictComp(); 
+        #TODO - ast.GeneratorExp(); ast.FormattedValue(); ast.JoinedStr(); Match
+        def generic_visit(self, node):
+            
+            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+            
+            #Remove node that has not been implemented in visitor pattern to avoid error
+            if list_of_tokens and node in list_of_tokens:
+                index = list_of_tokens.index(node)
+                del list_of_tokens[index]
+            super().generic_visit(node)
+        
 
 
 
