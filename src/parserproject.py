@@ -1,5 +1,6 @@
 import ultils as ult
 import os.path as op
+import os
 from joblib import dump, load
 from Models.Randomforest import RunRandomForest
 import numpy as np
@@ -26,18 +27,44 @@ def RunPrediction():
     # Initialize a defaultdict to store grouped objects
     grouped_dict = defaultdict(list)
     test_data_dict = {}
+    file_dict = {}
     # model = load('./random_forest_model.joblib')
-    file_path = "../test/convert_openie_to_conll.py"
+    file_path = "../test/Test/Streamer.py"
+    # test_project_path = "../test/Test/"
     print("test file exists: ",op.isfile(file_path), "\n")
+    if (not op.isfile(file_path)):
+        return None
     try:
+        #Get file_dict
+        files = os.listdir(directory)
+        directoryPath = []
+        for file in files:
+            file_path = os.path.join(directory, file)
+            directoryPath.append(file_path)
+        
+        for path in directoryPath:
+            try:
+                for root, directories, files in os.walk(path, topdown=False):
+                    for name in files:
+                        file_path = (os.path.join(root, name))
+      
+                        if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                            with open(file_path, encoding='utf-8') as file:
+                                file_dict[file_path] = fc.extract_bag_of_tokens(file)
+
+            except Exception as e:
+                print("Encountered exception when getting a file dict: ", e)
+
         with open(file_path, encoding='utf-8') as file:
-            method_dict = fc.extract_data(file)
+                    method_dict = fc.extract_data(file)
+
         with open(file_path, encoding='utf-8') as file:
             candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
+    
         #Format of data_dict:
         #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
         #Value = [x1,x2,x3,x4]
-        test_data_dict.update(de.DataEncoder(method_dict,candidate_dict))
+        test_data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path))
 
         # Group objects by their key values
         for key, value in test_data_dict.items():
@@ -103,9 +130,14 @@ else:
 
 print("running prediction")
 grouped_dict = RunPrediction()
+
+if grouped_dict == None:
+    exit(1)
+
 print("done prediction, sorting data")
 sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
 print("done sorting data")
+
 # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
 recommendation = []
 correct_apis = []

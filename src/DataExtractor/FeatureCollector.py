@@ -91,8 +91,7 @@ def extract_data_flows(node):
         # add variable names to the end of values
         for token, line_number in assign_lines:
             if key[2] == line_number:
-                data_flows[key].append(token)
-    
+                data_flows[key].append(token)    
     assign_lines.clear()
     return data_flows
 
@@ -103,16 +102,13 @@ def extract_data(rawfile):
             - method name would be foo in this case (foo.bar())
             - method name would be bar in the above example
             - line number for the line the code is at
-        value:[follows the data flow]
-        
-        
-    
+        value:[follows the data flow]   
     """
     tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
-        print("key: ",key, "\nvalue: ",value)
+        # print("key: ",key, "\nvalue: ",value)
         
         #TODO: check for comments and skip them!!!!
         new_values = []
@@ -142,7 +138,6 @@ def extract_data(rawfile):
             if ')' in words:
                 words.replace(')', "")
         dataflows[key] = new_words
-    sys.exit()
     return dataflows
 
 def extract_bag_of_tokens(file):
@@ -161,7 +156,7 @@ def extract_bag_of_tokens(file):
     
     list_args_in_arg=[]
 
-    class MyVisitor (ast.NodeVisitor):
+    class MyVisitor (ast.NodeVisitor):        
         #Try-Catch
         def visit_Try(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -909,23 +904,23 @@ def extract_bag_of_tokens(file):
         #TODO - ast.GeneratorExp(); ast.FormattedValue(); ast.JoinedStr(); Match
         def generic_visit(self, node):
             
-            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
-            
-            #Remove node that has not been implemented in visitor pattern to avoid error
-            if list_of_tokens and node in list_of_tokens:
-                index = list_of_tokens.index(node)
-                del list_of_tokens[index]
+            try: 
+                list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
+                
+                #Remove node that has not been implemented in visitor pattern to avoid error
+                if list_of_tokens and node in list_of_tokens:
+                    index = list_of_tokens.index(node)
+                    del list_of_tokens[index]
+            except AttributeError:
+                pass
+                
             super().generic_visit(node)
         
-
-
-
     tree = ast.parse(file.read())
     visitor = MyVisitor()
     visitor.visit(tree)
-    print(bag_of_tokens)
-    print("\n")
-
+    return bag_of_tokens
+    
     
     
     

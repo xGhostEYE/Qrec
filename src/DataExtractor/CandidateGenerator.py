@@ -54,9 +54,12 @@ def CandidatesGenerator ( file, file_path, method_dict):
     for key in method_dict.keys():
         the_object = key[0]
         if the_object != None:
-            type = types_dict[the_object]
+            type = None
+            try:
+                type = types_dict[the_object]
+            except KeyError as e:
+                pass
             #get list of calls in the type inference
-            
             calls = get_calls(the_object,type)
             if ( len(calls) == 0):
                 calls = default_calls
@@ -88,7 +91,12 @@ def get_calls_from_valid_type(object,the_type):
         #if object is type "module" then we can just get the calls straight from the object
         return dir(module)
     try:
-        module = importlib.import_module(the_type)
+        #importlib.import_module returns a module of name "str" for type str.
+        #We explicitly implement this case
+        if (the_type != "str"):
+            module = importlib.import_module(the_type)
+        else:
+            module = the_type
         calls = calls + dir(module)
     
     except Exception as error_1:
@@ -168,24 +176,24 @@ def get_calls_from_third_party_libs(file_path):
         from_module = import_statement[0]
         import_module = import_statement[1]
 
-        if len(from_module) != 0:
-            os.system("pip3 install " + from_module[0])
-        else:
-            for module in import_module:
-                os.system("pip3 install " + module)
         try:
+            if len(from_module) != 0:
+                os.system("pip3 install " + from_module[0])
+            else:
+                for module in import_module:
+                    os.system("pip3 install " + module)
             for modules in import_module:
                 moduleObject = importlib.import_module(modules)
                 calls = calls + dir(moduleObject)
         except Exception as e:
             try:
-                #There is a chance the calls are stored the from-module, we retrieve that
+                #There is a chance the calls are stored in the from-module, we will retrieve that
                 if (len(from_module) != 0):
                     calls = calls + dir(from_module[0])
                 else:
                     raise e
             except Exception as e:
-                print(e)
+                print("Encountered exception when getting third party library calls. Proceed to use whatever calls we have scraped from this task: ", e)
     return calls
 
 def get_calls_from_scope(file_path):
@@ -239,27 +247,27 @@ def get_inferred_type_dynamic(source):
         for nodetree in ast.walk(tree):
             item = get_tree_node_key(nodetree)
             if item is not None:
-                 treeObjectDict[item[0]] = item[1]
+                 treeObjectDict[item[1]] = item[0]
         #  = {get_tree_node_key(nodetree): get_tree_node_key(nodetree)[1]
         #     for nodetree in ast.walk(tree)}
         
         object_and_type_dict = {}
-        for key,value in moduleDict.items():           
-            line = key[0]
-            id = key[2]
-            treeObjectValue = treeObjectDict.get(id)
-            if treeObjectValue is not None:
-                if treeObjectValue == line:
-                    object_and_type_dict[id] = value
-       
+        for key,value in treeObjectDict.items():
+            id = value
+            line = key
+            
+            methodDict_object = moduleDict.get((line, id))
+            if methodDict_object is not None:
+                object_and_type_dict[(line,id)] = methodDict_object
+            else:
+                object_and_type_dict[(line,id)] = "None"
         return object_and_type_dict
 
     def get_module_node_key(node):
-        base = (node.lineno, node.__class__.__name__)
+        base = (node.lineno,)
         if isinstance(node, ast.Name):
             return base + (node.id,)
         if isinstance(node, ast.Attribute):
-
             return base + (node.attr,)
         elif isinstance(node, ast.FunctionDef):
             return base + (node.name,)

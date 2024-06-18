@@ -3,7 +3,7 @@ import os
 import re
 
 
-def DataEncoder(method_dict, candidate_dict):
+def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
 
     data_dict = {}
     print("Encoding data...")
@@ -24,12 +24,13 @@ def DataEncoder(method_dict, candidate_dict):
                 isTrue = 0
                 if (candidate == true_api):
                     isTrue = 1
-
+                    
                 x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
-                x3 = get_x3(the_object, candidate, line_number, method_dict)
-                x4 = get_x4(method_dict, line_number, the_object, candidate)
+                x3 = get_x3(the_object, candidate, line_number, method_dict, file_dict, filepath)
+                x4 = get_x4(file_dict, filepath, line_number, candidate, true_api)
                 x = [x1,x2,x3,x4]
+
                 data_dict[ (the_object, candidate, line_number, isTrue)] = x
     return data_dict        
 def get_x1(candidates, dataflow, true_api):
@@ -48,9 +49,9 @@ def get_x1(candidates, dataflow, true_api):
 
     with open('test.txt','w+') as f:
         f.write(s)
-    os.system('../../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../../Qrec/trainfile.lm -debug 2 > ../../../Qrec/Ngram-output/output.ppl')
+    os.system('/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/trainfile.lm -debug 2 > /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl')
 
-    with open('../../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    with open('/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -71,7 +72,7 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm ../../../Qrec/Ngram-output/output.ppl')
+    os.system('rm /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl')
     return ngram_scores  
           
 
@@ -113,26 +114,29 @@ def sim(candidate, data, d):
         
 
 
-def get_x3(the_object, candidate, line_number, method_dict):
-    return get_confidence(the_object, candidate, line_number, method_dict)
+def get_x3(the_object, candidate, line_number, method_dict, file_dict, file_path):
+    bag_of_tokens = file_dict[file_path]
+            
+    return get_x3_confidence(the_object, candidate, line_number, method_dict, bag_of_tokens)
 
-def get_confidence(the_object, candidate, line_number, method_dict):
-    n_x = get_n_x(the_object, line_number, method_dict)
-    n_x_api = get_n_x_api(the_object, candidate, line_number, method_dict)
+def get_x3_confidence(the_object, candidate, line_number, method_dict, bag_of_tokens):
+    n_x = get_n_x3(the_object, line_number, bag_of_tokens)
+    n_x_api = get_n_x3_api(the_object, candidate, line_number, method_dict)
+
     if n_x == 0:
         return 0
     else:
         return n_x_api/n_x
-def get_n_x(the_object, line_num, method_dict):
+    
+def get_n_x3(the_object, line_num, bag_of_tokens):
     count = 0
-    for key in method_dict.keys():
-        object_in_dict = key[0]
-        line_num_in_dict = key[2]
-        if (the_object == object_in_dict and line_num > line_num_in_dict):
-            count += 1
 
+    for line in bag_of_tokens:
+        if line < line_num:
+            count = count + 1 if the_object in bag_of_tokens[line] else count
     return count
-def get_n_x_api(the_object, candidate, line_num, method_dict):
+
+def get_n_x3_api(the_object, candidate, line_num, method_dict):
     count = 0
     for key in method_dict.keys():
         object_in_dict = key[0]
@@ -140,47 +144,78 @@ def get_n_x_api(the_object, candidate, line_num, method_dict):
         line_num_in_dict = key[2]
         if (the_object == object_in_dict and candidate == api_in_dict and line_num > line_num_in_dict ):
             count += 1
-        
     return count
 
-def get_x4(method_dict, line_number, object_name, candidate):
+def get_x4(file_dict, file_path, line_number, candidate, true_api):
 
-    token_dict = {}
-    total_tokens_count = 0
-    for key, val in method_dict.items():
-       object_in_dict = key[0]
-       api_in_dict = key[1]
-       line_num_in_dict = key[2]
-       if object_in_dict == object_name and line_number == line_num_in_dict:
-           break
-       if line_num_in_dict <= line_number:
-           token_dict[line_num_in_dict] =  val
-           total_tokens_count = total_tokens_count + len(val)
-    
-    sum = 0
-    for line_number, tokens in token_dict.items():
-        for token in tokens:
-            confidence = get_confidence(token, candidate, line_number, method_dict )
-            distance = get_distance(token_dict, token, line_number)
-            sum = sum + (confidence/distance)
-    
-    if (total_tokens_count == 0):
-        return 0
-    return sum/total_tokens_count
+    bag_of_tokens = file_dict[file_path]
 
-def get_distance(token_dict, token, token_line_number):
-    dist = 0
-    found = False
-    for key, value in token_dict.items():
-        if found:
-            dist = dist + found 
-        if key == token_line_number:
-            token_index = value.index(token)
-            token_dist = len(value) - token_index 
-            dist = dist + token_dist
-            found = True
-        else:
+    set_of_S = []
+    for key,value in bag_of_tokens.items():
+        if (key < line_number):
+            set_of_S.extend(value)
             continue
-    return dist
+        
+        if (key == line_number and true_api in value):
+            set_of_S.extend(value[0: value.index(true_api)])     
+        break
+    
+    total_confidence = 0
+
+    for i in range(len(set_of_S)):
+        confidence = get_x4_confidence(file_dict, file_path, set_of_S[i], candidate)
+        distance = get_distance(i, len(set_of_S))
+        
+        if distance == 0:
+            continue
+
+        total_confidence = total_confidence + confidence/distance
+
+    return (1/len(set_of_S)) * total_confidence
+
+def get_x4_confidence(file_dict, file_path, token, candidate):
+    nx_api = get_n_x4_api(file_dict, file_path, token, candidate)
+    
+    if nx_api == 0:
+        return 0
+    
+    nx = get_n_x4(file_dict, file_path, token)
+
+    if nx == 0:
+        return 0
+        
+    return nx_api/nx
+
+def get_n_x4(file_dict, file_path, token):
+    count = 0
+    for key, value in file_dict.items():
+        
+        if key != file_path:    
+            for tokens in value.values():
+                if token in tokens:
+                    count = count + 1
+                    break
+    return count
+
+def get_n_x4_api(file_dict, file_path, token, candidate):
+    count = 0
+    for key, value in file_dict.items():
+        found_token = False
+        found_candidate = False
+        if key != file_path:    
+            for tokens in value.values():
+                if not found_token and token in tokens:
+                    found_token = True
+                    
+                if not found_candidate and candidate in tokens:
+                    found_candidate = True
+
+                if found_token and found_candidate:
+                    count += 1
+                    break
+            
+    return count
+def get_distance(index, size_of_set_S):
+    return size_of_set_S - index
 
                 

@@ -12,9 +12,9 @@ def analyze_directory(directory):
     directoryPath = []
     undefined_projects = []
     data_dict = {}
+    file_dict = {}
     for file in files:
         file_path = os.path.join(directory, file)
-        # print(file_path)
         directoryPath.append(file_path)
     
     for path in directoryPath:
@@ -24,6 +24,20 @@ def analyze_directory(directory):
             unparser_def = []
             # os.walk NEEDS a subdirectory in the directory that it's walking for it to work.
             # meaning that it needs 2 layers of folders to work
+
+            for root, directories, files in os.walk(path, topdown=False):
+                for name in files:
+                    file_path = (os.path.join(root, name))
+                    
+                    if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                        
+                        #Key: file_name
+                        #Value: bag of tokens (a dictionary)
+                            #Key: line number
+                            #Value: list of tokens from left to right 
+                        with open(file_path, encoding='utf-8') as file:
+                            file_dict[file_path] = fc.extract_bag_of_tokens(file)
+
             for root, directories, files in os.walk(path, topdown=False):
                 
                 for name in files:
@@ -36,14 +50,14 @@ def analyze_directory(directory):
                         try:
                             with open(file_path, encoding='utf-8') as file:
                                 method_dict = fc.extract_data(file)
+
                             with open(file_path, encoding='utf-8') as file:
                                 candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
                             
                             #Format of data_dict:
-                            #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
-                            #Value = [x1,x2,x3,x4]
-
-                            data_dict.update(de.DataEncoder(method_dict,candidate_dict))
+                            # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
+                            # #Value = [x1,x2,x3,x4]
+                            data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path))
                             
 
                         except Exception as e:
