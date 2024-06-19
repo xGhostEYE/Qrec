@@ -5,7 +5,7 @@ def extract_data_flows(node):
     Extract function calls and their line numbers, including the context leading up to those calls.
     """
     data_flows = {}
-    assign_name = ""
+    
     assign_lines = []
 
     def process_call(call_node):
@@ -19,10 +19,9 @@ def extract_data_flows(node):
                 method_name = call_node.func.value.id
                 call_object = method_name
             elif isinstance(call_node.func.value, ast.Subscript):
-                call_object = ast.unparse(call_node.func.value)  # correctly parse the Subscript object
-                # Avoid accessing .id on Subscript; handle it separately or leave method_name as None if not applicable
+                call_object = ast.unparse(call_node.func.value)
             else:
-                call_object = ast.unparse(call_node.func.value)  # handle other types like Member or Call etc.
+                call_object = ast.unparse(call_node.func.value)
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
 
@@ -49,50 +48,70 @@ def extract_data_flows(node):
         return []
 
     for node in ast.walk(node):
+        
+        # handle method calls
         if isinstance(node, ast.Call):
             process_call(node)
-        
+            
+        # handle variable assign
         elif isinstance(node, ast.Assign):
             # Process assignment
+            variables = []
             assign_name = ast.unparse(node.targets[0])
-            assign_line = node.lineno
-            assign_lines.append((assign_name, assign_line))
+            # detect if a variable assign is done with multiple variables and clean them
+            if ',' in assign_name:
+                vars = assign_name.split(',')
+                for i in range(len(vars)):
+                    if '(' in vars[i]:
+                        vars[i] = vars[i].replace('(', '')
+                    elif ')' in vars[i]:
+                        vars[i] = vars[i].replace(')', '')
+                    variables.append(vars[i])
+                    assign_value = None
+                    if isinstance(node.value, ast.Constant):
+                        assign_value = node.value.value
+                    else:
+                        assign_value = ast.unparse(node.value)
                     
+                   
+                    assign_line = node.lineno
+                    assign_lines.append([variables[i], assign_line, assign_value])
+            else:
+                # determine if a variable was already seen and change its value to the updated on
+                assign_value = None
+                if isinstance(node.value, ast.Constant):
+                    assign_value = node.value.value
+                else:
+                    assign_value = ast.unparse(node.value)
+                
+                
+                assign_line = node.lineno
+                for i in range(len(assign_lines)):
+                    if (assign_name in assign_lines[i]):
+                        assign_lines[i][1] = assign_line
+                        assign_lines[i][2] = assign_value
+                        print(assign_lines[i])
+                assign_lines.append([assign_name, assign_line, assign_value])
+
+                
+        
+        # handle for loops
         elif isinstance(node, ast.For):
-            # Handle complex 'for' targets
             targets = get_identifiers_from_target(node.target)
             assign_line = node.lineno
             for target in targets:
-                assign_lines.append((target, assign_line))
-
-    # for node in ast.walk(node):
-
-    #     if isinstance(node, ast.Call):
-    #         process_call(node)
-        
-    #     elif isinstance(node, ast.Assign):
-    #         # process assignment
-    #         assign_name = ast.unparse(node.targets[0])
-    #         assign_line = node.lineno
-    #         assign_lines.append((assign_name, assign_line))
-    #     elif isinstance(node, ast.For):
-    #         # extract identifiers from the target of the 'for' loop
-    #         targets = get_identifiers_from_target(node.target)
-    #         assign_line = node.lineno
-    #         for target in targets:
-    #             assign_lines.append((target, assign_line))
-
+                assign_lines.append((target, assign_line))               
+            
+    for i in range(len(assign_lines)):
+        data_flows[(None, assign_lines[i][0], assign_lines[i][1])] = [assign_lines[i][2]]
     # clean the dictionary
-    for key, value in data_flows.items():
-        # # remove duplicates
-        # unique_tuples = set(tuple(x) for x in value)
-        # unique_lists = [list(x) for x in unique_tuples]
-        # data_flows[key] = unique_lists[0] if len(unique_lists) == 1 else unique_lists
-        # add variable names to the end of values
-        for token, line_number in assign_lines:
+    for key, value in data_flows.items(): 
+        for token, line_number, assign_value in assign_lines:
             if key[2] == line_number:
-                data_flows[key].append(token)    
-    assign_lines.clear()
+                data_flows[key].append(token)                
+            if key[1] == token and value != assign_value:
+                data_flows[key] = assign_value
+            
     return data_flows
 
 def extract_data(rawfile):
@@ -102,13 +121,16 @@ def extract_data(rawfile):
             - method name would be foo in this case (foo.bar())
             - method name would be bar in the above example
             - line number for the line the code is at
-        value:[follows the data flow]   
+        value:[follows the data flow]
+        
+        
+    
     """
     tree = ast.parse(rawfile.read())
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
-        # print("key: ",key, "\nvalue: ",value)
+        print("key: ",key, "\nvalue: ",value)
         
         #TODO: check for comments and skip them!!!!
         new_values = []
@@ -138,7 +160,10 @@ def extract_data(rawfile):
             if ')' in words:
                 words.replace(')', "")
         dataflows[key] = new_words
+    sys.exit()
     return dataflows
+with open(r"test\training_test\train\training.py") as file:
+    extract_data(file)
 
 def extract_bag_of_tokens(file):
     """
