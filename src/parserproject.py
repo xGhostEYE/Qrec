@@ -23,6 +23,7 @@ predictions = []
 probabilities_result_correct = []
 
 
+#TODO - Make this run with all the projects
 def Run_Project_Prediction():
     # Initialize a defaultdict to store grouped objects
     grouped_dict = defaultdict(list)
