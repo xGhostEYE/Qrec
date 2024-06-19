@@ -24,60 +24,46 @@ probabilities_result_correct = []
 
 
 #TODO - Make this run with all the projects
-def Run_Project_Prediction():
-    # Initialize a defaultdict to store grouped objects
-    grouped_dict = defaultdict(list)
-    test_data_dict = {}
-    file_dict = {}
-
-    print("test file exists: ",op.isfile(file_path), "\n")
-    if (not op.isfile(file_path)):
-        return None
+def Run_project_prediction():
+    # Runs prediction on all Python files in a directory.
     try:
-        #Get file_dict
-        files = os.listdir(test_directory)
-        directoryPath = []
-        for file in files:
-            file_path = os.path.join(test_directory, file)
-            directoryPath.append(file_path)
-        
-        for path in directoryPath:
-            try:
-                for root, directories, files in os.walk(path, topdown=False):
-                    for name in files:
-                        file_path = (os.path.join(root, name))
-      
-                        if file_path.endswith(".py") or file_path.endswith(".pyi"):
-                            with open(file_path, encoding='utf-8') as file:
-                                file_dict[file_path] = fc.extract_bag_of_tokens(file)
-                
-                for root, directories, files in os.walk(path, topdown=False):
-                    for name in files:
-                        file_path = (os.path.join(root, name))
-      
-                        if file_path.endswith(".py") or file_path.endswith(".pyi"):
-                            with open(file_path, encoding='utf-8') as file:
-                                method_dict = fc.extract_data(file)
+        # Validate directory existence
+        if not os.path.isdir(test_directory):
+            print(f"Error: Directory '{test_directory}' does not exist.")
+            return None
 
-                            with open(file_path, encoding='utf-8') as file:
-                                candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
-                        
-                            #Format of data_dict:
-                            #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
-                            #Value = [x1,x2,x3,x4]
-                            test_data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path))
+        # Iterate through all Python files in the directory
+        for root, directories, files in os.walk(test_directory, topdown=False):
+            for filename in files:
+                if filename.endswith(".py") or filename.endswith(".pyi"):
+                    file_path = os.path.join(root, filename)
 
-                            # Group objects by their key values
-                            for key, value in test_data_dict.items():
-                                object_name, api_name, line_number, is_true_api = key
-                                reshaped_value = np.array(value).reshape(1, -1)
-                                grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
+                    try:
+                        # Process individual file
+                        # print(f"Processing file: {file_path}")
 
-            except Exception as e:
-                print("Encountered exception when getting a file dict: ", e)
+                        with open(file_path, encoding='utf-8') as file:
+                            file_dict = fc.extract_bag_of_tokens(file)
 
+                            method_dict = fc.extract_data(file)
+                            candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
+
+                            test_data_dict = de.DataEncoder(method_dict, candidate_dict, file_dict, file_path)
+
+                        # Group objects by key values
+                        for key, value in test_data_dict.items():
+                            object_name, api_name, line_number, is_true_api = key
+                            reshaped_value = np.array(value).reshape(1, -1)
+                            grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
+
+                    except Exception as e:
+                        print(f"Error processing file '{file_path}': {e}")
+                        traceback.print_exc()
+
+        return grouped_dict
     
     except Exception as e:
+        print(f"An unexpected error occurred: {e}")
         traceback.print_exc()
 
 def Run_file_Prediction():
