@@ -13,33 +13,31 @@ from Evaluation import Evaluators as ev
 from GitScrapper import Driller as dr
 import sys
 
-#Please change the path of 'directory' into the path of your training data (projects)
-directory = r"../test/training_test"
+#Please add the training projects inside training/. 
+train_directory = r"../training/"
+
+#Please add the training projects inside test/. 
+test_directory = r"../test"
 model = None
 predictions = []
 probabilities_result_correct = []
 
 
-# # Initialize a defaultdict to store grouped objects
-# probabilities_dict = defaultdict(list)
-
-def RunPrediction():
+def Run_Project_Prediction():
     # Initialize a defaultdict to store grouped objects
     grouped_dict = defaultdict(list)
     test_data_dict = {}
     file_dict = {}
-    # model = load('./random_forest_model.joblib')
-    file_path = "../test/Test/Streamer.py"
-    # test_project_path = "../test/Test/"
+
     print("test file exists: ",op.isfile(file_path), "\n")
     if (not op.isfile(file_path)):
         return None
     try:
         #Get file_dict
-        files = os.listdir(directory)
+        files = os.listdir(test_directory)
         directoryPath = []
         for file in files:
-            file_path = os.path.join(directory, file)
+            file_path = os.path.join(test_directory, file)
             directoryPath.append(file_path)
         
         for path in directoryPath:
@@ -51,7 +49,63 @@ def RunPrediction():
                         if file_path.endswith(".py") or file_path.endswith(".pyi"):
                             with open(file_path, encoding='utf-8') as file:
                                 file_dict[file_path] = fc.extract_bag_of_tokens(file)
+                
+                for root, directories, files in os.walk(path, topdown=False):
+                    for name in files:
+                        file_path = (os.path.join(root, name))
+      
+                        if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                            with open(file_path, encoding='utf-8') as file:
+                                method_dict = fc.extract_data(file)
 
+                            with open(file_path, encoding='utf-8') as file:
+                                candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
+                        
+                            #Format of data_dict:
+                            #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
+                            #Value = [x1,x2,x3,x4]
+                            test_data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path))
+
+                            # Group objects by their key values
+                            for key, value in test_data_dict.items():
+                                object_name, api_name, line_number, is_true_api = key
+                                reshaped_value = np.array(value).reshape(1, -1)
+                                grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
+
+            except Exception as e:
+                print("Encountered exception when getting a file dict: ", e)
+
+    
+    except Exception as e:
+        traceback.print_exc()
+
+def Run_file_Prediction():
+    # Initialize a defaultdict to store grouped objects
+    grouped_dict = defaultdict(list)
+    test_data_dict = {}
+    file_dict = {}
+    file_path = "../test/Test/Streamer.py"
+
+    print("test file exists: ",op.isfile(file_path), "\n")
+    if (not op.isfile(file_path)):
+        return None
+    try:
+        #Get file_dict
+        files = os.listdir(test_directory)
+        directoryPath = []
+        for file in files:
+            file_path = os.path.join(test_directory, file)
+            directoryPath.append(file_path)
+        
+        for path in directoryPath:
+            try:
+                for root, directories, files in os.walk(path, topdown=False):
+                    for name in files:
+                        file_path = (os.path.join(root, name))
+      
+                        if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                            with open(file_path, encoding='utf-8') as file:
+                                file_dict[file_path] = fc.extract_bag_of_tokens(file)
             except Exception as e:
                 print("Encountered exception when getting a file dict: ", e)
 
@@ -82,7 +136,7 @@ def SortTuples(tuples):
 
 def GetTrainingData():
     data_dict = {}
-    data_dict.update(ult.analyze_directory(directory))
+    data_dict.update(ult.analyze_directory(train_directory))
     labels = []
     for key,value in data_dict.items():
         labels.append(key[3])

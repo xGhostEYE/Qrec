@@ -49,9 +49,11 @@ def get_x1(candidates, dataflow, true_api):
 
     with open('test.txt','w+') as f:
         f.write(s)
-    os.system('/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/trainfile.lm -debug 2 > /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl')
 
-    with open('/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    #Only works with absolute path
+    os.system('../../../Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../../QrecProject/Qrec/trainfile.lm -debug 2 > ../../../Qrec/Ngram-output/output.ppl')
+
+    with open('../../../QrecProject/Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -72,7 +74,8 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm /Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/Ngram-output/output.ppl')
+    os.system('rm ../../../Qrec/Ngram-output/output.ppl')
+    os.system('rm test.txt')
     return ngram_scores  
           
 
