@@ -17,14 +17,15 @@ import sys
 train_directory = r"../training/"
 
 #Please add the training projects inside test/. 
-test_directory = r"../test"
+test_directory = r"../test/"
 model = None
 predictions = []
 probabilities_result_correct = []
 
 
-#TODO - Make this run with all the projects
+#TODO - TEST
 def Run_project_prediction():
+    grouped_dict = defaultdict(list)
     # Runs prediction on all Python files in a directory.
     try:
         # Validate directory existence
@@ -32,33 +33,45 @@ def Run_project_prediction():
             print(f"Error: Directory '{test_directory}' does not exist.")
             return None
 
-        # Iterate through all Python files in the directory
+        # Iterate through all Python files in the directory populate file_dict
         for root, directories, files in os.walk(test_directory, topdown=False):
             for filename in files:
                 if filename.endswith(".py") or filename.endswith(".pyi"):
                     file_path = os.path.join(root, filename)
 
-                    try:
-                        # Process individual file
-                        # print(f"Processing file: {file_path}")
-
+                    try: 
                         with open(file_path, encoding='utf-8') as file:
                             file_dict = fc.extract_bag_of_tokens(file)
-
-                            method_dict = fc.extract_data(file)
-                            candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
-
-                            test_data_dict = de.DataEncoder(method_dict, candidate_dict, file_dict, file_path)
-
-                        # Group objects by key values
-                        for key, value in test_data_dict.items():
-                            object_name, api_name, line_number, is_true_api = key
-                            reshaped_value = np.array(value).reshape(1, -1)
-                            grouped_dict[(object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
-
+                    
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")
                         traceback.print_exc()
+
+        # iterate through all Python files in the directory again to test 
+        for root, directories, files in os.walk(test_directory, topdown=False):
+            for filename in files:
+                file_path = (os.path.join(root, filename))
+
+                if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                    try:
+                        with open(file_path, encoding='utf-8') as file:
+                            method_dict = fc.extract_data(file)
+
+                        with open(file_path, encoding='utf-8') as file:
+                            candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
+
+                        test_data_dict = de.DataEncoder(method_dict, candidate_dict, file_dict, file_path)
+                    
+                    except Exception as e:
+                        print(f"Error processing file '{file_path}': {e}")
+                        traceback.print_exc()
+                    
+                # Group objects by key values
+                for key, value in test_data_dict.items():
+                    object_name, api_name, line_number, is_true_api = key
+                    reshaped_value = np.array(value).reshape(1, -1)
+                    grouped_dict[(object_name, line_number, file_path)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
+
 
         return grouped_dict
     
@@ -66,7 +79,8 @@ def Run_project_prediction():
         print(f"An unexpected error occurred: {e}")
         traceback.print_exc()
 
-def Run_file_Prediction():
+#Not in use any more. For reference.
+def Run_file_prediction():
     # Initialize a defaultdict to store grouped objects
     grouped_dict = defaultdict(list)
     test_data_dict = {}
@@ -170,7 +184,7 @@ else:
 
 
 print("running prediction")
-grouped_dict = RunPrediction()
+grouped_dict = Run_project_prediction()
 
 if grouped_dict == None:
     exit(1)
@@ -180,20 +194,24 @@ sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
 print("done sorting data")
 
 # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
-recommendation = []
-correct_apis = []
+api_dict = {}
 for key, value in sorted_data.items():
-    temp_list = []
+    candidates = []
+    correct_api = None
     for tuple in value:
-        temp_list.append(tuple[1])
+        candidates.append(tuple[1])
         if tuple[0] == 1:
-            correct_apis.append(tuple[1])
-    recommendation.append(temp_list)
-print("\ncorrect apis: ", correct_apis[0])
-print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",recommendation[0][:10])
+            correct_api = tuple[1]
+    if (correct_api):
+        api_dict[correct_api] = candidates
+
+first_recommendation_set_true_api = list(api_dict.keys())[0]
+first_recommendation_set = api_dict[first_recommendation_set_true_api]
+print("\ncorrect apis: ", list(api_dict.keys())[0])
+print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[0][:10])
 print("calculating mrr")
 k = [1,2,3,4,5,10]
-print("MRR: ", ev.calculate_mrr(recommendation, correct_apis))
+print("MRR: ", ev.calculate_mrr(api_dict))
 for i in k:
-    print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(recommendation, correct_apis, i))
+    print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(api_dict, i))
 # print("Precision Recall: ",ev.calculate_precision_recall(recommendation, correct_apis))

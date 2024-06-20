@@ -1,35 +1,38 @@
-def calculate_top_k_accuracy(recommendations, correct_apis, k):
+def calculate_top_k_accuracy(api_dict, k):
     """
     Calculate the Top-k accuracy for the given recommendations.
     
-    :param recommendations: A list of lists, where each sublist contains ordered API recommendations.
-    :param correct_apis: A list of the correct APIs corresponding to each set of recommendations.
+    :param api_dict: a dictionary represents true api and candidates for every recommendation points in the project 
+                                   key = true api of the recommendation point, 
+                                   value = the candidates for the recommendation point
     :param k: The number of top recommendations to consider for accuracy calculation.
     :return: The Top-k accuracy as a percentage.
     """
     correct_count = 0
-    for rec, correct_api in zip(recommendations, correct_apis):
-        if correct_api in rec[:k]:
+    for key, value in api_dict.items():
+        if key in value[:k]:
             correct_count += 1
-    return (correct_count / len(correct_apis)) * 100
 
-def calculate_mrr(recommendations, correct_apis):
+    return (correct_count / len(api_dict)) * 100
+
+def calculate_mrr(api_dict):
     """
-    Calculate the Mean Reciprocal Rank (MRR) for the given recommendations.
-    
-    :param recommendations: A list of lists, where each sublist contains ordered API recommendations.
-    :param correct_apis: A list of the correct APIs corresponding to each set of recommendations.
-    :return: The MRR of the recommendations.
+    Calculate MRR for the test projects
+
+    :param api_dict: a dictionary represents true api and candidates for every recommendation points in the project 
+                                   key = true api of the recommendation point, 
+                                   value = the candidates for the recommendation point
+    :return the mrr for the test projects
     """
     mrr = 0
-    for rec, correct_api in zip(recommendations, correct_apis):
+    for key, value in api_dict.items():
         try:
-            rank = rec.index(correct_api) + 1
-            mrr += 1/rank
+            index = value.index(key)
+            mrr = mrr + index + 1
         except ValueError:
             # correct API not in recommendations
             pass
-    return mrr / len(correct_apis)
+    return mrr / len(api_dict)
 
 def calculate_precision_recall(correct_apis, recommended_apis):
     true_positives = len(set(correct_apis) & set(recommended_apis))
