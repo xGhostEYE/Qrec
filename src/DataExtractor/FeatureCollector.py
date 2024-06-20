@@ -64,8 +64,11 @@ def extract_data_flows(node):
                 for i in range(len(vars)):
                     if '(' in vars[i]:
                         vars[i] = vars[i].replace('(', '')
-                    elif ')' in vars[i]:
+                    if ')' in vars[i]:
                         vars[i] = vars[i].replace(')', '')
+                    if ' ' in vars[i]:
+                        vars[i] = vars[i].replace(' ', '')
+
                     variables.append(vars[i])
                     assign_value = None
                     if isinstance(node.value, ast.Constant):
@@ -90,11 +93,9 @@ def extract_data_flows(node):
                     if (assign_name in assign_lines[i]):
                         assign_lines[i][1] = assign_line
                         assign_lines[i][2] = assign_value
-                        print(assign_lines[i])
-                assign_lines.append([assign_name, assign_line, assign_value])
-
-                
-        
+                        
+                if not ([assign_name, assign_line, assign_value] in assign_lines):
+                    assign_lines.append([assign_name, assign_line, str(assign_value)])
         # handle for loops
         elif isinstance(node, ast.For):
             targets = get_identifiers_from_target(node.target)
@@ -102,15 +103,13 @@ def extract_data_flows(node):
             for target in targets:
                 assign_lines.append((target, assign_line))               
             
-    for i in range(len(assign_lines)):
-        data_flows[(None, assign_lines[i][0], assign_lines[i][1])] = [assign_lines[i][2]]
-    # clean the dictionary
-    for key, value in data_flows.items(): 
-        for token, line_number, assign_value in assign_lines:
-            if key[2] == line_number:
-                data_flows[key].append(token)                
-            if key[1] == token and value != assign_value:
-                data_flows[key] = assign_value
+    # # clean the dictionary
+    # for key, value in data_flows.items(): 
+    #     for token, line_number, assign_value in assign_lines:
+    #         if key[2] == line_number:
+    #             data_flows[key].append(token)                
+    #         # if key[1] == token and value != assign_value:
+    #         #     data_flows[key] = assign_value
             
     return data_flows
 
@@ -160,10 +159,12 @@ def extract_data(rawfile):
             if ')' in words:
                 words.replace(')', "")
         dataflows[key] = new_words
-    sys.exit()
+    # sys.exit()
     return dataflows
-with open(r"test\training_test\train\training.py") as file:
-    extract_data(file)
+
+
+# with open("/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/test/Test/training.py") as file:
+#     extract_data(file)
 
 def extract_bag_of_tokens(file):
     """

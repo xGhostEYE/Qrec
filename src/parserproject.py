@@ -10,14 +10,14 @@ import DataEncoder.DataEncoder as de
 from collections import defaultdict
 import traceback 
 from Evaluation import Evaluators as ev
-from GitScrapper import Driller as dr
+# from GitScrapper import Driller as dr
 import sys
 
 #Please add the training projects inside training/. 
-train_directory = r"../training/"
+train_directory = "../train/"
 
 #Please add the training projects inside test/. 
-test_directory = r"../test/"
+test_directory = "../test/"
 model = None
 predictions = []
 probabilities_result_correct = []
@@ -26,6 +26,7 @@ probabilities_result_correct = []
 #TODO - TEST
 def Run_project_prediction():
     grouped_dict = defaultdict(list)
+    file_dict = {}
     # Runs prediction on all Python files in a directory.
     try:
         # Validate directory existence
@@ -41,7 +42,7 @@ def Run_project_prediction():
 
                     try: 
                         with open(file_path, encoding='utf-8') as file:
-                            file_dict = fc.extract_bag_of_tokens(file)
+                            file_dict[file_path] = fc.extract_bag_of_tokens(file)
                     
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")
@@ -208,7 +209,7 @@ for key, value in sorted_data.items():
 first_recommendation_set_true_api = list(api_dict.keys())[0]
 first_recommendation_set = api_dict[first_recommendation_set_true_api]
 print("\ncorrect apis: ", list(api_dict.keys())[0])
-print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[0][:10])
+print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[first_recommendation_set_true_api][:10])
 print("calculating mrr")
 k = [1,2,3,4,5,10]
 print("MRR: ", ev.calculate_mrr(api_dict))

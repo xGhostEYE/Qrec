@@ -24,15 +24,16 @@ def calculate_mrr(api_dict):
                                    value = the candidates for the recommendation point
     :return the mrr for the test projects
     """
-    mrr = 0
+    total_rr = 0
     for key, value in api_dict.items():
         try:
             index = value.index(key)
-            mrr = mrr + index + 1
+            rank = index + 1
+            total_rr = total_rr + 1/rank
         except ValueError:
             # correct API not in recommendations
             pass
-    return mrr / len(api_dict)
+    return total_rr / len(api_dict)
 
 def calculate_precision_recall(correct_apis, recommended_apis):
     true_positives = len(set(correct_apis) & set(recommended_apis))

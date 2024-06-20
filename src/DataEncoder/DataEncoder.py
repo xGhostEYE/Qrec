@@ -24,7 +24,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
                 isTrue = 0
                 if (candidate == true_api):
                     isTrue = 1
-                    
+                
                 x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict, file_dict, filepath)
@@ -51,9 +51,9 @@ def get_x1(candidates, dataflow, true_api):
         f.write(s)
 
     #Only works with absolute path
-    os.system('../../../Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../../QrecProject/Qrec/trainfile.lm -debug 2 > ../../../Qrec/Ngram-output/output.ppl')
+    os.system('../../Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
 
-    with open('../../../QrecProject/Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    with open('../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -74,7 +74,7 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm ../../../Qrec/Ngram-output/output.ppl')
+    os.system('rm ../../Qrec/Ngram-output/output.ppl')
     os.system('rm test.txt')
     return ngram_scores  
           
