@@ -209,7 +209,7 @@ for key, value in sorted_data.items():
 first_recommendation_set_true_api = list(api_dict.keys())[0]
 first_recommendation_set = api_dict[first_recommendation_set_true_api]
 print("\ncorrect apis: ", list(api_dict.keys())[0])
-print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[first_recommendation_set_true_api][:10])
+print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[:10])
 print("calculating mrr")
 k = [1,2,3,4,5,10]
 print("MRR: ", ev.calculate_mrr(api_dict))
