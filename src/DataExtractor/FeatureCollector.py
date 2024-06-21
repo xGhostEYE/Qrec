@@ -101,10 +101,8 @@ def extract_data_flows(node):
             targets = get_identifiers_from_target(node.target)
             assign_line = node.lineno
             for target in targets:
-                assign_lines.append((target, assign_line))               
-    for assign in assign_lines:
-        if len(assign) < 3:
-            assign_lines.remove(assign)
+                assign_lines.append([target, assign_line])
+
     # # clean the dictionary
     for key, value in data_flows.items():
         for assign_line in assign_lines:
