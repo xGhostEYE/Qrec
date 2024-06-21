@@ -133,7 +133,7 @@ def extract_data(rawfile):
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
-        print("key: ",key, "\nvalue: ",value)
+        # print("key: ",key, "\nvalue: ",value)
         
         #TODO: check for comments and skip them!!!!
         new_values = []
@@ -165,12 +165,12 @@ def extract_data(rawfile):
             if ')' in words:
                 words.replace(')', "")
         dataflows[key] = new_words
-    sys.exit()
+    # sys.exit()
     return dataflows
 
 
-with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
-    extract_data(file)
+# with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
+#     extract_data(file)
 
 def extract_bag_of_tokens(file):
     """
