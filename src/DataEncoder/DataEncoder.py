@@ -51,7 +51,7 @@ def get_x1(candidates, dataflow, true_api):
         f.write(s)
 
     #Only works with absolute path
-    os.system('../../Qrec/utils/MacOS/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+    os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
 
     with open('../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
