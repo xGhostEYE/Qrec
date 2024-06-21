@@ -102,12 +102,16 @@ def extract_data_flows(node):
             assign_line = node.lineno
             for target in targets:
                 assign_lines.append((target, assign_line))               
-            
+    for assign in assign_lines:
+        if len(assign) < 3:
+            assign_lines.remove(assign)
     # # clean the dictionary
-    # for key, value in data_flows.items(): 
-    #     for token, line_number, assign_value in assign_lines:
-    #         if key[2] == line_number:
-    #             data_flows[key].append(token)                
+    for key, value in data_flows.items():
+        for assign_line in assign_lines:
+            # token, line_number, assign_value
+            if len(assign_line) == 3:
+                if key[2] == assign_line[1]:
+                    data_flows[key].append(assign_line[0])
     #         # if key[1] == token and value != assign_value:
     #         #     data_flows[key] = assign_value
             
@@ -163,7 +167,7 @@ def extract_data(rawfile):
     return dataflows
 
 
-# with open("/Volumes/Transcend/Julian-Transcend/GithubRepo/QrecProject/Qrec/test/Test/training.py") as file:
+# with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
 #     extract_data(file)
 
 def extract_bag_of_tokens(file):
