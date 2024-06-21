@@ -133,7 +133,7 @@ def extract_data(rawfile):
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
-        print("key: ",key, "\nvalue: ",value)
+        # print("key: ",key, "\nvalue: ",value)
         
         #TODO: check for comments and skip them!!!!
         new_values = []
