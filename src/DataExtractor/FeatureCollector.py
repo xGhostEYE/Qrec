@@ -92,6 +92,8 @@ def extract_data_flows(node):
                 for i in range(len(assign_lines)):
                     if (assign_name in assign_lines[i]):
                         assign_lines[i][1] = assign_line
+                        if (len(assign_lines)<3):
+                            continue
                         assign_lines[i][2] = assign_value
                         
                 if not ([assign_name, assign_line, assign_value] in assign_lines):
