@@ -149,7 +149,9 @@ def extract_data(rawfile):
         new_words = []
         more_words = []
         for words in value:
-            if words.count('\'') == 2 and words.count('\"') == 0:
+            if words is None:
+                continue
+            if isinstance(words, str) and words.count('\'') == 2 and words.count('\"') == 0:
                 new_words.append(words)
                 continue
             new_words.extend(words.split('.'))
