@@ -247,7 +247,7 @@ def extract_bag_of_tokens(file):
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    list_of_tokens[index] = node.arg
+                    list_of_tokens[index] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
                 else:
                     list_of_tokens.extend(new_tokens)
             else:
@@ -748,12 +748,14 @@ def extract_bag_of_tokens(file):
             super().generic_visit(node)
 
         def visit_Del(self,node):
-            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
-            new_tokens = ["del"]
+            line_of_name = list(bag_of_tokens)[-1]
+
+            list_of_tokens = bag_of_tokens[line_of_name] if line_of_name in bag_of_tokens else None
+            
             if (list_of_tokens):
-                list_of_tokens.extend(new_tokens)
+                list_of_tokens.insert(-1, "del")
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[line_of_name] = "del"
             super().generic_visit(node)
 
         def visit_Raise(self,node):
