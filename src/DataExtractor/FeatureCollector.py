@@ -325,10 +325,6 @@ def extract_bag_of_tokens(file):
         
         def visit_Await(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
-
-            #Collecting junk tokens:
-            for token_node in node.decorator_list:
-                junk_tokens.append(token_node)
             
             #Collecting useful tokens:
             new_tokens = ["await"]
