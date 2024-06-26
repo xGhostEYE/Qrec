@@ -7,10 +7,6 @@ def extract_aroma_tree(file):
     queue = Queue()
     root = Node()
 
-    class MyNode (ast.Node):
-        def __init__(self, node, parent_tree_node):
-            self.node = node
-            self.parent_tree_node = parent_tree_node
 
     class MyVisitor (ast.NodeVisitor):
         def visit(self, node, parent_AnyTree_Node):
@@ -30,8 +26,9 @@ def extract_aroma_tree(file):
                     self.visit(value, parent_AnyTree_Node)
 
         #Control Flow
-        def visit_If(self, node, parent):
-            if_node = Node("##")
+        def visit_If(self, node, parent):                
+            if parent:
+                if_node = AnyNode(id)
             self.generic_visit(node, if_node)
 
 
@@ -39,4 +36,4 @@ def extract_aroma_tree(file):
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
-    visitor.visit(tree)
+    visitor.visit(tree, None)
