@@ -1,12 +1,27 @@
 from ast import *
 import ast
-from anytree import Node, RenderTree
+from anytree import Node, NodeMixin, RenderTree
 from queue import Queue
 
 def extract_aroma_tree(file):
     queue = Queue()
     root = Node()
 
+    class Position():
+        def __init(self, lineno, col_offset, end_lineno, end_col_offset):
+            self.lineno = lineno
+            self.col_offset = col_offset
+            self.end_lineno = end_lineno
+            self.end_col_offset = end_col_offset
+
+    class MyAnyTreeNode(NodeMixin):  # Add Node feature
+         def __init__(self, label, position, parent=None, children=None):
+            super().__init__()
+            self.label = label
+            self.position = position
+            self.parent = parent
+            if children:
+                self.children = children
 
     class MyVisitor (ast.NodeVisitor):
         def visit(self, node, parent_AnyTree_Node):
