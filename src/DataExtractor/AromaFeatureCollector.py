@@ -41,10 +41,19 @@ def extract_aroma_tree(file):
                     self.visit(value, parent_AnyTree_Node)
 
         #Control Flow
-        def visit_If(self, node, parent):                
+        def visit_If(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
             if parent:
-                if_node = AnyNode(id)
+                if_node = MyAnyTreeNode("if##", position, parent)
+            
+            #Traverse through the conditional statement and Body
             self.generic_visit(node, if_node)
+
+            #Traverse through else statement
+            
+
+
 
 
 
