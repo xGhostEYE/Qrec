@@ -131,6 +131,197 @@ def extract_aroma_tree(file):
                     self.visit(childNode, else_body_AnyTreeNode)
 
             return for_AnyTreeNode
+        
+        def visit_While(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            while_AnyTreeNode = MyAnyTreeNode("while##", position, parent)
+
+
+            while_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, while_AnyTreeNode)
+
+            self.visit(node.test, while_conditional_AnyTreeNode)
+
+            while_body_label = ":"
+            for i in range ( len(node.body)):
+                for_body_label = for_body_label + "#"
+
+            while_body_AnyTreeNode = MyAnyTreeNode(for_body_label, position, while_body_label)
+            
+            #Traverse through statements in the body
+            for childNode in node.body:
+                self.visit(childNode, while_body_AnyTreeNode)
+
+            #Traverse through else statement if exists
+            if (len(node.orelse) != 0):
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+
+                else_body_label = ":"
+
+                #TODO: since else node is stored in another node and not a node by itself, we would only have 1 # instead of 2 #s.
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
+
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
+
+                #TODO: end col offset might not be correct. Fix this later
+                position = Position(else_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+                
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
+
+            return while_AnyTreeNode
+
+        def visit_Break(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            break_AnyTreeNode = MyAnyTreeNode("break", position, parent)
+
+            return break_AnyTreeNode
+        
+        def visit_Continue(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            continue_AnyTreeNode = MyAnyTreeNode("continue", position, parent)
+
+            return continue_AnyTreeNode 
+        
+        def visit_Try(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            try_AnyTreeNode = MyAnyTreeNode("try#", position, parent)
+
+            try_body_label = ":"
+            for i in range ( len(node.body)):
+                try_body_label = try_body_label + "#"
+
+            try_body_AnyTreeNode = MyAnyTreeNode(try_body_label, position, try_AnyTreeNode)
+            
+            #Traverse through statements in the body
+            for childNode in node.body:
+                self.visit(childNode, try_body_AnyTreeNode)
+
+            if (len(node.handlers) != 0):
+                
+                for exception_handler in node.handlers:
+                    self.visit(exception_handler, parent)
+            
+            if (len(node.orelse) != 0):
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+                
+                else_body_label = ":"
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
+
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
+                #Get end lineno of else token
+                else_end_lineno = node.orelse[-1].end_lineno
+                
+                position = Position(else_lineno, node.col_offset, else_end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
+
+            if (len(node.finalbody) != 0):
+                finally_AnyTreeNode = MyAnyTreeNode("finally#", position, parent)
+                
+                finally_body_label = ":"
+                for i in range ( len(node.finalbody)):
+                    finally_body_label = finally_body_label + "#"
+
+                finally_lineno = node.orelse[-1].end_lineno + 1
+  
+                position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
+
+                for childNode in node.finalbody:
+                    self.visit(childNode, finally_body_AnyTreeNode)
+
+            return try_AnyTreeNode
+
+        def visit_TryStar(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            try_AnyTreeNode = MyAnyTreeNode("try#", position, parent)
+
+            try_body_label = ":"
+            for i in range ( len(node.body)):
+                try_body_label = try_body_label + "#"
+
+            try_body_AnyTreeNode = MyAnyTreeNode(try_body_label, position, try_AnyTreeNode)
+            
+            #Traverse through statements in the body
+            for childNode in node.body:
+                self.visit(childNode, try_body_AnyTreeNode)
+
+            if (len(node.handlers) != 0):
+                
+                for exception_handler in node.handlers:
+                    self.visit(exception_handler, (parent, "star"))
+            
+            if (len(node.orelse) != 0):
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+                
+                else_body_label = ":"
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
+
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
+                #Get end lineno of else token
+                else_end_lineno = node.orelse[-1].end_lineno
+                
+                position = Position(else_lineno, node.col_offset, else_end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
+
+            if (len(node.finalbody) != 0):
+                finally_AnyTreeNode = MyAnyTreeNode("finally#", position, parent)
+                
+                finally_body_label = ":"
+                for i in range ( len(node.finalbody)):
+                    finally_body_label = finally_body_label + "#"
+
+                finally_lineno = node.orelse[-1].end_lineno + 1
+  
+                position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
+
+                for childNode in node.finalbody:
+                    self.visit(childNode, finally_body_AnyTreeNode)
+
+            return try_AnyTreeNode
+
+        def visit_ExceptHandler(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            if node and len(parent) == 2 and parent[1] == "star":
+                except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent)
+            else:
+                except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
+
+            exception_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, except_AnyTreeNode)
+
+            self.visit(node.type, exception_conditional_AnyTreeNode)
+            
+            exception_body_label = ":"
+            for i in range ( len(node.body)):
+                exception_body_label = exception_body_label + "#"
+
+            try_body_AnyTreeNode = MyAnyTreeNode(exception_body_label, position, except_AnyTreeNode)
+            for childNode in node.body:
+                self.visit(childNode, try_body_AnyTreeNode)
+
+
+
+
+
 
             
 
