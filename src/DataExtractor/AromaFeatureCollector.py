@@ -55,7 +55,7 @@ def extract_aroma_tree(file):
 
             #Traverse through the conditional statement
             conditional_node = node.test
-            self.generic_visit(conditional_node, if_conditional_AnyTreeNode)
+            self.visit(conditional_node, if_conditional_AnyTreeNode)
 
             if_body_label = ":"
             for i in range ( len(node.body)):
@@ -65,28 +65,74 @@ def extract_aroma_tree(file):
             
             #Traverse through statements in the body
             for childNode in node.body:
-                self.generic_visit(childNode, if_body_AnyTreeNode)
+                self.visit(childNode, if_body_AnyTreeNode)
 
-            #Traverse through else statement
-            else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+            #Traverse through else statement if exists
+            if (len(node.orelse) != 0):            
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
 
-            else_body_label = ":"
+                else_body_label = ":"
 
-            #TODO: since else node is inside if node, we would only have 1 # instead of 2 #s.
-            for i in range ( len(node.orelse)):
-                else_body_label = else_body_label + "#"
+                #TODO: since else node is stored in another node and not a node by itself, we would only have 1 # instead of 2 #s.
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
 
-            #Get lineno of else token
-            else_lineno = node.body[-1].end_lineno + 1
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
 
-            #TODO: end col offset might not be correct. Fix this later
-            position = Position(else_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
-            
-            for childNode in node.orelse:
-                self.generic_visit(childNode, else_body_AnyTreeNode)
+                #TODO: end col offset might not be correct. Fix this later
+                position = Position(else_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+                
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
 
             return if_AnyTreeNode
+
+        def visit_For(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            for_AnyTreeNode = MyAnyTreeNode("for##", position, parent)
+
+
+            for_conditional_AnyTreeNode = MyAnyTreeNode("#in#", position, for_AnyTreeNode)
+
+            self.visit(node.target, for_conditional_AnyTreeNode)
+            self.visit(node.iter, for_conditional_AnyTreeNode)
+
+            for_body_label = ":"
+            for i in range ( len(node.body)):
+                for_body_label = for_body_label + "#"
+
+            for_body_AnyTreeNode = MyAnyTreeNode(for_body_label, position, for_AnyTreeNode)
+            
+            #Traverse through statements in the body
+            for childNode in node.body:
+                self.visit(childNode, for_body_AnyTreeNode)
+
+            #Traverse through else statement if exists
+            if (len(node.orelse) != 0):
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+
+                else_body_label = ":"
+
+                #TODO: since else node is stored in another node and not a node by itself, we would only have 1 # instead of 2 #s.
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
+
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
+
+                #TODO: end col offset might not be correct. Fix this later
+                position = Position(else_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+                
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
+
+            return for_AnyTreeNode
+
+            
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
