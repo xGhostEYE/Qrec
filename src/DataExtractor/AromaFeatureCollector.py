@@ -45,7 +45,6 @@ def extract_aroma_tree(file):
                 elif isinstance(value, AST):
                     return self.visit(value, parent_AnyTree_Node)
         # Root nodes
-        # TODO ask if module is needed since we have to parse files already
         def visit_Module(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
@@ -71,6 +70,29 @@ def extract_aroma_tree(file):
             self.visit(body, Expression_AnyTreeNode)
             
             return Expression_AnyTreeNode
+        
+        def visit_Interactive(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            Interactive_body_label = ""
+            for i in range ( len(node.body)):
+                Interactive_body_label = Interactive_body_label + "#"
+            
+            Interactive_AnyTreeNode = MyAnyTreeNode(Interactive_body_label, position, parent)
+            
+            for childNode in node.body:
+                self.visit(childNode, Interactive_AnyTreeNode)
+            
+            if(len(node.assign) != 0):
+                for childNode in node.assign:
+                    self.visit(childNode, Interactive_AnyTreeNode)
+            
+            return Interactive_AnyTreeNode
+        
+        # Literals
+        
+        
+            
             
             
         #Control Flow
