@@ -363,8 +363,8 @@ def extract_aroma_tree(file):
 
         def visit_ExceptHandler(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
-            
-            if node and len(parent) == 2 and parent[1] == "star":
+
+            if parent and len(parent) == 2 and parent[1] == "star":
                 except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent)
             else:
                 except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
@@ -381,8 +381,54 @@ def extract_aroma_tree(file):
             for childNode in node.body:
                 self.visit(childNode, try_body_AnyTreeNode)
 
+            return except_AnyTreeNode
+        
+        def visit_With(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
 
+            with_AnyTreeNode = MyAnyTreeNode("with##", position, parent)
+            
+            # Get the context manager part of a With statement
+            with_context_label = ""
+            for i in range (len(node.items)):
+                if (with_context_managers == ""):
+                    with_context_label = with_context_label + "#"
+                else:
+                    with_context_label = with_context_label + ",#"
 
+            with_context_managers = MyAnyTreeNode(with_context_label, position, with_AnyTreeNode )
+            
+            for withItem_node in node.items:
+                self.visit(withItem_node, with_context_managers)
+            
+            # Get the body of the With statement
+            body_label = ""
+            for i in range (len(node.body)):
+                body_label = body_label + "#"
+            
+            with_body_AnyTree = MyAnyTreeNode(body_label, position, with_AnyTreeNode)
+            
+            for childNode in node.body:
+                self.visit(childNode, with_body_AnyTree)
+
+            return with_AnyTreeNode
+        
+        def visit_withitem(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+
+            if (optional_vars):
+                withItem_AnyTree = MyAnyTreeNode("#as#", position, parent)
+            else:
+                withItem_AnyTree = MyAnyTreeNode("#", position, parent)
+
+            context_expr = node.context_expr
+            self.visit(context_expr, withItem_AnyTree)
+
+            optional_vars = node.optional_vars
+            if (optional_vars):
+                self.visit(optional_vars, withItem_AnyTree)
+
+            return withItem_AnyTree
 
 
 
