@@ -44,7 +44,35 @@ def extract_aroma_tree(file):
                             return self.visit(item, parent_AnyTree_Node)
                 elif isinstance(value, AST):
                     return self.visit(value, parent_AnyTree_Node)
-
+        # Root nodes
+        # TODO ask if module is needed since we have to parse files already
+        def visit_Module(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            Module_body_label = ""
+            for i in range ( len(node.body)):
+                Module_body_label = Module_body_label + "#"
+            
+            Module_AnyTreeNode = MyAnyTreeNode(Module_body_label, position, parent)
+            
+            for childNode in node.body:
+                self.visit(childNode, Module_AnyTreeNode)
+                
+            return Module_AnyTreeNode
+            
+        
+        def visit_Expression(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            Expression_AnyTreeNode = MyAnyTreeNode("#", position, parent)
+            
+            body = node.body
+            
+            self.visit(body, Expression_AnyTreeNode)
+            
+            return Expression_AnyTreeNode
+            
+            
         #Control Flow
         def visit_If(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
