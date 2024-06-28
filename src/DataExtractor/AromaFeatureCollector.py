@@ -91,7 +91,20 @@ def extract_aroma_tree(file):
         
         # Literals
         
-        
+        def visit_Constant(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            Constant_AnyTreeNode = MyAnyTreeNode("#", position, parent)
+            
+            body = node.body
+            
+            self.visit(body, Constant_AnyTreeNode)
+            
+            return Constant_AnyTreeNode
+            
+        def visit_FormattedValue(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
             
             
             
