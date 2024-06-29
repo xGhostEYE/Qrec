@@ -105,6 +105,15 @@ def extract_aroma_tree(file):
         def visit_FormattedValue(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
+            FormattedValue_AnyTreeNode = MyAnyTreeNode("#", position, parent)
+            
+            body = node.body
+            
+            self.visit(body, FormattedValue_AnyTreeNode)
+            
+            return FormattedValue_AnyTreeNode
+        
+        # def JoinedStr(seflf, node, parent):
             
             
             
