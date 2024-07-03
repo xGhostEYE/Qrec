@@ -573,8 +573,42 @@ def extract_aroma_tree(file):
                     self.visit(node.kwd_patterns[i],kw_pair_node)
             
             return matchclass_node
-                
+
+        def visit_MatchAs(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+            label = ""
+            if node.name:
+                if node.pattern:
+                    label = "#as#"
+                else:
+                    label = node.name
+            else:
+                label = "_"
+
+            match_as_node = MyAnyTreeNode(label, position,parent)  
+
+            if (label == "#as#"):
+                self.visit(node.pattern, match_as_node)
+                match_as_name_node = MyAnyTreeNode(str(node.name), position, match_as_node)
+   
+            return match_as_node
+        
+        def visit_MatchOr(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
             
+            label = ""
+            for i in range(len(node.patterns)):
+                if label == "":
+                    label = label + "#"
+                else:
+                    label = label + "|#"
+            
+            match_or_node = MyAnyTreeNode(label, position, parent)
+
+            for childNode in node.patterns:
+                self.visit(childNode, match_or_node)
+            
+            return match_or_node
 
             
 
