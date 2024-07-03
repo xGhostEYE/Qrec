@@ -117,7 +117,7 @@ def extract_aroma_tree(file):
             
             
             
-        #Control Flow
+    #Control Flow
         def visit_If(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
             
@@ -425,7 +425,7 @@ def extract_aroma_tree(file):
         def visit_withitem(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
 
-            if (optional_vars):
+            if (node.optional_vars):
                 withItem_AnyTree = MyAnyTreeNode("#as#", position, parent)
             else:
                 withItem_AnyTree = MyAnyTreeNode("#", position, parent)
@@ -439,7 +439,142 @@ def extract_aroma_tree(file):
 
             return withItem_AnyTree
 
+    # Pattern Matching
+        def visit_Match( self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
 
+            match_statement = MyAnyTreeNode("match##", position, parent)
+
+            subject = MyAnyTreeNode("(#)", position, match_statement)
+            self.visit(node.subject, subject)
+
+            body_label = ":"
+            for i in (len(node.cases)):
+                body_label = body_label + "#"
+            body = MyAnyTreeNode(body_label, position, match_statement)
+            for case in node.cases:
+                self.visit(case, body)
+            
+            return match_statement
+        
+        def visit_match_case(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+
+            #condition
+            case_label = "case#"
+            if (node.guard):
+                case_label = case_label + "if#"
+            case_statement = MyAnyTreeNode(case_label, position, parent)
+            
+            self.visit(node.pattern, case_statement)
+
+            if (node.guard):
+                self.visit(node.guard, case_statement)
+
+            #body
+            body_label = ":"
+            for i in (len(node.body)):
+                body_label = body_label + "#"
+            body = MyAnyTreeNode(body_label, position, case_statement)
+
+            for case in node.cases:
+                self.visit(case, body)
+
+        def visit_MatchValue(self, node, parent):
+            
+            return self.visit(node.value, parent)
+
+        def visit_MatchSingleton(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+
+            return MyAnyTreeNode(str(node.value), position, parent)
+
+        def visit_MatchSequence(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+
+            label = "["
+
+            for i in range(len(node.patterns)):
+                if label == "[":
+                    label = label + "#"
+
+                else:
+                    label = label + ",#"
+
+            label = label + "]"
+            sequence_statement = MyAnyTreeNode(label,position, parent)
+
+            for childNode in node.patterns:
+                self.visit(childNode, sequence_statement)
+
+            return sequence_statement
+
+
+        def visit_MatchStar(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+            
+            label = "*"
+            if (node.name):
+                label = label + node.name
+            else:
+                label = label + "_"
+
+            return MyAnyTreeNode(label, position, parent)
+
+        def visit_MatchMapping(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+           
+            label = ""
+
+            for i in range(len(node.keys)):
+                if label == "":
+                    label = label + "#"
+                else:
+                    label = label + ",#"
+
+            if (node.rest):
+                if label == "":
+                    label = label + "#"
+                else:
+                    label = label + ",#"   
+                
+            match_mapping = MyAnyTreeNode(label, position, parent)
+            
+            for i in range(len(node.keys())):
+                subtree_root = MyAnyTreeNode("#:#", position, match_mapping)
+
+                self.visit(node.keys[i], subtree_root )
+                self.visit(node.patterns[i], subtree_root)
+            
+            if (node.rest):
+                MyAnyTreeNode("**"+node.rest, position, match_mapping)
+
+            return match_mapping
+
+        def visit_MatchClass(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+            label = "#("
+            for i in range(len(node.keys)):
+                if label == "#(":
+                    label = label + "#"
+                else:
+                    label = label + ",#"
+            label = label + ")"
+            matchclass_node = MyAnyTreeNode(label, position, parent)
+            self.visit(node.cls, matchclass_node)
+
+            for i in range(len(node.patterns)):
+                self.visit(node.patterns[i], matchclass_node)
+            
+            for i in range(len(node.kwd_attrs)):
+                if (node.kwd_patterns[i]):
+                    kw_pair_node = MyAnyTreeNode("#=#", position, matchclass_node)
+                    self.visit(node.kwd_attrs[i],kw_pair_node)
+                    self.visit(node.kwd_patterns[i],kw_pair_node)
+            
+            return matchclass_node
+                
+            
 
             
 
