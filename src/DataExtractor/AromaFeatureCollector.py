@@ -610,9 +610,45 @@ def extract_aroma_tree(file):
             
             return match_or_node
 
-            
+    #Type parameters 
+        def visit_TypeVar(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            label = "[#:#]"
+
+            typeVar_node = MyAnyTreeNode(label, position, parent)
+
+            name_node = MyAnyTreeNode(str(node.name), position, typeVar_node) 
+
+            self.visit(node.bound, typeVar_node)
+
+            return typeVar_node 
+
+        def visit_ParamSpec(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            label = "[**#]"
+            typeVar_node = MyAnyTreeNode(label, position, parent)
+
+            name_node = MyAnyTreeNode(str(node.name), position, typeVar_node) 
+
+            return typeVar_node
+        
+        def visit_TypeVarTuple(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            label = "[*#]"
+            typeVar_node = MyAnyTreeNode(label, position, parent)
+
+            name_node = MyAnyTreeNode(str(node.name), position, typeVar_node) 
+
+            return typeVar_node  
+
+      
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
     print(RenderTree(visitor.visit(tree, None)))
+
+
     
