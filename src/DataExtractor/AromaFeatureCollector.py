@@ -553,22 +553,25 @@ def extract_aroma_tree(file):
 
         def visit_MatchClass(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
-            label = "#("
+            label = "#(#)"
+
+            parameter_label = ""
             for i in range(len(node.keys)):
-                if label == "#(":
+                if label == "":
                     label = label + "#"
                 else:
                     label = label + ",#"
-            label = label + ")"
+                    
             matchclass_node = MyAnyTreeNode(label, position, parent)
             self.visit(node.cls, matchclass_node)
 
+            parameter_node = MyAnyTreeNode(parameter_label, position, matchclass_node)
             for i in range(len(node.patterns)):
-                self.visit(node.patterns[i], matchclass_node)
+                self.visit(node.patterns[i], parameter_node)
             
             for i in range(len(node.kwd_attrs)):
                 if (node.kwd_patterns[i]):
-                    kw_pair_node = MyAnyTreeNode("#=#", position, matchclass_node)
+                    kw_pair_node = MyAnyTreeNode("#=#", position, parameter_node)
                     self.visit(node.kwd_attrs[i],kw_pair_node)
                     self.visit(node.kwd_patterns[i],kw_pair_node)
             
@@ -643,6 +646,109 @@ def extract_aroma_tree(file):
             name_node = MyAnyTreeNode(str(node.name), position, typeVar_node) 
 
             return typeVar_node  
+    #Function and class definitions
+        def visit_FunctionDef(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+            label = "def##"
+
+            def_func_node = MyAnyTreeNode(label, position, parent)
+            
+            #Declarative
+            func_declaration = "#("
+
+            isNotEmpty = check_empty_parameters(node)
+
+            if (isNotEmpty):
+                func_declaration = func_declaration + "#)"   
+            if (node.returns):
+                func_declaration = func_declaration + "->#"
+            
+            parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
+            
+            func_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
+            if (isNotEmpty):
+                self.visit(node.args, parameter_func_node)
+
+            if (node.returns):
+                self.visit(node.returns, parameter_func_node)
+
+            #Body
+            body_label = ":"
+
+            for i in range ( len(node.body)):
+                body_label = body_label + "#"
+            
+            body_node = MyAnyTreeNode(body_label, position, def_func_node)
+
+            for childNode in node.body:
+                self.visit(childNode, body_node)
+            
+            return def_func_node
+        
+        def visit_lambda(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+            label = "lambda##"
+
+            def_func_node = MyAnyTreeNode(label, position, parent)
+            
+            #Declarative
+            func_declaration = "("
+
+            isNotEmpty = check_empty_parameters(node)
+
+            if (isNotEmpty):
+                func_declaration = func_declaration + "#)"   
+            
+            parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
+            
+            if (isNotEmpty):
+                self.visit(node.args, parameter_func_node)
+
+            #Body
+            body_label = ":#"
+            body_node = MyAnyTreeNode(body_label, position, def_func_node)
+            self.visit(node.body, body_node)
+            return def_func_node
+
+        #TODO
+        def visit_arguments(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            args_label = ""
+            for i in range(len(node.args)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
+
+            for i in range(len(node.vararg)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
+            
+            for i in range(len(node.kwonlyargs)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
+
+            for i in range(len(node.kwarg)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
+
+
+            arguments_node = MyAnyTreeNode(args_label, position, parent)
+
+            
+
+
+
+
+
+
 
       
 
