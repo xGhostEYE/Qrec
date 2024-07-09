@@ -44,6 +44,15 @@ def extract_aroma_tree(file):
                             return self.visit(item, parent_AnyTree_Node)
                 elif isinstance(value, AST):
                     return self.visit(value, parent_AnyTree_Node)
+        
+        #Helper
+        def check_empty_parameters(self, node):
+
+            if (isinstance(node, ast.arguments)):
+                if len(node.posonlyargs) > 0 or len(node.args) > 0 or len(node.kwonlyargs) > 0:
+                    return False
+            return True
+
         # Root nodes
         def visit_Module(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
@@ -656,10 +665,12 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "#("
 
-            isNotEmpty = check_empty_parameters(node)
+            isNotEmpty = self.check_empty_parameters(node)
 
             if (isNotEmpty):
-                func_declaration = func_declaration + "#)"   
+                func_declaration = func_declaration + "#" 
+            func_declaration = func_declaration + ")" 
+
             if (node.returns):
                 func_declaration = func_declaration + "->#"
             
@@ -694,10 +705,11 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "("
 
-            isNotEmpty = check_empty_parameters(node)
+            isNotEmpty = self.check_empty_parameters(node)
 
             if (isNotEmpty):
-                func_declaration = func_declaration + "#)"   
+                func_declaration = func_declaration + "#"
+            func_declaration  = func_declaration + ")"
             
             parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
             
@@ -710,7 +722,6 @@ def extract_aroma_tree(file):
             self.visit(node.body, body_node)
             return def_func_node
 
-        #TODO
         def visit_arguments(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
 
@@ -742,7 +753,276 @@ def extract_aroma_tree(file):
 
             arguments_node = MyAnyTreeNode(args_label, position, parent)
 
+            for i in range(0-len(node.args), 0):
+                if i >= 0-len(node.defaults):
+                    arg_label = "#=#"
+                    arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
+
+                    self.visit(node.args[i],arg_node)
+                    self.visit(node.defaults[i], arg_node)
+                    
+                else:
+                    self.visit(node.args[i], arguments_node)
             
+            for childNode in node.vararg:
+                star_arg_label = "*#"
+                star_arg_node = MyAnyTreeNode(star_arg_label, position, arguments_node)
+                self.visit(childNode, star_arg_node)
+            
+            for i in range(len(node.kwonlyargs)):
+                if (node.kwonlyargs[i] and node.kw_defaults[i]):
+                    arg_label = "#=#"
+                    arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
+
+                    self.visit(node.kwonlyargs[i],arg_node)
+                    self.visit(node.kw_defaults[i], arg_node)
+                else:
+                    self.visit(node.kwonlyargs[i],arguments_node)
+            
+            for childNode in node.kwarg:
+                double_star_arg_label = "**#"
+                double_star_arg_node = MyAnyTreeNode(double_star_arg_label, position, arguments_node)
+                self.visit(childNode, double_star_arg_node)
+            
+            return arguments_node
+
+        def visit_arg(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            label = str(node.arg)
+            if (node.annotation):
+                label = label + ":" + node.annotation
+            
+            arg_node = MyAnyTreeNode(label, position, parent)
+
+            return arg_node
+
+        def visit_Return(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = "return#"
+
+            return_node = MyAnyTreeNode(label, position, parent)
+
+            self.visit(node.value, return_node)
+
+            return return_node
+        
+
+        def visit_Yield(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = "yield#"
+
+            yield_node = MyAnyTreeNode(label, position, parent)
+
+            self.visit(node.value, yield_node)
+
+            return yield_node
+    
+        def visit_YieldFrom(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = "yieldfrom#"
+
+            yield_node = MyAnyTreeNode(label, position, parent)
+
+            self.visit(node.value, yield_node)
+
+            return yield_node 
+
+        def visit_Global(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = "global"
+
+            for name in node.names:
+                if name == "global":
+                    label = label + "#"
+                else:
+                    label = label + ",#"
+            
+            global_node = MyAnyTreeNode(label, position, parent)
+
+            for name in node.names:
+                name_node = MyAnyTreeNode(str(name), position, global_node)
+            
+            return global_node
+
+        def visit_Nonlocal(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = "nonlocal"
+
+            for name in node.names:
+                if name == "nonlocal":
+                    label = label + "#"
+                else:
+                    label = label + ",#"
+            
+            global_node = MyAnyTreeNode(label, position, parent)
+
+            for name in node.names:
+                name_node = MyAnyTreeNode(str(name), position, global_node)
+            
+            return global_node
+    
+        def visit_ClassDef (self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+            label = "class##"
+
+            def_class_node = MyAnyTreeNode(label, position, parent)
+            
+            #Declarative
+            class_declaration = "#("
+
+            if (len(node.bases)):
+                class_declaration = class_declaration + "#"  
+
+            class_declaration = class_declaration + ")"   
+ 
+   
+            parameter_func_node = MyAnyTreeNode(class_declaration, position, def_class_node)  
+            
+            class_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
+            
+            for childNode in node.bases:
+                self.visit(childNode, parameter_func_node)
+
+            #Body
+            body_label = ":"
+
+            for i in range ( len(node.body)):
+                body_label = body_label + "#"
+            
+            body_node = MyAnyTreeNode(body_label, position, def_class_node)
+
+            for childNode in node.body:
+                self.visit(childNode, body_node)
+            
+            return def_class_node
+
+    #Async and await¶
+        def visit_AsyncFunctionDef(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+            label = "async-def##"
+
+            def_func_node = MyAnyTreeNode(label, position, parent)
+            
+            #Declarative
+            func_declaration = "#("
+
+            isNotEmpty = self.check_empty_parameters(node)
+
+            if (isNotEmpty):
+                func_declaration = func_declaration + "#" 
+            func_declaration = func_declaration + ")" 
+
+            
+            parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
+            
+            func_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
+            if (isNotEmpty):
+                self.visit(node.args, parameter_func_node)
+
+
+            #Body
+            body_label = ":"
+
+            for i in range ( len(node.body)):
+                body_label = body_label + "#"
+            
+            body_node = MyAnyTreeNode(body_label, position, def_func_node)
+
+            for childNode in node.body:
+                self.visit(childNode, body_node)
+            
+            return def_func_node
+
+        def visit_Await(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
+
+            label = "await#"
+
+            await_node = MyAnyTreeNode(label, position, parent)
+
+            self.visit(node.value, await_node)
+
+            return await_node
+            
+        def visit_AsyncFor(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+            
+            for_AnyTreeNode = MyAnyTreeNode("async-for##", position, parent)
+
+
+            for_conditional_AnyTreeNode = MyAnyTreeNode("#in#", position, for_AnyTreeNode)
+
+            self.visit(node.target, for_conditional_AnyTreeNode)
+            self.visit(node.iter, for_conditional_AnyTreeNode)
+
+            for_body_label = ":"
+            for i in range ( len(node.body)):
+                for_body_label = for_body_label + "#"
+
+            for_body_AnyTreeNode = MyAnyTreeNode(for_body_label, position, for_AnyTreeNode)
+            
+            #Traverse through statements in the body
+            for childNode in node.body:
+                self.visit(childNode, for_body_AnyTreeNode)
+
+            #Traverse through else statement if exists
+            if (len(node.orelse) != 0):
+                else_AnyTreeNode = MyAnyTreeNode("else#", position, parent)
+
+                else_body_label = ":"
+
+                #TODO: since else node is stored in another node and not a node by itself, we would only have 1 # instead of 2 #s.
+                for i in range ( len(node.orelse)):
+                    else_body_label = else_body_label + "#"
+
+                #Get lineno of else token
+                else_lineno = node.body[-1].end_lineno + 1
+
+                #TODO: end col offset might not be correct. Fix this later
+                position = Position(else_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                else_body_AnyTreeNode = MyAnyTreeNode(else_body_label, position, else_AnyTreeNode)
+                
+                for childNode in node.orelse:
+                    self.visit(childNode, else_body_AnyTreeNode)
+
+            return for_AnyTreeNode
+
+        def visit_AsyncWith(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
+
+            with_AnyTreeNode = MyAnyTreeNode("async-with##", position, parent)
+            
+            # Get the context manager part of a With statement
+            with_context_label = ""
+            for i in range (len(node.items)):
+                if (with_context_managers == ""):
+                    with_context_label = with_context_label + "#"
+                else:
+                    with_context_label = with_context_label + ",#"
+
+            with_context_managers = MyAnyTreeNode(with_context_label, position, with_AnyTreeNode )
+            
+            for withItem_node in node.items:
+                self.visit(withItem_node, with_context_managers)
+            
+            # Get the body of the With statement
+            body_label = ""
+            for i in range (len(node.body)):
+                body_label = body_label + "#"
+            
+            with_body_AnyTree = MyAnyTreeNode(body_label, position, with_AnyTreeNode)
+            
+            for childNode in node.body:
+                self.visit(childNode, with_body_AnyTree)
+
+            return with_AnyTreeNode
+
 
 
 
