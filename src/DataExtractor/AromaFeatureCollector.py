@@ -54,6 +54,7 @@ def extract_aroma_tree(file):
             return True
 
         # Root nodes
+        
         def visit_Module(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
@@ -103,30 +104,442 @@ def extract_aroma_tree(file):
         def visit_Constant(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
-            Constant_AnyTreeNode = MyAnyTreeNode("#", position, parent)
+            value = node.value
             
-            body = node.body
-            
-            self.visit(body, Constant_AnyTreeNode)
+            Constant_AnyTreeNode = MyAnyTreeNode(value, position, parent)
             
             return Constant_AnyTreeNode
             
         def visit_FormattedValue(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "{#}"
+            if node.format_spec is not None:
+                label = "{#:#}"
             
-            FormattedValue_AnyTreeNode = MyAnyTreeNode("#", position, parent)
+            FormattedValue_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
-            body = node.body
+            value = node.value                
+            self.visit(value, FormattedValue_AnyTreeNode)
             
-            self.visit(body, FormattedValue_AnyTreeNode)
+            if node.format_spec is not None:
+                self.visit(node.format_spec, FormattedValue_AnyTreeNode)
             
             return FormattedValue_AnyTreeNode
         
-        # def JoinedStr(seflf, node, parent):
+        def visit_JoinedStr(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
+            JoinedStr_AnyTreeNode = MyAnyTreeNode('f"#"', position, parent)
+            values = node.values
+            for i in range (len(values)):
+                self.visit(values[i], JoinedStr_AnyTreeNode)
             
+            return JoinedStr_AnyTreeNode
+        
+        def visit_List(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "[#]"
+            List_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            number_of_nodes = len(node.elts)
+            if number_of_nodes != 0:
+                label = ""
+                for i in range(number_of_nodes):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                List_AnyTreeNode_Children = MyAnyTreeNode(label, position, List_AnyTreeNode)
+                values = node.elts
+                for i in range(len(values)):
+                    self.visit(values[i], List_AnyTreeNode_Children)
+                return List_AnyTreeNode
+            else:
+                return List_AnyTreeNode
+        
+        def visit_Tuple(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "[#]"
+            Tuple_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            number_of_nodes = len(node.elts)
+            if number_of_nodes != 0:
+                label = ""
+                for i in range(number_of_nodes):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                Tuple_AnyTreeNode_Children = MyAnyTreeNode(label, position, Tuple_AnyTreeNode)
+                values = node.elts
+                for i in range(len(values)):
+                    self.visit(values[i], Tuple_AnyTreeNode_Children)
+                return Tuple_AnyTreeNode
+            else:
+                return Tuple_AnyTreeNode
+        
+        def visit_Set(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "[#]"
+            Set_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            number_of_nodes = len(node.elts)
+            if number_of_nodes != 0:
+                label = ""
+                for i in range(number_of_nodes):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                Set_AnyTreeNode_Children = MyAnyTreeNode(label, position, Set_AnyTreeNode)
+                values = node.elts
+                for i in range(len(values)):
+                    self.visit(values[i], Set_AnyTreeNode_Children)
+                return Set_AnyTreeNode
+            else:
+                return Set_AnyTreeNode
+        
+        def visit_Dict(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Dict_AnyTreeNode = MyAnyTreeNode("{#}", position, parent)
+            number_of_nodes = len(node.values)
             
-    #Control Flow
+            if number_of_nodes != 0:
+                label == ""
+                for i in range(number_of_nodes):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                Dict_AnyTreeNode_Children = MyAnyTreeNode(label, position, Dict_AnyTreeNode)
+                
+                for i in range(number_of_nodes):
+                    label == "#:#"
+                    if node.keys[i] == None:
+                        label = "**#"
+                    Dict_AnyTreeNode_Children_Values = MyAnyTreeNode(label, position, Dict_AnyTreeNode_Children)
+                    values = node.values
+                    keys = node.keys
+                    if keys[i] != None:
+                        self.visit(keys[i], Dict_AnyTreeNode_Children_Values)
+                    self.visit(values[i], Dict_AnyTreeNode_Children_Values)
+            
+            return Dict_AnyTreeNode
+                
+    
+        # Variables
+        
+        def visit_Name(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            value = node.id
+            
+            Name_AnyTreeNode = MyAnyTreeNode(value, position, parent)
+            
+            return Name_AnyTreeNode
+            
+        def visit_Del(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            Del_AnyTreeNode = MyAnyTreeNode("del #", position, parent)
+            
+            value = node.id                
+            self.visit(value, Del_AnyTreeNode)
+            
+            return Del_AnyTreeNode
+        
+        def vist_Starred(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Starred_AnyTreeNode = MyAnyTreeNode("*#", position, parent)
+            
+            if len(node.elts) != 0:
+                label = ""
+                for i in range(len(node.elts)):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                Starred_AnyTreeNode_Children = MyAnyTreeNode(label, position, Starred_AnyTreeNode)
+                values = node.elts
+                for i in range(len(values)):
+                    self.visit(values[i], Starred_AnyTreeNode_Children)
+                return Starred_AnyTreeNode
+            else:
+                return Starred_AnyTreeNode
+        
+        # Expressions
+        
+        def visit_Expr(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Expr_AnyTreeNode = MyAnyTreeNode("#.#", position, parent)
+            # doesn't feel correct, need julian's opinion
+            value = node.value
+            
+            self.visit(value, Expr_AnyTreeNode)
+            
+            return Expr_AnyTreeNode
+        
+        def visit_BinOp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = ""
+            
+            if node.op == Add():
+                label == "#+#"
+            if node.op == Sub():
+                label == "#-#"
+            if node.op == Mult():
+                label == "#*#"
+            if node.op == FloorDiv():
+                label == "#//#"
+            if node.op == Mod():
+                label == "#%#"
+            if node.op == Pow():
+                label == "#**#"
+
+            Expr_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            
+            left_value = node.left
+            right_value = node.right
+            
+            self.visit(left_value, Expr_AnyTreeNode)
+            self.visit(right_value, Expr_AnyTreeNode)
+            
+            return Expr_AnyTreeNode
+        
+        def visit_BoolOp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#"
+            values = node.values
+            BoolOp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            
+            if values >= 2:
+                for i in range(len(values)):
+                    if node.op == And():
+                        label = label + "and#"
+                    if node.op == Or():
+                        label = label + "or#"
+                        
+                BoolOp_AnyTreeNode_Children = MyAnyTreeNode(label, position, BoolOp_AnyTreeNode)
+                for i in range(len(values)):
+                    self.visit(values[i], BoolOp_AnyTreeNode_Children)
+            
+            return BoolOp_AnyTreeNode
+
+        def visit_Compare(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#"
+            ops_values = node.ops
+            comparators_values = node.comparators
+            Compare_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            
+            if len(ops_values) >= 2:
+                for i in range(len(ops_values)):
+                    if ops_values[i] == Eq():
+                        label = label + "=#"
+                    if ops_values[i] == NotEq():
+                        label = label + "!=#"
+                    if ops_values[i] == Lt():
+                        label = label + "<#"
+                    if ops_values[i] == LtE():
+                        label = label + "<=#"
+                    if ops_values[i] == Gt():
+                        label = label + ">#"
+                    if ops_values[i] == GtE():
+                        label = label + ">=#"
+                    if ops_values[i] == Is():
+                        label = label + "is#"
+                    if ops_values[i] == IsNot():
+                        label = label + "is not#"
+                    if ops_values[i] == In():
+                        label = label + "in#"
+                    if ops_values[i] == NotIn():
+                        label = label + "not in#"
+                        
+                Compare_AnyTreeNode_Children = MyAnyTreeNode(label, position, Compare_AnyTreeNode)
+                self.visit(node.left, Compare_AnyTreeNode_Children)
+                
+                for i in range(len(ops_values)):
+                    self.visit(ops_values[i], Compare_AnyTreeNode_Children)
+                    self.visit(comparators_values[i], Compare_AnyTreeNode_Children)
+            
+            return Compare_AnyTreeNode
+            
+        def visit_Call(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Call_AnyTreeNode = MyAnyTreeNode("#(#)", position, parent)
+            labels = ""
+            args_len = 0
+            keyword_len = 0
+            
+            if len(node.args) != 0:
+                for i in range(len(node.args)):
+                    args_len +=1
+                    if labels == "":
+                        labels = labels + "#"
+                    else:
+                        labels = labels + ",#"
+
+            if len(node.keyword) != 0:
+                for i in range(len(node.keyword)):
+                    keyword_len +=1
+                    if labels == "":
+                        labels = labels + "#"
+                    else:
+                        labels = labels + ",#"
+                        
+            Call_AnyTreeNode_Children = MyAnyTreeNode(labels, position, Call_AnyTreeNode)
+            for i in range(len(node.args)):
+                self.visit(node.args[i], Call_AnyTreeNode_Children)
+            
+            for i in range(len(node.keyword)):
+                self.visit(node.keyword[i], Call_AnyTreeNode_Children)              
+            
+            Call_AnyTreeNode = MyAnyTreeNode(node.func, position, Call_AnyTreeNode_Children)
+            
+            return Call_AnyTreeNode
+
+        def visit_Keyword(self, node, parent):
+        # TODO: we may need to do this in the future, but there is no way to determine if there is a keyword
+        # that has stars
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            if node.arg != None:
+                label = "#=#"
+                Keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                Keyword_AnyTreeNode_Children = MyAnyTreeNode(node.arg, position, Keyword_AnyTreeNode)
+                self.visit(node.value, Keyword_AnyTreeNode)
+            else:
+                self.visit(node.value, parent)       
+                
+            return Keyword_AnyTreeNode
+            
+        def visit_IfExp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "# if # else #"
+            
+            if node.orelse == None:
+                label = "# if #"
+                IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                self.visit(node.test, IfExp_AnyTreeNode)
+                self.visit(node.body, IfExp_AnyTreeNode)
+                return IfExp_AnyTreeNode
+            else:
+                IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                self.visit(node.test, IfExp_AnyTreeNode)
+                self.visit(node.body, IfExp_AnyTreeNode)
+                return IfExp_AnyTreeNode
+        
+        def visit_Attribute(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            
+            label = "#.#"
+            Attribute_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            Attribute_AnyTreeNode = MyAnyTreeNode(node.value, position, parent)
+            self.visit(node.attr, Attribute_AnyTreeNode)
+            
+            return Attribute_AnyTreeNode
+        
+        def visit_NamedExpr(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#:=#"
+
+            NamedExpr_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            NamedExpr_AnyTreeNode_Children = MyAnyTreeNode(node.target, position, NamedExpr_AnyTreeNode)
+            self.visit(node.value, NamedExpr_AnyTreeNode)
+            
+            return NamedExpr_AnyTreeNode
+        
+        #Subscripting
+        
+        def visit_Subscript(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#[#]"
+            Subscript_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            number_of_nodes = len(node.elts)
+            
+            if number_of_nodes != 0:
+                label = ""
+                for i in range(len(node.elts)):
+                    if label == "":
+                        label = label + "#"
+                    else:
+                        label = label + ",#"
+                Subscript_AnyTreeNode_Children = MyAnyTreeNode(node.target, position, Subscript_AnyTreeNode)
+                values = node.elts
+                for i in range(len(values)):
+                    if values[i] == Constant():
+                        Subscript_AnyTreeNode_Children_Const = MyAnyTreeNode(values[i], position, Subscript_AnyTreeNode_Children)
+                    else:
+                        self.visit(values[i], Subscript_AnyTreeNode_Children)
+            
+            self.visit(node.value, Subscript_AnyTreeNode)
+            
+            return Subscript_AnyTreeNode
+
+        def visit_Slice(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#:#"
+            Slice_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            Slice_AnyTreeNode_Children_Upper = MyAnyTreeNode(node.upper, position, Slice_AnyTreeNode)
+            Slice_AnyTreeNode_Children_Lower = MyAnyTreeNode(node.lower, position, Slice_AnyTreeNode)
+        
+            return Slice_AnyTreeNode
+        
+        #Comprehensions
+        
+        def visit_ListComp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "[# for # in #]"
+            ListComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.name, ListComp_AnyTreeNode)
+            self.visit(node.target, ListComp_AnyTreeNode)
+            self.visit(node.iter, ListComp_AnyTreeNode)
+            if len(node.ifs) > 0:
+                self.visit(node.ifs, ListComp_AnyTreeNode)
+            return ListComp_AnyTreeNode
+        
+        def visit_SetComp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "{# for # in #}"
+            SetComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.name, SetComp_AnyTreeNode)
+            self.visit(node.target, SetComp_AnyTreeNode)
+            self.visit(node.iter, SetComp_AnyTreeNode)
+            if len(node.ifs) > 0:
+                self.visit(node.ifs, SetComp_AnyTreeNode)
+            return SetComp_AnyTreeNode
+            
+        def visit_GeneratorExp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "(# for # in #)"
+            GeneratorExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.name, GeneratorExp_AnyTreeNode)
+            self.visit(node.target, GeneratorExp_AnyTreeNode)
+            self.visit(node.iter, GeneratorExp_AnyTreeNode)
+            if len(node.ifs) > 0:
+                self.visit(node.ifs, GeneratorExp_AnyTreeNode)
+            return GeneratorExp_AnyTreeNode
+        
+        def visit_DictComp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "{# for # in #}"
+            DictComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.name, DictComp_AnyTreeNode)
+            self.visit(node.target, DictComp_AnyTreeNode)
+            self.visit(node.iter, DictComp_AnyTreeNode)
+            if len(node.ifs) > 0:
+                self.visit(node.ifs, DictComp_AnyTreeNode)
+            return DictComp_AnyTreeNode
+        
+        def visit_comprehension(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "{# for # in #}"
+            comprehension_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.name, comprehension_AnyTreeNode)
+            self.visit(node.target, comprehension_AnyTreeNode)
+            self.visit(node.iter, comprehension_AnyTreeNode)
+            if len(node.ifs) > 0:
+                self.visit(node.ifs, comprehension_AnyTreeNode)
+            return comprehension_AnyTreeNode
+        
+        #Control Flow
         def visit_If(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
             
