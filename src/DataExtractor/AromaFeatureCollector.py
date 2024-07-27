@@ -1063,9 +1063,9 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "#("
 
-            isNotEmpty = self.check_empty_parameters(node)
+            isEmpty = self.check_empty_parameters(node)
 
-            if (isNotEmpty):
+            if (not isEmpty):
                 func_declaration = func_declaration + "#" 
             func_declaration = func_declaration + ")" 
 
@@ -1075,7 +1075,7 @@ def extract_aroma_tree(file):
             parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
             
             func_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
-            if (isNotEmpty):
+            if (not isEmpty):
                 self.visit(node.args, parameter_func_node)
 
             if (node.returns):
