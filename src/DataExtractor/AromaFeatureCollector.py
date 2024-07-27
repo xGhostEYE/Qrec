@@ -1191,7 +1191,7 @@ def extract_aroma_tree(file):
             arg_node = MyAnyTreeNode(label, position, parent)
             MyAnyTreeNode(node.arg, position, arg_node)
             if (node.annotation):
-                self.visit(node.annotation, parent)
+                self.visit(node.annotation, arg_node)
                 
             return arg_node
 
