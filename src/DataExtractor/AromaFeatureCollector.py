@@ -385,41 +385,39 @@ def extract_aroma_tree(file):
 
         def visit_Compare(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "#"
+            
             ops_values = node.ops
             comparators_values = node.comparators
+            
+            label = "#"
+            for i in range(len(ops_values)):
+                if isinstance(ops_values[i], ast.Eq):
+                    label = label + "=#"
+                if isinstance(ops_values[i], ast.NotEq):
+                    label = label + "!=#"
+                if isinstance(ops_values[i],ast.Lt):
+                    label = label + "<#"
+                if isinstance(ops_values[i], ast.LtE):
+                    label = label + "<=#"
+                if isinstance(ops_values[i], ast.Gt):
+                    label = label + ">#"
+                if isinstance(ops_values[i], ast.GtE):
+                    label = label + ">=#"
+                if isinstance(ops_values[i], ast.Is):
+                    label = label + "is#"
+                if isinstance(ops_values[i], ast.IsNot):
+                    label = label + "is not#"
+                if isinstance(ops_values[i], ast.In):
+                    label = label + "in#"
+                if isinstance(ops_values[i], ast.NotIn):
+                    label = label + "not in#"
+
             Compare_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.left, Compare_AnyTreeNode)
             
-            if len(ops_values) >= 2:
-                for i in range(len(ops_values)):
-                    if ops_values[i] == Eq():
-                        label = label + "=#"
-                    if ops_values[i] == NotEq():
-                        label = label + "!=#"
-                    if ops_values[i] == Lt():
-                        label = label + "<#"
-                    if ops_values[i] == LtE():
-                        label = label + "<=#"
-                    if ops_values[i] == Gt():
-                        label = label + ">#"
-                    if ops_values[i] == GtE():
-                        label = label + ">=#"
-                    if ops_values[i] == Is():
-                        label = label + "is#"
-                    if ops_values[i] == IsNot():
-                        label = label + "is not#"
-                    if ops_values[i] == In():
-                        label = label + "in#"
-                    if ops_values[i] == NotIn():
-                        label = label + "not in#"
-                        
-                Compare_AnyTreeNode_Children = MyAnyTreeNode(label, position, Compare_AnyTreeNode)
-                self.visit(node.left, Compare_AnyTreeNode_Children)
-                
-                for i in range(len(ops_values)):
-                    self.visit(ops_values[i], Compare_AnyTreeNode_Children)
-                    self.visit(comparators_values[i], Compare_AnyTreeNode_Children)
-            
+            for i in range(len(ops_values)):
+                self.visit(comparators_values[i], Compare_AnyTreeNode)
+        
             return Compare_AnyTreeNode
             
         def visit_Call(self, node, parent):
@@ -453,8 +451,6 @@ def extract_aroma_tree(file):
             for i in range(len(node.keywords)):
                 self.visit(node.keywords[i], Call_AnyTreeNode_Children)              
             
-            
-            
             return Call_AnyTreeNode
 
         def visit_Keyword(self, node, parent):
@@ -482,10 +478,12 @@ def extract_aroma_tree(file):
                 self.visit(node.test, IfExp_AnyTreeNode)
                 self.visit(node.body, IfExp_AnyTreeNode)
                 return IfExp_AnyTreeNode
+            
             else:
                 IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
                 self.visit(node.test, IfExp_AnyTreeNode)
                 self.visit(node.body, IfExp_AnyTreeNode)
+                self.visit(node.orelse, IfExp_AnyTreeNode)
                 return IfExp_AnyTreeNode
         
         def visit_Attribute(self, node, parent):
@@ -503,7 +501,7 @@ def extract_aroma_tree(file):
             label = "#:=#"
 
             NamedExpr_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            NamedExpr_AnyTreeNode_Children = MyAnyTreeNode(node.target, position, NamedExpr_AnyTreeNode)
+            self.visit(node.target, NamedExpr_AnyTreeNode)
             self.visit(node.value, NamedExpr_AnyTreeNode)
             
             return NamedExpr_AnyTreeNode
@@ -512,7 +510,7 @@ def extract_aroma_tree(file):
         
         def visit_Subscript(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "##"
+            label = "#[#]"
             Subscript_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
             self.visit(node.value, Subscript_AnyTreeNode)
@@ -523,67 +521,99 @@ def extract_aroma_tree(file):
         def visit_Slice(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             label = "#:#"
+            
+            if (node.step):
+                label = label + ":#"
+
             Slice_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            Slice_AnyTreeNode_Children_Upper = MyAnyTreeNode(node.upper, position, Slice_AnyTreeNode)
-            Slice_AnyTreeNode_Children_Lower = MyAnyTreeNode(node.lower, position, Slice_AnyTreeNode)
-        
+            
+            self.visit(node.upper,Slice_AnyTreeNode)
+            self.visit(node.lower,Slice_AnyTreeNode)
+            if (node.step):
+                self.visit(node.step, Slice_AnyTreeNode)
+
             return Slice_AnyTreeNode
         
         #Comprehensions
         
         def visit_ListComp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "[# for # in #]"
+            label = "[#"
+            for i in range(len(node.generators)):
+                label= label+ "#"
+            label = label + "]"
             ListComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.name, ListComp_AnyTreeNode)
-            self.visit(node.target, ListComp_AnyTreeNode)
-            self.visit(node.iter, ListComp_AnyTreeNode)
-            if len(node.ifs) > 0:
-                self.visit(node.ifs, ListComp_AnyTreeNode)
-            return ListComp_AnyTreeNode
-        
+            
+            self.visit(node.elt, ListComp_AnyTreeNode)
+            for comprehension in node.generators:
+                self.visit(comprehension, ListComp_AnyTreeNode)
+            
         def visit_SetComp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "{# for # in #}"
+            label = "{#"
+            for i in range(len(node.generators)):
+                label= label+ "#"
+            label = label + "}"  
             SetComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.name, SetComp_AnyTreeNode)
-            self.visit(node.target, SetComp_AnyTreeNode)
-            self.visit(node.iter, SetComp_AnyTreeNode)
-            if len(node.ifs) > 0:
-                self.visit(node.ifs, SetComp_AnyTreeNode)
+            
+            self.visit(node.elt,SetComp_AnyTreeNode)
+            for comprehension in node.generators:
+                self.visit(comprehension, SetComp_AnyTreeNode)            
+                self.visit(node.name, SetComp_AnyTreeNode)
+            
             return SetComp_AnyTreeNode
             
         def visit_GeneratorExp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "(# for # in #)"
+            label = "(#"
+            for i in range(len(node.generators)):
+                label= label+ "#"
+            label = label + ")" 
             GeneratorExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.name, GeneratorExp_AnyTreeNode)
-            self.visit(node.target, GeneratorExp_AnyTreeNode)
-            self.visit(node.iter, GeneratorExp_AnyTreeNode)
-            if len(node.ifs) > 0:
-                self.visit(node.ifs, GeneratorExp_AnyTreeNode)
+            
+            self.visit(node.elt,GeneratorExp_AnyTreeNode)
+            for comprehension in node.generators:
+                self.visit(comprehension, GeneratorExp_AnyTreeNode)   
             return GeneratorExp_AnyTreeNode
         
         def visit_DictComp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "{# for # in #}"
+            label = "{#"
+            for i in range(len(node.generators)):
+                label= label+ "#"
+            label = label + "}"
             DictComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.name, DictComp_AnyTreeNode)
-            self.visit(node.target, DictComp_AnyTreeNode)
-            self.visit(node.iter, DictComp_AnyTreeNode)
-            if len(node.ifs) > 0:
-                self.visit(node.ifs, DictComp_AnyTreeNode)
+            
+            DictComp_AnyTreeNode_key_value = MyAnyTreeNode("#:#", position, DictComp_AnyTreeNode)
+            self.visit(node.name, DictComp_AnyTreeNode_key_value)
+            self.visit(node.value, DictComp_AnyTreeNode_key_value)
+            
+            for comprehension in node.generators:
+                self.visit(comprehension, DictComp_AnyTreeNode)   
+     
             return DictComp_AnyTreeNode
         
+        #TODO: check if this aligns with Aroma paper
         def visit_comprehension(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "{# for # in #}"
+            
+            label = "##"
             comprehension_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.name, comprehension_AnyTreeNode)
-            self.visit(node.target, comprehension_AnyTreeNode)
-            self.visit(node.iter, comprehension_AnyTreeNode)
-            if len(node.ifs) > 0:
-                self.visit(node.ifs, comprehension_AnyTreeNode)
+            
+            for_label = "for#"
+            for_AnyTreeNode = MyAnyTreeNode(for_label, position, comprehension_AnyTreeNode)
+            self.visit(node.target, for_AnyTreeNode)
+
+            in_label = "in#"
+            for i in range(len(node.ifs)):
+                in_label = in_label + "#"
+
+            in_AnyTreeNode = MyAnyTreeNode(in_label, position, comprehension_AnyTreeNode)
+
+            self.visit(node.iter, in_AnyTreeNode)
+            for if_statement in node.ifs:
+                self.visit(if_statement, in_AnyTreeNode)
+
             return comprehension_AnyTreeNode
         
         #Control Flow
