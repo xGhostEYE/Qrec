@@ -266,7 +266,6 @@ def extract_aroma_tree(file):
         
         # Expressions
         
-        #TODO: check with mel
         def visit_Expr(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             Expr_AnyTreeNode = MyAnyTreeNode("#", position, parent)
@@ -632,7 +631,7 @@ def extract_aroma_tree(file):
 
             for target in node.targets:
                 self.visit(target, Assign_AnyTreeNode)
-            self.visit(node.value, Assign_AnyTreeNode_Children)
+            self.visit(node.value, Assign_AnyTreeNode)
             
             return Assign_AnyTreeNode
             
