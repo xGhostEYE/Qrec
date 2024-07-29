@@ -454,20 +454,20 @@ def extract_aroma_tree(file):
             
             return Call_AnyTreeNode
 
-        def visit_Keyword(self, node, parent):
+        def visit_keyword(self, node, parent):
         # TODO: we may need to do this in the future, but there is no way to determine if there is a keyword
         # that has stars
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
             if node.arg != None:
                 label = "#=#"
-                Keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-                Keyword_AnyTreeNode_Children = MyAnyTreeNode(node.arg, position, Keyword_AnyTreeNode)
-                self.visit(node.value, Keyword_AnyTreeNode)
+                keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                keyword_AnyTreeNode_Children = MyAnyTreeNode(node.arg, position, keyword_AnyTreeNode)
+                self.visit(node.value, keyword_AnyTreeNode)
             else:
                 self.visit(node.value, parent)       
                 
-            return Keyword_AnyTreeNode
+            return keyword_AnyTreeNode
             
         def visit_IfExp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
@@ -476,14 +476,14 @@ def extract_aroma_tree(file):
             if node.orelse == None:
                 label = "# if #"
                 IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-                self.visit(node.test, IfExp_AnyTreeNode)
                 self.visit(node.body, IfExp_AnyTreeNode)
+                self.visit(node.test, IfExp_AnyTreeNode)
                 return IfExp_AnyTreeNode
             
             else:
                 IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-                self.visit(node.test, IfExp_AnyTreeNode)
                 self.visit(node.body, IfExp_AnyTreeNode)
+                self.visit(node.test, IfExp_AnyTreeNode)
                 self.visit(node.orelse, IfExp_AnyTreeNode)
                 return IfExp_AnyTreeNode
         
