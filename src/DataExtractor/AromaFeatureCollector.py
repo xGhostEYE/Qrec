@@ -49,8 +49,9 @@ def extract_aroma_tree(file):
         def check_empty_parameters(self, node):
 
             if (isinstance(node, ast.arguments)):
-                if len(node.posonlyargs) > 0 or len(node.args) > 0 or len(node.kwonlyargs) > 0:
+                if len(node.posonlyargs) > 0 or len(node.args) > 0 or node.vararg != None or len(node.kwonlyargs) > 0 or node.kwarg != None:
                     return False
+
             return True
 
         # Root nodes
@@ -421,34 +422,35 @@ def extract_aroma_tree(file):
             
         def visit_Call(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            Call_AnyTreeNode = MyAnyTreeNode("#(#)", position, parent)
-            labels = ""
-            args_len = 0
-            keyword_len = 0
+            call_label = "#("
+
+            if (len(node.args) > 0):
+                call_label = call_label + "#"
+            call_label = call_label + ")"
+            Call_AnyTreeNode = MyAnyTreeNode(call_label, position, parent)
             self.visit(node.func, Call_AnyTreeNode)
             
-            if len(node.args) != 0:
-                for i in range(len(node.args)):
-                    args_len +=1
-                    if labels == "":
-                        labels = labels + "#"
-                    else:
-                        labels = labels + ",#"
-
-            if len(node.keywords) != 0:
-                for i in range(len(node.keywords)):
-                    keyword_len +=1
-                    if labels == "":
-                        labels = labels + "#"
-                    else:
-                        labels = labels + ",#"
-                        
-            Call_AnyTreeNode_Children = MyAnyTreeNode(labels, position, Call_AnyTreeNode)
+            labels = ""
             for i in range(len(node.args)):
-                self.visit(node.args[i], Call_AnyTreeNode_Children)
-            
+                if labels == "":
+                    labels = labels + "#"
+                else:
+                    labels = labels + ",#"
+
             for i in range(len(node.keywords)):
-                self.visit(node.keywords[i], Call_AnyTreeNode_Children)              
+                if labels == "":
+                    labels = labels + "#"
+                else:
+                    labels = labels + ",#"
+
+            #If labels is not empty, that means there are args or keywords to visit
+            if (labels != ""):            
+                Parameter_node = MyAnyTreeNode(labels, position, Call_AnyTreeNode)
+                for i in range(len(node.args)):
+                    self.visit(node.args[i], Parameter_node)
+                
+                for i in range(len(node.keywords)):
+                    self.visit(node.keywords[i], Parameter_node)              
             
             return Call_AnyTreeNode
 
@@ -1029,7 +1031,7 @@ def extract_aroma_tree(file):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
 
             if parent and len(parent) == 2 and parent[1] == "star":
-                except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent)
+                except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent[0])
             else:
                 except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
 
@@ -1066,7 +1068,7 @@ def extract_aroma_tree(file):
                 self.visit(withItem_node, with_context_managers)
             
             # Get the body of the With statement
-            body_label = ""
+            body_label = ":"
             for i in range (len(node.body)):
                 body_label = body_label + "#"
             
@@ -1311,7 +1313,7 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "#("
 
-            isEmpty = self.check_empty_parameters(node)
+            isEmpty = self.check_empty_parameters(node.args)
 
             if (not isEmpty):
                 func_declaration = func_declaration + "#" 
@@ -1342,7 +1344,7 @@ def extract_aroma_tree(file):
             
             return def_func_node
         
-        def visit_lambda(self, node, parent):
+        def visit_Lambda(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
             label = "lambda##"
 
@@ -1351,15 +1353,15 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "("
 
-            isNotEmpty = self.check_empty_parameters(node)
+            isEmpty = self.check_empty_parameters(node.args)
 
-            if (isNotEmpty):
+            if (not isEmpty):
                 func_declaration = func_declaration + "#"
             func_declaration  = func_declaration + ")"
             
             parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
             
-            if (isNotEmpty):
+            if (not isEmpty):
                 self.visit(node.args, parameter_func_node)
 
             #Body
@@ -1372,23 +1374,21 @@ def extract_aroma_tree(file):
             position = parent.position
 
             args_label = ""
-            if node.args is not None:
-                for i in range(len(node.args)):
-                    if (args_label == ""):
-                        args_label = args_label + "#"
-                    else:
-                        args_label = args_label + ",#"
+            for i in range(len(node.args)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
             if node.vararg is not None:
                 if (args_label == ""):
                     args_label = args_label + "#"
                 else:
                     args_label = args_label + ",#"
-            if node.kwonlyargs is not None:
-                for i in range(len(node.kwonlyargs)):
-                    if (args_label == ""):
-                        args_label = args_label + "#"
-                    else:
-                        args_label = args_label + ",#"
+            for i in range(len(node.kwonlyargs)):
+                if (args_label == ""):
+                    args_label = args_label + "#"
+                else:
+                    args_label = args_label + ",#"
             if node.kwarg is not None:
                 if (args_label == ""):
                     args_label = args_label + "#"
@@ -1397,31 +1397,31 @@ def extract_aroma_tree(file):
 
 
             arguments_node = MyAnyTreeNode(args_label, position, parent)
-            if node.args is not None:
-                for i in range(0-len(node.args), 0):
-                    if i >= 0-len(node.defaults):
-                        arg_label = "#=#"
-                        arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
+            for i in range(0-len(node.args), 0):
+                if i >= 0-len(node.defaults):
+                    arg_label = "#=#"
+                    arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
 
-                        self.visit(node.args[i],arg_node)
-                        self.visit(node.defaults[i], arg_node)
-                        
-                    else:
-                        self.visit(node.args[i], arguments_node)
+                    self.visit(node.args[i],arg_node)
+                    self.visit(node.defaults[i], arg_node)
+                    
+                else:
+                    self.visit(node.args[i], arguments_node)
             if node.vararg is not None:
                 star_arg_label = "*#"
                 star_arg_node = MyAnyTreeNode(star_arg_label, position, arguments_node)
                 self.visit(node.vararg, star_arg_node)
-            if node.kwonlyargs is not None:
-                for i in range(len(node.kwonlyargs)):
-                    if (node.kwonlyargs[i] and node.kw_defaults[i]):
-                        arg_label = "#=#"
-                        arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
 
-                        self.visit(node.kwonlyargs[i],arg_node)
-                        self.visit(node.kw_defaults[i], arg_node)
-                    else:
-                        self.visit(node.kwonlyargs[i],arguments_node)
+            for i in range(len(node.kwonlyargs)):
+                if (node.kwonlyargs[i] and node.kw_defaults[i]):
+                    arg_label = "#=#"
+                    arg_node = MyAnyTreeNode(arg_label, position, arguments_node)
+
+                    self.visit(node.kwonlyargs[i],arg_node)
+                    self.visit(node.kw_defaults[i], arg_node)
+                else:
+                    self.visit(node.kwonlyargs[i],arguments_node)
+            
             if node.kwarg is not None:
                 double_star_arg_label = "**#"
                 double_star_arg_node = MyAnyTreeNode(double_star_arg_label, position, arguments_node)
@@ -1432,15 +1432,20 @@ def extract_aroma_tree(file):
         def visit_arg(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
 
-            label = str(node.arg)
+            arg_node = None
             if (node.annotation):
                 label = "#:#"
-            
-            arg_node = MyAnyTreeNode(label, position, parent)
-            MyAnyTreeNode(node.arg, position, arg_node)
-            if (node.annotation):
+                arg_node = MyAnyTreeNode(label, position, parent)
+                MyAnyTreeNode(node.arg, position, arg_node)
                 self.visit(node.annotation, arg_node)
-                
+
+            else:
+                label = str(node.arg)
+                if label == "":
+                    return parent
+                else:
+                    arg_node = MyAnyTreeNode(label, position, parent)
+        
             return arg_node
 
         def visit_Return(self, node, parent):
@@ -1558,9 +1563,9 @@ def extract_aroma_tree(file):
             #Declarative
             func_declaration = "#("
 
-            isNotEmpty = self.check_empty_parameters(node)
+            isEmpty = self.check_empty_parameters(node.args)
 
-            if (isNotEmpty):
+            if (not isEmpty):
                 func_declaration = func_declaration + "#" 
             func_declaration = func_declaration + ")" 
 
@@ -1568,7 +1573,7 @@ def extract_aroma_tree(file):
             parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
             
             func_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
-            if (isNotEmpty):
+            if (not isEmpty):
                 self.visit(node.args, parameter_func_node)
 
 
@@ -1658,7 +1663,7 @@ def extract_aroma_tree(file):
                 self.visit(withItem_node, with_context_managers)
             
             # Get the body of the With statement
-            body_label = ""
+            body_label = ":"
             for i in range (len(node.body)):
                 body_label = body_label + "#"
             
