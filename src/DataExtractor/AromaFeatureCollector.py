@@ -615,6 +615,163 @@ def extract_aroma_tree(file):
                 self.visit(if_statement, in_AnyTreeNode)
 
             return comprehension_AnyTreeNode
+
+        #Statements
+        
+        def visit_Assign(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = ""
+            for i in range(len(node.targets)):
+                if label == "":
+                    label = "#"
+                else:
+                    label = label + "=#"
+
+            label = label + "=#"
+            Assign_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+
+            for target in node.targets:
+                self.visit(target, Assign_AnyTreeNode)
+            self.visit(node.value, Assign_AnyTreeNode_Children)
+            
+            return Assign_AnyTreeNode
+            
+            
+        def visit_AnnAssign(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#:#"
+            if node.value != None:
+                label = label + "=#"
+
+            AnnAssign_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.target, AnnAssign_AnyTreeNode)
+            self.visit(node.annotation, AnnAssign_AnyTreeNode)
+
+            if node.value != None:
+                self.visit(node.value, AnnAssign_AnyTreeNode)
+            
+            return AnnAssign_AnyTreeNode
+        
+        def visit_AugAssign(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "#"            
+            if isinstance(node.op, ast.Add):
+                label += "+=#"
+            elif isinstance(node.op, ast.Sub):
+                label += "-=#"
+            elif isinstance(node.op, ast.Mult):
+                label += "*=#"
+            elif isinstance(node.op, ast.MatMult):
+                label += "@=#"
+            elif isinstance(node.op, ast.Div):
+                label += "/=#"
+            elif isinstance(node.op, ast.FloorDiv):
+                label += "//=#"
+            elif isinstance(node.op, ast.Mod):
+                label += "%=#"
+            elif isinstance(node.op, ast.Pow):
+                label += "**=#"
+            elif isinstance(node.op, ast.BitAnd):
+                label += "&=#"
+            elif isinstance(node.op, ast.BitOr):
+                label += "|="
+            elif isinstance(node.op, ast.BitXor):
+                label += "^=#"
+            elif isinstance(node.op, ast.RShift):
+                label += ">>=#"
+            else:
+                label += "<<=#"
+                # walrus op is not here because it's already done in visit_NamedExpr()
+            
+            AugAssign_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            self.visit(node.target, AugAssign_AnyTreeNode)
+            self.visit(node.value, AugAssign_AnyTreeNode)
+            
+            return AugAssign_AnyTreeNode
+            
+        def visit_Raise(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "raise"
+            
+            
+            if node.exc != None:
+                label = label + "#"
+                if node.cause != None:
+                    label = label + "from#"
+                    
+                Raise_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+
+                self.visit(node.exc, Raise_AnyTreeNode)
+                if node.cause != None:
+                    self.visit(node.cause, Raise_AnyTreeNode)
+
+                return Raise_AnyTreeNode
+            else:
+                Raise_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                return Raise_AnyTreeNode
+
+        
+        def visit_Assert(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
+            self.visit(node.test, Assert_AnyTreeNode)
+            self.visit(node.msg, Assert_AnyTreeNode)            
+            
+            return Assert_AnyTreeNode
+        
+        def visit_Delete(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "del"
+
+            for i in range (len(node.targets)):
+                if label == "":
+                    label = "#"
+                else:
+                    label = label + ",#"
+            
+            Delete_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+
+            for target in node.targets:
+                self.visit(target, Delete_AnyTreeNode)
+           
+            return Delete_AnyTreeNode            
+            
+        def visit_Pass(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            Pass_AnyTreeNode = MyAnyTreeNode("pass", position, parent)
+            
+            return Pass_AnyTreeNode
+            
+        def visit_TypeAlias(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            label = "type#"
+
+
+            if len(node.type_params) != 0:
+                label = label + "[#]"
+            label = label + "=#"
+            TypeAlias_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            
+            #Visit the name
+            self.visit(node.name, TypeAlias_AnyTreeNode)
+            
+            #Visit the parameters
+            parameter_label = ""
+            for i in range(len(node.type_params)):
+                if parameter_label == "":
+                    parameter_label = parameter_label + "#"
+                else:
+                    label = label + ",#"        
+            TypeAliasParameter_AnyTreeNode = MyAnyTreeNode(parameter_label, position, TypeAlias_AnyTreeNode)
+            for parameter in node.type_params:
+                self.visit(parameter, TypeAliasParameter_AnyTreeNode)
+            
+            #Visit value
+            self.visit(node.value, TypeAlias_AnyTreeNode)
+
+                  
+            return TypeAlias_AnyTreeNode  
+            
         
         #Control Flow
         def visit_If(self, node, parent):
