@@ -157,7 +157,7 @@ def extract_aroma_tree(file):
         
         def visit_Tuple(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "[#]"
+            label = "(#)"
             Tuple_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             number_of_nodes = len(node.elts)
             if number_of_nodes != 0:
@@ -177,7 +177,7 @@ def extract_aroma_tree(file):
         
         def visit_Set(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "[#]"
+            label = "{#}"
             Set_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             number_of_nodes = len(node.elts)
             if number_of_nodes != 0:
@@ -237,7 +237,7 @@ def extract_aroma_tree(file):
         def visit_Del(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
-            Del_AnyTreeNode = MyAnyTreeNode("del #", position, parent)
+            Del_AnyTreeNode = MyAnyTreeNode("del#", position, parent)
             
             value = node.id                
             self.visit(value, Del_AnyTreeNode)
@@ -247,50 +247,68 @@ def extract_aroma_tree(file):
         def vist_Starred(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             Starred_AnyTreeNode = MyAnyTreeNode("*#", position, parent)
+            self.visit(node.value, Starred_AnyTreeNode)
             
-            if len(node.elts) != 0:
-                label = ""
-                for i in range(len(node.elts)):
-                    if label == "":
-                        label = label + "#"
-                    else:
-                        label = label + ",#"
-                Starred_AnyTreeNode_Children = MyAnyTreeNode(label, position, Starred_AnyTreeNode)
-                values = node.elts
-                for i in range(len(values)):
-                    self.visit(values[i], Starred_AnyTreeNode_Children)
-                return Starred_AnyTreeNode
-            else:
-                return Starred_AnyTreeNode
+            # if len(node.elts) != 0:
+            #     label = ""
+            #     for i in range(len(node.elts)):
+            #         if label == "":
+            #             label = label + "#"
+            #         else:
+            #             label = label + ",#"
+            #     Starred_AnyTreeNode_Children = MyAnyTreeNode(label, position, Starred_AnyTreeNode)
+            #     values = node.elts
+            #     for i in range(len(values)):
+            #         self.visit(values[i], Starred_AnyTreeNode_Children)
+            #     return Starred_AnyTreeNode
+            # else:
+            #     return Starred_AnyTreeNode
         
         # Expressions
         
+        #TODO: check with mel
         def visit_Expr(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            Expr_AnyTreeNode = MyAnyTreeNode("#.#", position, parent)
-            # doesn't feel correct, need julian's opinion
+            Expr_AnyTreeNode = MyAnyTreeNode("#", position, parent)
             value = node.value
             
             self.visit(value, Expr_AnyTreeNode)
             
             return Expr_AnyTreeNode
-        
+        def visit_UnaryOp(self, node, parent):
+            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+            label = ""
+
+            if (isinstance(node.op, ast.UAdd)):
+                label = "+#"
+            if (isinstance(node.op, ast.USub)):
+                label = "-#"
+            if (isinstance(node.op, ast.Not)):
+                label = "not#"
+            if (isinstance(node.op, ast.Invert)):
+                label = "~#"
+            UnaryOp_TreeNode = MyAnyTreeNode(label, position, parent)
+
+            self.visit(node.operand, UnaryOp_TreeNode)
+            return UnaryOp_TreeNode
+
         def visit_BinOp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             label = ""
             
-            if node.op == Add():
-                label == "#+#"
-            if node.op == Sub():
-                label == "#-#"
-            if node.op == Mult():
-                label == "#*#"
-            if node.op == FloorDiv():
-                label == "#//#"
-            if node.op == Mod():
-                label == "#%#"
-            if node.op == Pow():
-                label == "#**#"
+            if (isinstance(node.op, ast.Add)):
+                label = "#+#"
+            if (isinstance(node.op, ast.Sub)):
+                label = "#-#"
+            if (isinstance(node.op, ast.Mult)):
+                label = "#*#"
+            if (isinstance(node.op, ast.FloorDiv)):
+                label = "#//#"
+            if (isinstance(node.op, ast.Mod)):
+                label = "#%#"
+            if (isinstance(node.op, ast.Pow)):
+                label = "#**#"
 
             Expr_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
@@ -303,23 +321,67 @@ def extract_aroma_tree(file):
             return Expr_AnyTreeNode
         
         def visit_BoolOp(self, node, parent):
-            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "#"
-            values = node.values
-            BoolOp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
-            if len(values) >= 2:
-                for i in range(len(values)):
-                    if node.op == And():
-                        label = label + "and#"
-                    if node.op == Or():
-                        label = label + "or#"
-                        
-                BoolOp_AnyTreeNode_Children = MyAnyTreeNode(label, position, BoolOp_AnyTreeNode)
-                for i in range(len(values)):
-                    self.visit(values[i], BoolOp_AnyTreeNode_Children)
+            #if @ is NOT in the parent label, that means this node is NOT a child node of a BoolOp node
+            if not ("@" in parent.label):
+                position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+                operator = ""
+                if (isinstance(node.op, ast.Or)):
+                    operator = "or"
+                else:
+                    operator = "and"
+                
+                label = ""
+                for i in range(len(node.values)):
+
+                    #Use @ to denote the spot of the label where the next BoolOp should override
+                    char = "#"
+                    if (isinstance(node.values[i], ast.BoolOp)):
+                        char = "@"
+
+                    if (label == ""):
+                        label = char 
+                    else:
+                        label =  label + operator + char
+                BoolOp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+                for value in node.values:                        
+                    self.visit(value, BoolOp_AnyTreeNode)
+                return BoolOp_AnyTreeNode
             
-            return BoolOp_AnyTreeNode
+            #if @ is NOT in the parent label, that means this node is NOT a child node of a BoolOp node
+            #This means this boolOp should modify the parent node instead of creating a new boolOp
+            else:
+                operator = ""
+                if (isinstance(node.op, ast.Or)):
+                    operator = "or"
+                else:
+                    operator = "and"
+                
+                index_of_alt = parent.label.index("@")
+                parent_label = parent.label
+                label = ""
+                for i in range(len(node.values)):
+                    #Use @ to denote the spot of the label where the next BoolOp should override
+                    char = "#"
+                    if (isinstance(node.values[i], ast.BoolOp)):
+                        char = "@"
+                    if (label == ""):
+                        label = char 
+                    else:
+                        label =  label + operator + char
+                
+                if (index_of_alt < len(parent_label)-1):
+                    parent_label = parent.label[:index_of_alt] + label + parent.label[index_of_alt+1:]
+                else:
+                    parent_label = parent.label[:index_of_alt] + label
+                
+                parent.label = parent_label
+
+                for value in node.values:
+                    self.visit(value, parent)
+            
+                return parent
 
         def visit_Compare(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
