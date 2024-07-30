@@ -19,6 +19,7 @@ name = "x"
 2 * 3
 2 % 3
 2 ** 3
+count = ~5
 unary_op = -5
 lambda_expr = lambda x: x * 2
 # if_exp
@@ -82,6 +83,7 @@ count |= 1
 count ^= 1
 count >>= 1
 count <<= 1
+
 # ann_assign
 x: int = 42
 # for_loop
@@ -108,8 +110,6 @@ except Exception:
     pass
 # assert_stmt
 assert condition, 'Assertion failed'
-# import_from
-from math import pi
 # global_stmt
 global x
 # nonlocal_stmt
