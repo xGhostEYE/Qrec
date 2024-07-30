@@ -45,6 +45,18 @@ comprehension = [x for x in range(5)]
 x = 10
 # aug_assign
 count += 1
+count -= 1
+count *= 1
+count /= 1
+count //= 1
+count %= 1
+count @= 1
+count **= 1
+count &= 1
+count |= 1
+count ^= 1
+count >>= 1
+count <<= 1
 # ann_assign
 x: int = 42
 # for_loop
