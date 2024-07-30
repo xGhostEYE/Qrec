@@ -12,10 +12,23 @@ name_constant = True
 name = "x"
 
 # Expressions
-bin_op = 2 + 3
+# bin_op 
+2 + 3
+2 - 3
+2 // 3
+2 * 3
+2 % 3
+2 ** 3
 unary_op = -5
 lambda_expr = lambda x: x * 2
+# if_exp
 if_exp = x if x > 0 else -x
+if 1 == 2:
+    print("something")
+elif 2 == 2:
+    print("something elif")
+else:
+    3
 dict_literal = {'name': 'Alice', 'age': 30}
 set_literal = {1, 2, 3}
 list_comp = [x * x for x in range(5)]
@@ -31,6 +44,18 @@ subscript = my_list[2]
 attribute = person.name
 starred = *args
 named_expr = (n := len(my_list)) > 0
+
+# Compare
+1 is 2
+1 is not 2
+1 in [1,2]
+1 not in [1,2]
+1 == 2
+1 <= 2
+1 >= 2
+1 > 2
+1 < 2
+1 != 2
 
 # Subscripting
 index = my_list[0]
