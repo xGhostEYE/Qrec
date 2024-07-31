@@ -1675,17 +1675,27 @@ def extract_aroma_tree(file):
             return with_AnyTreeNode
 
 
-
-
-
-
-
-
-      
-
     tree = ast.parse(file.read())
     visitor = MyVisitor()
-    print(RenderTree(visitor.visit(tree, None)))
+    return RenderTree(visitor.visit(tree, None))
+
+
+# the main function to get the features
+def token_feature(aroma_tree):
+    return
+
+def parent_feature(aroma_tree):
+    return
+
+def sibling_feature(aroma_tree):
+    return
+
+def variable_usage_feature(aroma_tree):
+    return
+
+def extract_aroma_features():
+    return
+    
 
 
     
