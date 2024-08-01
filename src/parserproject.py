@@ -10,18 +10,19 @@ import DataEncoder.DataEncoder as de
 from collections import defaultdict
 import traceback 
 from Evaluation import Evaluators as ev
-# from GitScrapper import Driller as dr
+import configparser
+from GitScrapper import Driller as dr
 import sys
 
-#Please add the training projects inside training/. 
-train_directory = "../train/"
-
-#Please add the training projects inside test/. 
-test_directory = "../test/"
 model = None
 predictions = []
 probabilities_result_correct = []
 
+# Create a ConfigParser object
+config = configparser.ConfigParser()
+ 
+# Read the configuration file
+config.read('../config.ini')
 
 #TODO - TEST
 def Run_project_prediction():
@@ -167,10 +168,20 @@ if op.isfile("./random_forest_model.joblib"):
 else:
     print("no model detected, training a new one")
 
-    #Please uncomment these lines to start scrapping projects for training. NOTE: The training data is very large, make sure to allocate enough disk space.
-    # urls = ["https://github.com/allenai/allennlp", "https://github.com/wention/BeautifulSoup4", "https://github.com/Cornices/cornice"]
-    # # for repo in urls:
-    # dr.GitRepoScrapper(urls[0])
+    #NOTE: The training data is very large, make sure to allocate enough disk space.
+    train_dir = os.listdir(../train/)     
+    if len(train_dir) == 0: 
+        print("No training files detected. Scraping new ones") 
+    
+        url = config.get("User","training_project_url")
+        dr.Git_Train_RepoScrapper(url)
+
+    test_dir = os.listdir(../test/)
+    if len(test_dir) == 0: 
+        print("No testing files detected. Scraping new ones") 
+    
+        url = config.get("User","training_project_url")
+        dr.Git_Test_RepoScrapper(url)
 
     print("gathering training data for new model")
     data = GetTrainingData()
