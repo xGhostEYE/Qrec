@@ -49,10 +49,20 @@ def get_x1(candidates, dataflow, true_api):
 
     with open('test.txt','w+') as f:
         f.write(s)
+	
+    config = configparser.ConfigParser()
+	
+    #Change to absolute path if encounter errors
+    config.read('../config.ini')
+    system = config.get("User", system)
 
-    #Only works with absolute path
-    os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
-
+    if (system.upper() == "LINUX"):
+	os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+    elif (system.upper() == "MACOS")
+        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+    else:
+       raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
+	
     with open('../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
