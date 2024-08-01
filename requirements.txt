@@ -1,0 +1,10 @@
+joblib
+numpy
+GitScrapper
+pydriller
+pandas
+sklearn
+torch
+shutil
+git
+anytree
