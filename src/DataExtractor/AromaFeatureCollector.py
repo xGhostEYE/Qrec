@@ -3,8 +3,13 @@ import ast
 from anytree import Node, NodeMixin, RenderTree, node
 from queue import Queue
 
+# global variables
+is_assignment_in_global = [False]
+global_variables = []
 
 def extract_aroma_tree(file):
+
+    
     class Position():
         def __init__(self, lineno, col_offset, end_lineno, end_col_offset):
             self.lineno = lineno
@@ -28,6 +33,7 @@ def extract_aroma_tree(file):
         def __repr__(self):
             return node.util._repr(self)
 
+    
     class MyVisitor (ast.NodeVisitor):
         def visit(self, node, parent_AnyTree_Node):
             """Visit a node."""
@@ -54,6 +60,13 @@ def extract_aroma_tree(file):
 
             return True
 
+        def check_is_module(self, node):
+            # check if the node is a Module type
+            if node.parent is None:
+                return True
+            else:
+                return False
+            
         # Root nodes
         
         def visit_Module(self, node, parent):
@@ -171,6 +184,8 @@ def extract_aroma_tree(file):
                 Tuple_AnyTreeNode_Children = MyAnyTreeNode(label, position, Tuple_AnyTreeNode)
                 values = node.elts
                 for i in range(len(values)):
+                    if self.check_is_module(parent.parent):
+                        is_assignment_in_global[0] = True
                     self.visit(values[i], Tuple_AnyTreeNode_Children)
                 return Tuple_AnyTreeNode
             else:
@@ -229,7 +244,12 @@ def extract_aroma_tree(file):
         def visit_Name(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
-            value = node.id
+            value = "#VAR"
+            
+            if is_assignment_in_global[0] is True and node.id not in global_variables:
+                value = node.id
+                global_variables.append(value)
+                is_assignment_in_global[0] = False
             
             Name_AnyTreeNode = MyAnyTreeNode(value, position, parent)
             
@@ -560,7 +580,6 @@ def extract_aroma_tree(file):
             self.visit(node.elt,SetComp_AnyTreeNode)
             for comprehension in node.generators:
                 self.visit(comprehension, SetComp_AnyTreeNode)            
-                self.visit(node.name, SetComp_AnyTreeNode)
             
             return SetComp_AnyTreeNode
             
@@ -586,7 +605,7 @@ def extract_aroma_tree(file):
             DictComp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
             DictComp_AnyTreeNode_key_value = MyAnyTreeNode("#:#", position, DictComp_AnyTreeNode)
-            self.visit(node.name, DictComp_AnyTreeNode_key_value)
+            self.visit(node.key, DictComp_AnyTreeNode_key_value)
             self.visit(node.value, DictComp_AnyTreeNode_key_value)
             
             for comprehension in node.generators:
@@ -596,7 +615,7 @@ def extract_aroma_tree(file):
         
         #TODO: check if this aligns with Aroma paper
         def visit_comprehension(self, node, parent):
-            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+            position = parent.position
             
             label = "##"
             comprehension_AnyTreeNode = MyAnyTreeNode(label, position, parent)
@@ -630,8 +649,11 @@ def extract_aroma_tree(file):
 
             label = label + "=#"
             Assign_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-
+            
             for target in node.targets:
+                if self.check_is_module(parent):
+                    is_assignment_in_global[0] = True
+                    print(is_assignment_in_global[0])
                 self.visit(target, Assign_AnyTreeNode)
             self.visit(node.value, Assign_AnyTreeNode)
             
@@ -645,6 +667,10 @@ def extract_aroma_tree(file):
                 label = label + "=#"
 
             AnnAssign_AnyTreeNode = MyAnyTreeNode(label, position, parent)
+            
+            if self.check_is_module(parent):
+                is_assignment_in_global[0] = True
+                
             self.visit(node.target, AnnAssign_AnyTreeNode)
             self.visit(node.annotation, AnnAssign_AnyTreeNode)
 
@@ -1029,8 +1055,8 @@ def extract_aroma_tree(file):
 
         def visit_ExceptHandler(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
-
-            if parent and len(parent) == 2 and parent[1] == "star":
+            
+            if isinstance(parent, Tuple) and len(parent) == 2 and parent[1] == "star":
                 except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent[0])
             else:
                 except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
@@ -1106,7 +1132,7 @@ def extract_aroma_tree(file):
             self.visit(node.subject, subject)
 
             body_label = ":"
-            for i in (len(node.cases)):
+            for i in range (len(node.cases)):
                 body_label = body_label + "#"
             body = MyAnyTreeNode(body_label, position, match_statement)
             for case in node.cases:
@@ -1115,7 +1141,7 @@ def extract_aroma_tree(file):
             return match_statement
         
         def visit_match_case(self, node, parent):
-            position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)    
+            position = parent.position  
 
             #condition
             case_label = "case#"
@@ -1130,11 +1156,11 @@ def extract_aroma_tree(file):
 
             #body
             body_label = ":"
-            for i in (len(node.body)):
+            for i in range (len(node.body)):
                 body_label = body_label + "#"
             body = MyAnyTreeNode(body_label, position, case_statement)
 
-            for case in node.cases:
+            for case in node.body:
                 self.visit(case, body)
 
         def visit_MatchValue(self, node, parent):
@@ -1652,7 +1678,7 @@ def extract_aroma_tree(file):
             # Get the context manager part of a With statement
             with_context_label = ""
             for i in range (len(node.items)):
-                if (with_context_managers == ""):
+                if (with_context_label == ""):
                     with_context_label = with_context_label + "#"
                 else:
                     with_context_label = with_context_label + ",#"
@@ -1677,11 +1703,13 @@ def extract_aroma_tree(file):
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
+    print(RenderTree(visitor.visit(tree, None)))
     return RenderTree(visitor.visit(tree, None))
 
 
 # the main function to get the features
 def token_feature(aroma_tree):
+    
     return
 
 def parent_feature(aroma_tree):

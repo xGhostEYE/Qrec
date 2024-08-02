@@ -1,3 +1,12 @@
+# test file
+[x,y]
+x = 10
+y = 11
+def myfunc():
+    y = 123
+    print("Python is " + x)
+myfunc()
+
 # Root nodes
 module = "import math"
 
@@ -154,13 +163,13 @@ with open('file.txt', 'r') as f:
 # Type Parameters
 
 # type_param
-def generic_function[T](x: T) -> T:
+def generic_function(x: T) -> T:
     pass
 # param_spec
-def generic_function[P](x: P) -> P:
+def generic_function(x: P) -> P:
     pass
 # constr
-def generic_function[T: int](x: T) -> T:
+def generic_function(x: T) -> T:
     pass
 
 # Function and Class Definitions
