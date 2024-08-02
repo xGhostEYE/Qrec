@@ -1,11 +1,14 @@
 # test file
-[x,y]
-x = 10
-y = 11
-def myfunc():
-    y = 123
-    print("Python is " + x)
-myfunc()
+# x = 10
+# y = 11
+# def myfunc(z = 10):
+#     y = 123
+#     x = 12
+#     print("Python is " + x)
+# myfunc()
+
+# def myfunc2():
+#     print(y)
 
 # Root nodes
 module = "import math"

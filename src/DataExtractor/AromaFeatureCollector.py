@@ -5,7 +5,9 @@ from queue import Queue
 
 # global variables
 is_assignment_in_global = [False]
+is_assignment_in_local = [False]
 global_variables = []
+local_variables = []
 
 def extract_aroma_tree(file):
 
@@ -79,6 +81,7 @@ def extract_aroma_tree(file):
             
             for childNode in node.body:
                 self.visit(childNode, Module_AnyTreeNode)
+                local_variables.clear()
                 
             return Module_AnyTreeNode
             
@@ -244,12 +247,25 @@ def extract_aroma_tree(file):
         def visit_Name(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
-            value = "#VAR"
-            
-            if is_assignment_in_global[0] is True and node.id not in global_variables:
+            # print("node.id; ",node.id)
+            # print("global variable status: ",is_assignment_in_global[0])
+
+            value = "#VAR"  
+            if is_assignment_in_global[0] is True:
+                if node.id not in global_variables:
+                    global_variables.append(node.id)
                 value = node.id
-                global_variables.append(value)
                 is_assignment_in_global[0] = False
+            
+            elif is_assignment_in_local[0] is True: 
+                if node.id not in local_variables:
+                    local_variables.append(node.id)
+                is_assignment_in_local[0] = False
+
+            elif node.id in local_variables:
+                value = "#VAR"
+            elif node.id in global_variables:
+                value = node.id
             
             Name_AnyTreeNode = MyAnyTreeNode(value, position, parent)
             
@@ -265,7 +281,7 @@ def extract_aroma_tree(file):
             
             return Del_AnyTreeNode
         
-        def vist_Starred(self, node, parent):
+        def visit_Starred(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             Starred_AnyTreeNode = MyAnyTreeNode("*#", position, parent)
             self.visit(node.value, Starred_AnyTreeNode)
@@ -412,7 +428,7 @@ def extract_aroma_tree(file):
             label = "#"
             for i in range(len(ops_values)):
                 if isinstance(ops_values[i], ast.Eq):
-                    label = label + "=#"
+                    label = label + "==#"
                 if isinstance(ops_values[i], ast.NotEq):
                     label = label + "!=#"
                 if isinstance(ops_values[i],ast.Lt):
@@ -448,7 +464,8 @@ def extract_aroma_tree(file):
                 call_label = call_label + "#"
             call_label = call_label + ")"
             Call_AnyTreeNode = MyAnyTreeNode(call_label, position, parent)
-            self.visit(node.func, Call_AnyTreeNode)
+            name_position = Position(node.func.lineno, node.func.col_offset, node.func.end_lineno, node.func.end_col_offset)
+            MyAnyTreeNode(node.func.id, name_position, Call_AnyTreeNode)
             
             labels = ""
             for i in range(len(node.args)):
@@ -632,7 +649,8 @@ def extract_aroma_tree(file):
 
             self.visit(node.iter, in_AnyTreeNode)
             for if_statement in node.ifs:
-                self.visit(if_statement, in_AnyTreeNode)
+                if_AnyTreenode = MyAnyTreeNode("if#", position, in_AnyTreeNode)
+                self.visit(if_statement, if_AnyTreenode)
 
             return comprehension_AnyTreeNode
 
@@ -653,7 +671,9 @@ def extract_aroma_tree(file):
             for target in node.targets:
                 if self.check_is_module(parent):
                     is_assignment_in_global[0] = True
-                    print(is_assignment_in_global[0])
+                else:
+                    is_assignment_in_local[0] = True
+                    
                 self.visit(target, Assign_AnyTreeNode)
             self.visit(node.value, Assign_AnyTreeNode)
             
@@ -1462,7 +1482,7 @@ def extract_aroma_tree(file):
             if (node.annotation):
                 label = "#:#"
                 arg_node = MyAnyTreeNode(label, position, parent)
-                MyAnyTreeNode(node.arg, position, arg_node)
+                MyAnyTreeNode("#VAR", position, arg_node)
                 self.visit(node.annotation, arg_node)
 
             else:
@@ -1470,7 +1490,7 @@ def extract_aroma_tree(file):
                 if label == "":
                     return parent
                 else:
-                    arg_node = MyAnyTreeNode(label, position, parent)
+                    arg_node = MyAnyTreeNode("#VAR", position, parent)
         
             return arg_node
 
