@@ -1628,7 +1628,7 @@ def extract_aroma_tree(file):
     #Async and await¶
         def visit_AsyncFunctionDef(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
-            label = "async-def##"
+            label = "async def##"
 
             def_func_node = MyAnyTreeNode(label, position, parent)
             
@@ -1641,6 +1641,8 @@ def extract_aroma_tree(file):
                 func_declaration = func_declaration + "#" 
             func_declaration = func_declaration + ")" 
 
+            if (node.returns):
+                func_declaration = func_declaration + "->#"
             
             parameter_func_node = MyAnyTreeNode(func_declaration, position, def_func_node)  
             
@@ -1648,6 +1650,8 @@ def extract_aroma_tree(file):
             if (not isEmpty):
                 self.visit(node.args, parameter_func_node)
 
+            if (node.returns):
+                self.visit(node.returns, parameter_func_node)
 
             #Body
             body_label = ":"
