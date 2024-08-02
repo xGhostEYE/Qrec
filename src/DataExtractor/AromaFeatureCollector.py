@@ -464,8 +464,16 @@ def extract_aroma_tree(file):
                 call_label = call_label + "#"
             call_label = call_label + ")"
             Call_AnyTreeNode = MyAnyTreeNode(call_label, position, parent)
+            
             name_position = Position(node.func.lineno, node.func.col_offset, node.func.end_lineno, node.func.end_col_offset)
-            MyAnyTreeNode(node.func.id, name_position, Call_AnyTreeNode)
+            
+            method_name = ""
+            if (isinstance(node.func, ast.Name)):
+                method_name = node.func.id
+            elif (isinstance(node.func, ast.Attribute)):
+                method_name = node.func.value.id
+            
+            MyAnyTreeNode(method_name, name_position, Call_AnyTreeNode)
             
             labels = ""
             for i in range(len(node.args)):
@@ -499,7 +507,7 @@ def extract_aroma_tree(file):
             if node.arg != None:
                 label = "#=#"
                 keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-                keyword_AnyTreeNode_Children = MyAnyTreeNode(node.arg, position, keyword_AnyTreeNode)
+                keyword_AnyTreeNode_Children = MyAnyTreeNode("#VAR", position, keyword_AnyTreeNode)
                 self.visit(node.value, keyword_AnyTreeNode)
             else:
                 self.visit(node.value, parent)       
@@ -1076,7 +1084,7 @@ def extract_aroma_tree(file):
         def visit_ExceptHandler(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
             
-            if isinstance(parent, Tuple) and len(parent) == 2 and parent[1] == "star":
+            if type(parent) is tuple and len(parent) == 2 and parent[1] == "star":
                 except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent[0])
             else:
                 except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
@@ -1573,18 +1581,36 @@ def extract_aroma_tree(file):
             #Declarative
             class_declaration = "#("
 
-            if (len(node.bases)):
+            if (len(node.bases) != 0 or len(node.keywords) != 0):
                 class_declaration = class_declaration + "#"  
 
             class_declaration = class_declaration + ")"   
  
    
-            parameter_func_node = MyAnyTreeNode(class_declaration, position, def_class_node)  
+            class_func_node = MyAnyTreeNode(class_declaration, position, def_class_node)  
             
-            class_name_node = MyAnyTreeNode(node.name, position, parameter_func_node)
+            class_name_node = MyAnyTreeNode(node.name, position, class_func_node)
+            
+            #AnyTree Node for parameters
+            paremeters_label = ""
+            for i in range(len(node.bases)):
+                if (paremeters_label == ""):
+                    paremeters_label = paremeters_label + "#"
+                else:
+                    paremeters_label = paremeters_label + ",#"
+
+            for i in range(len(node.keywords)):
+                if (paremeters_label == ""):
+                    paremeters_label = paremeters_label + "#"
+                else:
+                    paremeters_label = paremeters_label + ",#"
+            
+            parameters_AnyTreeNode = MyAnyTreeNode(paremeters_label, position, class_func_node)
             
             for childNode in node.bases:
-                self.visit(childNode, parameter_func_node)
+                self.visit(childNode, parameters_AnyTreeNode)
+            for keyword in node.keywords:
+                self.visit(keyword, parameters_AnyTreeNode)
 
             #Body
             body_label = ":"
@@ -1724,12 +1750,14 @@ def extract_aroma_tree(file):
     tree = ast.parse(file.read())
     visitor = MyVisitor()
     print(RenderTree(visitor.visit(tree, None)))
-    return RenderTree(visitor.visit(tree, None))
+    aroma_tree = visitor.visit(tree, None)
+
+    extract_aroma_features(aroma_tree)
+    return 
 
 
 # the main function to get the features
-def token_feature(aroma_tree):
-    
+def token_feature(aroma_tree):  
     return
 
 def parent_feature(aroma_tree):
@@ -1741,7 +1769,11 @@ def sibling_feature(aroma_tree):
 def variable_usage_feature(aroma_tree):
     return
 
-def extract_aroma_features():
+def extract_aroma_features(aromatree):
+    leaf_nodes = aromatree.leaves
+
+    for leaf in leaf_nodes:
+        print(leaf)
     return
     
 
