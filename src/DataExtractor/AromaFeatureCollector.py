@@ -509,7 +509,7 @@ def extract_aroma_tree(file):
             if node.arg != None:
                 label = "#=#"
                 keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-                keyword_AnyTreeNode_Children = MyAnyTreeNode("#VAR", position, keyword_AnyTreeNode)
+                keyword_AnyTreeNode_Children = MyAnyTreeNode("#VAR", position, keyword_AnyTreeNode, true_label=node.arg)
                 self.visit(node.value, keyword_AnyTreeNode)
             else:
                 self.visit(node.value, parent)       
@@ -1492,7 +1492,7 @@ def extract_aroma_tree(file):
             if (node.annotation):
                 label = "#:#"
                 arg_node = MyAnyTreeNode(label, position, parent)
-                MyAnyTreeNode("#VAR", position, arg_node)
+                MyAnyTreeNode("#VAR", position, arg_node, true_label=node.arg)
                 self.visit(node.annotation, arg_node)
 
             else:
@@ -1500,7 +1500,7 @@ def extract_aroma_tree(file):
                 if label == "":
                     return parent
                 else:
-                    arg_node = MyAnyTreeNode("#VAR", position, parent)
+                    arg_node = MyAnyTreeNode("#VAR", position, parent, true_label=node.arg)
         
             return arg_node
 
@@ -1544,7 +1544,7 @@ def extract_aroma_tree(file):
             label = "global"
 
             for name in node.names:
-                if name == "global":
+                if label == "global":
                     label = label + "#"
                 else:
                     label = label + ",#"
@@ -1562,7 +1562,7 @@ def extract_aroma_tree(file):
             label = "nonlocal"
 
             for name in node.names:
-                if name == "nonlocal":
+                if label == "nonlocal":
                     label = label + "#"
                 else:
                     label = label + ",#"
@@ -1768,19 +1768,19 @@ def token_feature(leaf_node):
     
 def parent_feature(leaf_node):
     
-    def parent_feature(child, parent, parent_features):
+    def parent_feature(child, parent, parent_features, label):
 
         if len(parent_features) == 3:
             return 
         
         if (parent != None):
             position = get_child_position(child, parent)        
-            parent_features.append( [child.label,position, parent.label] )
-            return parent_feature(parent, parent.parent, parent_features)
+            parent_features.append( [label,position, parent.label] )
+            return parent_feature(parent, parent.parent, parent_features, label)
         return parent_features
         
     parent_features = []
-    parent_feature(leaf_node, leaf_node.parent, parent_features)
+    parent_feature(leaf_node, leaf_node.parent, parent_features, leaf_node.label)
     return parent_features
 
 def sibling_feature(leaf_node, leaf_nodes):
@@ -1805,16 +1805,28 @@ def get_child_position(child, parent):
                 if child == the_child:
                     return position
                 position = position + 1
+
+# def get_child_position_by_name(child, parent):
         
-        #We denote that the child is not its parent's child as -1 to avoid program interruption
-        return -1 
+#         position = 1
+#         if parent.children != None:
+#             for the_child in parent.children:
+#                 child_label = child.label if child.label != "#VAR" else child.true_label
+#                 the_child_label = the_child.label if the_child.label != "#VAR" else the_child.true_label
+#                 if child_label. == the_child_label:
+#                     return position
+#                 position = position + 1
+        
+#         #We denote that the child is not its parent's child as -1 to avoid program interruption
+#         return -1 
 
 def variable_usage_feature(leaf_node, leaf_nodes):
 
     def get_context(node):
         parent = node.parent
         if (parent != None):
-            position = get_child_position(leaf_node, parent)
+            position = get_child_position(node, parent)
+
             if parent.label != "#.#":
                 return [position, parent.label]
 
@@ -1833,19 +1845,22 @@ def variable_usage_feature(leaf_node, leaf_nodes):
         index = leaf_nodes.index(leaf_node)
         label = leaf_node.true_label
 
-        for i in range(index):
-            another_leaf_node = leaf_nodes[i]
-            another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
-            if another_leaf_node_label == label:
-                variable_usage_features.append( [get_context(another_leaf_node), get_context(leaf_node)] )
+        if (index -1 >= 0 ):
+            for i in range(index - 1,0,-1):
+                
+                another_leaf_node = leaf_nodes[i]
+                another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
+                if another_leaf_node_label == label:
+                    variable_usage_features.append( [get_context(another_leaf_node), get_context(leaf_node)] )
+                    break
         
         if (index + 1 < len(leaf_nodes)):
-
             for i in range(index+1, len(leaf_nodes)):
                 another_leaf_node = leaf_nodes[i]
                 another_leaf_node_label = leaf_nodes[i].label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
                 if another_leaf_node_label == label:
-                    variable_usage_features.append( [get_context(another_leaf_node), get_context(leaf_node)] )
+                    variable_usage_features.append( [get_context(leaf_node),get_context(another_leaf_node)] )
+                    break
         
     return variable_usage_features
 
@@ -1860,15 +1875,10 @@ def extract_aroma_features(aromatree):
         variable_usage = variable_usage_feature ( leaf, leaf_nodes )
 
         features = [token, parent, sibling, variable_usage]
-
-        key = leaf.label
-        if (key == "#VAR"):
-            key = leaf.true_label
-
-        aroma_dict[key] = features
+        aroma_dict[leaf] = features
     
     for key,value in aroma_dict.items():
-        print(key, value)
+        print(key.label," : ", value)
     return aroma_dict
     
 
