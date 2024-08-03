@@ -1768,25 +1768,24 @@ def token_feature(aroma_tree):
     for leaf in leaf_nodes:
         # find the leafs that are labelled as "#VAR"
         if leaf.label == "#VAR":
-            features.append(leaf.label)
+            features.append([leaf.label, parent_feature(leaf, leaf.parent, [])])
             # get the parent of the #VAR leaf and get the index position of the 
             # child we just got
-            features.append(parent_feature(leaf, leaf.parent, []))
     print("features: ", features)
     return tokens
 
 def parent_feature(starting_node, starting_node_parent, parent_features):
     if len(parent_features) == 3:
-        print("parent_features: ", parent_features)
+        # print("parent_features: ", parent_features)
         return parent_features
     children = starting_node_parent.children
-    print(starting_node.label)
+    # print(starting_node.label)
     for i in range(len(children)):
-        print(children[i].label)
+        # print(children[i].label)
         if children[i].label == starting_node.label:
             parent_features.append(["#VAR", i+1, starting_node_parent.label])
     
-    parent_feature(starting_node_parent, starting_node_parent.parent, parent_features)
+    return parent_feature(starting_node_parent, starting_node_parent.parent, parent_features)
 
 def sibling_feature(aroma_tree):
     return
