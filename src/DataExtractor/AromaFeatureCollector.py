@@ -573,8 +573,8 @@ def extract_aroma_tree(file):
 
             Slice_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
-            self.visit(node.upper,Slice_AnyTreeNode)
             self.visit(node.lower,Slice_AnyTreeNode)
+            self.visit(node.upper,Slice_AnyTreeNode)
             if (node.step):
                 self.visit(node.step, Slice_AnyTreeNode)
 
@@ -729,7 +729,7 @@ def extract_aroma_tree(file):
             elif isinstance(node.op, ast.BitAnd):
                 label += "&=#"
             elif isinstance(node.op, ast.BitOr):
-                label += "|="
+                label += "|=#"
             elif isinstance(node.op, ast.BitXor):
                 label += "^=#"
             elif isinstance(node.op, ast.RShift):
@@ -1755,17 +1755,38 @@ def extract_aroma_tree(file):
     visitor = MyVisitor()
     print(RenderTree(visitor.visit(tree, None)))
     aroma_tree = visitor.visit(tree, None)
-
     extract_aroma_features(aroma_tree)
     return 
 
 
 # the main function to get the features
-def token_feature(aroma_tree):  
-    return
+def token_feature(aroma_tree):
+    leaf_nodes = aroma_tree.leaves
+    tokens = {}
+    features = []
+    # loop through the leafs of the tree
+    for leaf in leaf_nodes:
+        # find the leafs that are labelled as "#VAR"
+        if leaf.label == "#VAR":
+            features.append(leaf.label)
+            # get the parent of the #VAR leaf and get the index position of the 
+            # child we just got
+            features.append(parent_feature(leaf, leaf.parent, []))
+    print("features: ", features)
+    return tokens
 
-def parent_feature(aroma_tree):
-    return
+def parent_feature(starting_node, starting_node_parent, parent_features):
+    if len(parent_features) == 3:
+        print("parent_features: ", parent_features)
+        return parent_features
+    children = starting_node_parent.children
+    print(starting_node.label)
+    for i in range(len(children)):
+        print(children[i].label)
+        if children[i].label == starting_node.label:
+            parent_features.append(["#VAR", i+1, starting_node_parent.label])
+    
+    parent_feature(starting_node_parent, starting_node_parent.parent, parent_features)
 
 def sibling_feature(aroma_tree):
     return
@@ -1774,10 +1795,11 @@ def variable_usage_feature(aroma_tree):
     return
 
 def extract_aroma_features(aromatree):
-    leaf_nodes = aromatree.leaves
+    token_feature(aromatree)
+    # leaf_nodes = aromatree.leaves
 
-    for leaf in leaf_nodes:
-        print(leaf)
+    # for leaf in leaf_nodes:
+    #     print(leaf)
     return
     
 
