@@ -472,11 +472,10 @@ def extract_aroma_tree(file):
             method_name = ""
             if (isinstance(node.func, ast.Name)):
                 method_name = node.func.id
+                MyAnyTreeNode(method_name, name_position, Call_AnyTreeNode)
             elif (isinstance(node.func, ast.Attribute)):
-                method_name = node.func.value.id
-            
-            MyAnyTreeNode(method_name, name_position, Call_AnyTreeNode)
-            
+                self.visit(node.func, Call_AnyTreeNode )
+                        
             labels = ""
             for i in range(len(node.args)):
                 if labels == "":
@@ -1775,7 +1774,7 @@ def parent_feature(leaf_node):
         
         if (parent != None):
             position = get_child_position(child, parent)        
-            parent_features.append( [label,position, parent.label] )
+            parent_features.append( (label,position, parent.label) )
             return parent_feature(parent, parent.parent, parent_features, label)
         return parent_features
         
@@ -1789,12 +1788,12 @@ def sibling_feature(leaf_node, leaf_nodes):
     left_index = index - 1
     if (left_index >= 0):
         left_sibling = leaf_nodes[left_index]
-        sibling_features.append( [left_sibling.label, leaf_node.label] )
+        sibling_features.append( (left_sibling.label, leaf_node.label) )
     
     right_index = index + 1
     if (right_index < len(leaf_nodes)):
         right_sibling = leaf_nodes[right_index]
-        sibling_features.append( [leaf_node.label, right_sibling.label])
+        sibling_features.append( (leaf_node.label, right_sibling.label))
 
     return sibling_features
 def get_child_position(child, parent):
@@ -1828,7 +1827,7 @@ def variable_usage_feature(leaf_node, leaf_nodes):
             position = get_child_position(node, parent)
 
             if parent.label != "#.#":
-                return [position, parent.label]
+                return (position, parent.label)
 
             else:
                 children = parent.leaves
@@ -1838,8 +1837,8 @@ def variable_usage_feature(leaf_node, leaf_nodes):
                         label = child.label
                         break
 
-                return [position, label]
-        return ["",""]           
+                return (position, label)
+        return ("","")          
     variable_usage_features = []
     if leaf_node.label == "#VAR":
         index = leaf_nodes.index(leaf_node)
@@ -1851,7 +1850,7 @@ def variable_usage_feature(leaf_node, leaf_nodes):
                 another_leaf_node = leaf_nodes[i]
                 another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
                 if another_leaf_node_label == label:
-                    variable_usage_features.append( [get_context(another_leaf_node), get_context(leaf_node)] )
+                    variable_usage_features.append( (get_context(another_leaf_node), get_context(leaf_node)) )
                     break
         
         if (index + 1 < len(leaf_nodes)):
@@ -1859,7 +1858,7 @@ def variable_usage_feature(leaf_node, leaf_nodes):
                 another_leaf_node = leaf_nodes[i]
                 another_leaf_node_label = leaf_nodes[i].label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
                 if another_leaf_node_label == label:
-                    variable_usage_features.append( [get_context(leaf_node),get_context(another_leaf_node)] )
+                    variable_usage_features.append( (get_context(leaf_node),get_context(another_leaf_node)) )
                     break
         
     return variable_usage_features
