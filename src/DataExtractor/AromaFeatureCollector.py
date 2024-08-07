@@ -2,6 +2,8 @@ from ast import *
 import ast
 from anytree import Node, NodeMixin, RenderTree, node
 from queue import Queue
+import csv
+
 
 # global variables
 is_assignment_in_global = [False]
@@ -1756,8 +1758,7 @@ def extract_aroma_tree(file):
     visitor = MyVisitor()
     print(RenderTree(visitor.visit(tree, None)))
     aroma_tree = visitor.visit(tree, None)
-    extract_aroma_features(aroma_tree)
-    return 
+    return aroma_tree
 
 
 # the main function to get the features
@@ -1804,20 +1805,6 @@ def get_child_position(child, parent):
                 if child == the_child:
                     return position
                 position = position + 1
-
-# def get_child_position_by_name(child, parent):
-        
-#         position = 1
-#         if parent.children != None:
-#             for the_child in parent.children:
-#                 child_label = child.label if child.label != "#VAR" else child.true_label
-#                 the_child_label = the_child.label if the_child.label != "#VAR" else the_child.true_label
-#                 if child_label. == the_child_label:
-#                     return position
-#                 position = position + 1
-        
-#         #We denote that the child is not its parent's child as -1 to avoid program interruption
-#         return -1 
 
 def variable_usage_feature(leaf_node, leaf_nodes):
 
@@ -1878,8 +1865,26 @@ def extract_aroma_features(aromatree):
     
     for key,value in aroma_dict.items():
         print(key.label," : ", value)
-    return aroma_dict
     
+    
+    return aroma_dict
+
+def create_csv_data_set(aroma_dict):
+    data = [
+        {'name': 'Nikhil', 'branch': 'COE', 'year': 2, 'cgpa': 9.0},
+        {'name': 'Sanchit', 'branch': 'COE', 'year': 2, 'cgpa': 9.1},
+        {'name': 'Aditya', 'branch': 'IT', 'year': 2, 'cgpa': 9.3},
+        {'name': 'Sagar', 'branch': 'SE', 'year': 1, 'cgpa': 9.5},
+        {'name': 'Prateek', 'branch': 'MCE', 'year': 3, 'cgpa': 7.8},
+        {'name': 'Sahil', 'branch': 'EP', 'year': 2, 'cgpa': 9.1}
+    ]
+    with open('../data/aroma_dataset.csv', 'a', newline='') as csvfile:
+        fieldnames = ['name', 'branch', 'year', 'cgpa']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
+
+
 
 
     
