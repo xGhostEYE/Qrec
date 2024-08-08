@@ -2,7 +2,8 @@ import os
 import traceback 
 import DataExtractor.AromaFeatureCollector as afc
 import argparse
-
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 #Please add the training projects inside test/. 
 test_directory = "../test/"
@@ -49,7 +50,14 @@ def extract_and_append_dataset():
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")
                         traceback.print_exc()
-    
+
+        # split the data into training and testing
+        df = pd.read_csv("../data/aroma_dataset.csv")
+        sampled_training_df, sampled_test_df = train_test_split(df, test_size = 0.2, random_state = 200)
+        sampled_training_df.to_csv("../data/training_data_aroma.csv", index = False, header = True)
+        sampled_test_df.to_csv("../data/testing_data_aroma.csv", index = False, header = True)
+        
+                
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         traceback.print_exc()
