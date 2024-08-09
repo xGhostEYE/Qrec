@@ -8,9 +8,8 @@ import csv
 # global variables
 is_assignment_in_global = [False]
 is_assignment_in_local = [False]
-global_variables = []
-local_variables = []
-
+global_variables = set()
+local_variables = set()
 def extract_aroma_tree(file):
 
     
@@ -26,14 +25,19 @@ def extract_aroma_tree(file):
             
 
     class MyAnyTreeNode(NodeMixin):  # Add Node feature
-        def __init__(self, label, position, parent=None, children=None, true_label=None):
+        def __init__(self, label, position, parent=None, children=None, true_label=None, is_receiver=False, is_method_call=False):
             super().__init__()
             self.label = label
+            self.true_label = true_label
+
             self.position = position
+
             self.parent = parent
             if(children):
                 self.children = children
-            self.true_label = true_label
+
+            self.is_receiver = is_receiver
+            self.is_method_call = is_method_call
 
 
         def __repr__(self):
@@ -254,13 +258,13 @@ def extract_aroma_tree(file):
             value = "#VAR"  
             if is_assignment_in_global[0] is True:
                 if node.id not in global_variables:
-                    global_variables.append(node.id)
+                    global_variables.add(node.id)
                 value = node.id
                 is_assignment_in_global[0] = False
             
             elif is_assignment_in_local[0] is True: 
                 if node.id not in local_variables:
-                    local_variables.append(node.id)
+                    local_variables.add(node.id)
                 is_assignment_in_local[0] = False
 
             elif node.id in local_variables:
@@ -467,7 +471,7 @@ def extract_aroma_tree(file):
             if (len(node.args) > 0):
                 call_label = call_label + "#"
             call_label = call_label + ")"
-            Call_AnyTreeNode = MyAnyTreeNode(call_label, position, parent)
+            Call_AnyTreeNode = MyAnyTreeNode(call_label, position, parent, is_method_call=True)
             
             name_position = Position(node.func.lineno, node.func.col_offset, node.func.end_lineno, node.func.end_col_offset)
             
@@ -540,7 +544,10 @@ def extract_aroma_tree(file):
             
             label = "#.#"
             Attribute_AnyTreeNode = MyAnyTreeNode(label, position, parent)
-            self.visit(node.value, Attribute_AnyTreeNode)
+            object = self.visit(node.value, Attribute_AnyTreeNode)
+            if (parent.is_method_call):
+                object.is_receiver = True
+
             Attribute_AnyTreeNode_Attribute = MyAnyTreeNode(node.attr, position, Attribute_AnyTreeNode)
             
             return Attribute_AnyTreeNode
@@ -829,7 +836,15 @@ def extract_aroma_tree(file):
 
                   
             return TypeAlias_AnyTreeNode  
-            
+        #Import
+
+        def visit_alias(self, node, parent):
+            if (node.asname is None):
+                global_variables.add(node.name)
+            else:
+                global_variables.add(node.asname)
+
+            return     
         
         #Control Flow
         def visit_If(self, node, parent):
@@ -1864,11 +1879,37 @@ def extract_aroma_features(aromatree):
         aroma_dict[leaf] = features
     
     for key,value in aroma_dict.items():
+        
         print(key.label," : ", value)
     
     
     return aroma_dict
+def get_retrievers(leaf_nodes):
+    receivers = []
+    for leaf in leaf_nodes:
+        if leaf.is_receiver:
+            receivers.append(leaf)
+    return receivers
+def extract_aroma_features_for_method_calls(aroma_tree):
+    leaf_nodes = aroma_tree.leaves
+    receivers = get_retrievers(aroma_tree.leaves)
+    aroma_dict = {}
+    for receiver in receivers:
+        
+        token = token_feature(receiver)
+        parent = parent_feature(receiver)
+        sibling = sibling_feature(receiver, leaf_nodes)
+        variable_usage = variable_usage_feature ( receiver, leaf_nodes )
 
+        features = [token, parent, sibling, variable_usage]
+        aroma_dict[receiver] = features
+    
+    for key,value in aroma_dict.items():
+        
+        print(key.label," : ", value)
+    
+    
+    return aroma_dict
 def create_csv_data_set(aroma_dict):
     data = [
         {'name': 'Nikhil', 'branch': 'COE', 'year': 2, 'cgpa': 9.0},
