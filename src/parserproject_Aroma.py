@@ -1,3 +1,4 @@
+import csv
 import os
 import traceback 
 import DataExtractor.AromaFeatureCollector as afc
@@ -19,6 +20,9 @@ def extract_and_append_dataset():
             print(f"Error: Directory '{test_directory}' does not exist.")
             return None
         
+        #clear csv file
+        f = open("../data/aroma_dataset.csv", "w+")
+        f.close()
         # Iterate through all Python files in the train directory to extract dataset
         for root, directories, files in os.walk(train_directory, topdown=False):
             for filename in files:
@@ -28,8 +32,8 @@ def extract_and_append_dataset():
                     try: 
                         with open(file_path, encoding='utf-8') as file:
                                 aroma_tree = afc.extract_aroma_tree(file)
-                                aroma_dict = afc.extract_aroma_features(aroma_tree)
-                                afc.create_csv_data_set(aroma_dict)
+                                aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree)
+                                afc.write_csv_data_set(file_path, aroma_dict)
 
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")
@@ -44,8 +48,8 @@ def extract_and_append_dataset():
                     try: 
                         with open(file_path, encoding='utf-8') as file:
                                 aroma_tree = afc.extract_aroma_tree(file)
-                                aroma_dict = afc.extract_aroma_features(aroma_tree)
-                                afc.create_csv_data_set(aroma_dict)
+                                aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree)
+                                afc.write_csv_data_set(file_path ,aroma_dict)
 
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")

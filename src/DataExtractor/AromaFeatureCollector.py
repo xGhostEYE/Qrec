@@ -1771,7 +1771,6 @@ def extract_aroma_tree(file):
 
     tree = ast.parse(file.read())
     visitor = MyVisitor()
-    print(RenderTree(visitor.visit(tree, None)))
     aroma_tree = visitor.visit(tree, None)
     return aroma_tree
 
@@ -1884,46 +1883,52 @@ def extract_aroma_features(aromatree):
     
     
     return aroma_dict
-def get_retrievers(leaf_nodes):
-    receivers = []
+def get_method_calls(leaf_nodes):
+    method_call = []
+    receiver = None
     for leaf in leaf_nodes:
+        if (receiver != None):
+            method_call.append( (receiver, leaf) )
+            receiver = None
+            continue
+        
         if leaf.is_receiver:
-            receivers.append(leaf)
-    return receivers
+            receiver = leaf
+
+    return method_call
 def extract_aroma_features_for_method_calls(aroma_tree):
     leaf_nodes = aroma_tree.leaves
-    receivers = get_retrievers(aroma_tree.leaves)
+    method_calls = get_method_calls(aroma_tree.leaves)
     aroma_dict = {}
-    for receiver in receivers:
-        
+    for method_call in method_calls:
+        receiver = method_call[0]
         token = token_feature(receiver)
         parent = parent_feature(receiver)
         sibling = sibling_feature(receiver, leaf_nodes)
         variable_usage = variable_usage_feature ( receiver, leaf_nodes )
 
         features = [token, parent, sibling, variable_usage]
-        aroma_dict[receiver] = features
-    
-    for key,value in aroma_dict.items():
+        aroma_dict[method_call] = features
         
-        print(key.label," : ", value)
-    
-    
     return aroma_dict
-def create_csv_data_set(aroma_dict):
-    data = [
-        {'name': 'Nikhil', 'branch': 'COE', 'year': 2, 'cgpa': 9.0},
-        {'name': 'Sanchit', 'branch': 'COE', 'year': 2, 'cgpa': 9.1},
-        {'name': 'Aditya', 'branch': 'IT', 'year': 2, 'cgpa': 9.3},
-        {'name': 'Sagar', 'branch': 'SE', 'year': 1, 'cgpa': 9.5},
-        {'name': 'Prateek', 'branch': 'MCE', 'year': 3, 'cgpa': 7.8},
-        {'name': 'Sahil', 'branch': 'EP', 'year': 2, 'cgpa': 9.1}
-    ]
-    with open('../data/aroma_dataset.csv', 'a', newline='') as csvfile:
-        fieldnames = ['name', 'branch', 'year', 'cgpa']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+def write_csv_data_set(file_path ,aroma_dict):
+   
+    with open("../data/aroma_dataset.csv", 'a') as csvfile:
+        # creating a csv dict writer object
+        fields = ["file_path", "receiver", "method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+
+        # writing headers (field names)
         writer.writeheader()
-        writer.writerows(data)
+
+
+        for key, value in aroma_dict.items():
+            receiver = key[0]
+            receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
+            
+            method = key[1]
+            method_label = method.label
+            writer.writerow({"file_path": file_path,  "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
 
 
 
