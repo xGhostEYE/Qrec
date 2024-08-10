@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 #Please add the training projects inside test/. 
 test_directory = "../test/"
 train_directory = "../train"
+fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
 
 def extract_and_append_dataset():
     try:
@@ -21,8 +22,11 @@ def extract_and_append_dataset():
             return None
         
         #clear csv file
-        f = open("../data/aroma_dataset.csv", "w+")
-        f.close()
+        file = open("../data/aroma_dataset.csv", "w+")
+        writer = csv.DictWriter(file, fieldnames=fields)
+        # writing headers (field names)
+        writer.writeheader()
+        file.close()
         # Iterate through all Python files in the train directory to extract dataset
         for root, directories, files in os.walk(train_directory, topdown=False):
             for filename in files:
@@ -55,7 +59,7 @@ def extract_and_append_dataset():
                         print(f"Error processing file '{file_path}': {e}")
                         traceback.print_exc()
 
-        # split the data into training and testing
+        # split the data into 80% train 20% test
         df = pd.read_csv("../data/aroma_dataset.csv")
         sampled_training_df, sampled_test_df = train_test_split(df, test_size = 0.2, random_state = 200)
         sampled_training_df.to_csv("../data/training_data_aroma.csv", index = False, header = True)

@@ -6,13 +6,12 @@ import csv
 
 def index_data(csv_file_path, recreate_index):
     # index section
-    # TODO finish the columns to extract after julian gets his answer from prof
-    columns_to_extract = ["method_name", "path", ""] 
+    columns_to_extract = ["file_path", "position", "reciever", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"] 
     if recreate_index:
         # title is the method call (object.method)
         # path will be the path to the file where the method calls are
         # the rest are the features we collected
-        schema = Schema(title=TEXT(stored=True), path=TEXT(stored=True), token_feature=TEXT, parent_feature=TEXT, sibling_feature=TEXT, variable_feature=TEXT)
+        schema = Schema(file_path=TEXT(stored=True), position=TEXT(stored=True) ,reciever=TEXT(stored=True), method=TEXT(stored=True), token_feature=TEXT, parent_feature=TEXT, sibling_feature=TEXT, variable_feature=TEXT)
         ix = create_in(r"./Indexing", schema)
                 
     
@@ -27,10 +26,15 @@ def index_data(csv_file_path, recreate_index):
         column_indices = [header.index(col) for col in columns_to_extract]
 
         for row in data_reader:
-            method_name = row[column_indices[0]]                
-            path = row[column_indices[1]]
-            # TODO add the rest of the columns here as well as add them to writer.add_document
-            writer.add_document(title=method_name, path=path, )
+            file_path = row[column_indices[0]]
+            position = row[column_indices[1]]              
+            reciever = row[column_indices[2]]
+            method = row[column_indices[3]]
+            token_feature = row[column_indices[4]]
+            parent_feature = row[column_indices[5]]
+            sibling_feature = row[column_indices[6]]
+            variable_usage_feature = row[column_indices[7]]
+            writer.add_document(file_path=file_path, position = position ,reciever=reciever, method = method, token_feature = token_feature, parent_feature = parent_feature, sibling_feature = sibling_feature, variable_usage_feature = variable_usage_feature)
     writer.commit()
     
     

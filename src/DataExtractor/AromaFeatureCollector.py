@@ -1915,20 +1915,17 @@ def write_csv_data_set(file_path ,aroma_dict):
    
     with open("../data/aroma_dataset.csv", 'a') as csvfile:
         # creating a csv dict writer object
-        fields = ["file_path", "receiver", "method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
         writer = csv.DictWriter(csvfile, fieldnames=fields)
-
-        # writing headers (field names)
-        writer.writeheader()
-
 
         for key, value in aroma_dict.items():
             receiver = key[0]
+            position = str(receiver.position)
             receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
             
             method = key[1]
             method_label = method.label
-            writer.writerow({"file_path": file_path,  "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
+            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
 
 
 
