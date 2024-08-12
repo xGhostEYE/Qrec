@@ -19,13 +19,13 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
             if not (true_api in candidates):
                 candidates.append(true_api)
             
-            x1_dict = get_x1(candidates, value,true_api)
+            # x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
                 isTrue = 0
                 if (candidate == true_api):
                     isTrue = 1
                 
-                x1 = x1_dict[candidate]
+                x1 = 0 
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict, file_dict, filepath)
                 x4 = get_x4(file_dict, filepath, line_number, candidate, true_api)
@@ -166,18 +166,19 @@ def get_x4(file_dict, file_path, line_number, candidate, true_api):
     set_of_S = []
     for key,value in bag_of_tokens.items():
         if (key < line_number):
-            set_of_S.extend(value)
+            set_of_S.append(value)
             continue
         
         if (key == line_number and true_api in value):
-            set_of_S.extend(value[0: value.index(true_api)])     
+            set_of_S.append(value[0: value.index(true_api)])     
         break
     
     total_confidence = 0
 
     for i in range(len(set_of_S)):
-        confidence = get_x4_confidence(file_dict, file_path, set_of_S[i], candidate)
-        distance = get_distance(i, len(set_of_S))
+        for j in range(len(set_of_S[i])):
+            confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate)
+            distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
         
         if distance == 0:
             continue
@@ -228,7 +229,17 @@ def get_n_x4_api(file_dict, file_path, token, candidate):
                     break
             
     return count
-def get_distance(index, size_of_set_S):
-    return size_of_set_S - index
+def get_distance(index_of_sublist, set_S, index_in_sublist, len_sublist):
+    distance_to_end_of_sublist = len_sublist - index_in_sublist + 1
+
+    try:
+        i = index_of_sublist + 1
+        for i in range(len(set_S)):
+            distance_to_end_of_sublist = distance_to_end_of_sublist + len(set_S[i])
+        
+    except Exception as e:
+        pass
+    
+    return distance_to_end_of_sublist
 
                 
