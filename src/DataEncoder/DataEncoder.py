@@ -3,9 +3,14 @@ import os
 import re
 import configparser
 
-def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
+def DataEncoder(method_dict, candidate_dict, file_dict, filepath, token_dict):
 
     data_dict = {}
+    set_of_S = []
+    bag_of_tokens = file_dict[filepath]
+    set_of_S_cursor_value =  list(bag_of_tokens.keys())
+    current_cursor = 0
+
     print("Encoding data...")
     for key, value in method_dict.items():
         
@@ -13,7 +18,19 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
         if the_object != None:
             true_api = key[1]
             line_number = key[2]
-
+            
+            for cursor in range(current_cursor ,len(set_of_S_cursor_value)):
+                current_line_number = set_of_S_cursor_value[cursor]
+                tokens = bag_of_tokens[current_line_number]
+                if (current_line_number < line_number):
+                    set_of_S.append(tokens)
+                    continue
+                
+                elif (current_line_number == line_number and true_api in tokens):
+                    set_of_S.append(tokens[0: tokens.index(true_api)])
+                    current_cursor = cursor + 1    
+                    break
+            
             candidates = candidate_dict[(the_object,line_number)]
 
             if not (true_api in candidates):
@@ -29,7 +46,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
                 x1 = 0 
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(the_object, candidate, line_number, method_dict, file_dict, filepath)
-                x4 = get_x4(file_dict, filepath, line_number, candidate, true_api)
+                x4 = get_x4(file_dict, filepath, candidate, token_dict, set_of_S,)
                 x = [x1,x2,x3,x4]
 
                 data_dict[ (the_object, candidate, line_number, isTrue)] = x
@@ -160,25 +177,15 @@ def get_n_x3_api(the_object, candidate, line_num, method_dict):
             count += 1
     return count
 
-def get_x4(file_dict, file_path, line_number, candidate, true_api):
+def get_x4(file_dict, file_path, candidate, tokens_dict, set_of_S):
 
-    bag_of_tokens = file_dict[file_path]
-
-    set_of_S = []
-    for key,value in bag_of_tokens.items():
-        if (key < line_number):
-            set_of_S.append(value)
-            continue
-        
-        elif (key == line_number and true_api in value):
-            set_of_S.append(value[0: value.index(true_api)])     
-            break
+    
     
     total_confidence = 0
 
     for i in range(len(set_of_S)):
         for j in range(len(set_of_S[i])):
-            confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate)
+            confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, tokens_dict)
             distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
         
             if distance == 0:
@@ -188,21 +195,26 @@ def get_x4(file_dict, file_path, line_number, candidate, true_api):
 
     return (1/len(set_of_S)) * total_confidence
 
-def get_x4_confidence(file_dict, file_path, token, candidate):
-    nx_api = get_n_x4_api(file_dict, file_path, token, candidate)
+def get_x4_confidence(file_dict, file_path, token, candidate, tokens_dict):
+    nx_api = get_n_x4_api(file_dict, file_path, token, candidate, tokens_dict)
     
     if nx_api == 0:
         return 0
     
-    nx = get_n_x4(file_dict, file_path, token)
+    nx = get_n_x4(file_dict, file_path, token, tokens_dict)
 
     if nx == 0:
         return 0
         
     return nx_api/nx
 
-def get_n_x4(file_dict, file_path, token):
+def get_n_x4(file_dict, file_path, token, tokens_dict):
     count = 0
+    try:
+        return tokens_dict[(token, None)]
+    except KeyError as e:
+        pass
+
     for key, value in file_dict.items():
         
         if key != file_path:    
@@ -210,10 +222,17 @@ def get_n_x4(file_dict, file_path, token):
                 if token in tokens:
                     count = count + 1
                     break
+    tokens_dict[(token, None)] = count
     return count
 
-def get_n_x4_api(file_dict, file_path, token, candidate):
+def get_n_x4_api(file_dict, file_path, token, candidate, tokens_dict):
     count = 0
+
+    try:
+        return tokens_dict[(token, candidate)]
+    except KeyError as e:
+        pass
+
     for key, value in file_dict.items():
         found_token = False
         found_candidate = False
@@ -228,7 +247,7 @@ def get_n_x4_api(file_dict, file_path, token, candidate):
                 if found_token and found_candidate:
                     count += 1
                     break
-            
+    tokens_dict[(token, candidate)] = count
     return count
 def get_distance(index_of_sublist, set_S, index_in_sublist, len_sublist):
     distance_to_end_of_sublist = len_sublist - index_in_sublist - 1

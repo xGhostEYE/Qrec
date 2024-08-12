@@ -13,6 +13,7 @@ def analyze_directory(directory):
     undefined_projects = []
     data_dict = {}
     file_dict = {}
+    token_count_dict = {}
     for file in files:
         file_path = os.path.join(directory, file)
         directoryPath.append(file_path)
@@ -57,7 +58,7 @@ def analyze_directory(directory):
                             #Format of data_dict:
                             # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
                             # #Value = [x1,x2,x3,x4]
-                            data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path))
+                            data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path, token_count_dict))
                             
 
                         except Exception as e:
