@@ -170,9 +170,9 @@ def get_x4(file_dict, file_path, line_number, candidate, true_api):
             set_of_S.append(value)
             continue
         
-        if (key == line_number and true_api in value):
+        elif (key == line_number and true_api in value):
             set_of_S.append(value[0: value.index(true_api)])     
-        break
+            break
     
     total_confidence = 0
 
@@ -181,10 +181,10 @@ def get_x4(file_dict, file_path, line_number, candidate, true_api):
             confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate)
             distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
         
-        if distance == 0:
-            continue
+            if distance == 0:
+                continue
 
-        total_confidence = total_confidence + confidence/distance
+            total_confidence = total_confidence + confidence/distance
 
     return (1/len(set_of_S)) * total_confidence
 
@@ -231,11 +231,11 @@ def get_n_x4_api(file_dict, file_path, token, candidate):
             
     return count
 def get_distance(index_of_sublist, set_S, index_in_sublist, len_sublist):
-    distance_to_end_of_sublist = len_sublist - index_in_sublist + 1
+    distance_to_end_of_sublist = len_sublist - index_in_sublist - 1
 
     try:
-        i = index_of_sublist + 1
-        for i in range(len(set_S)):
+        start_index = index_of_sublist + 1
+        for i in range(start_index, len(set_S)):
             distance_to_end_of_sublist = distance_to_end_of_sublist + len(set_S[i])
         
     except Exception as e:
