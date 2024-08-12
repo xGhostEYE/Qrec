@@ -1,3 +1,10 @@
+# test file
+def myfunc(z = 10):
+    y = 123
+    x = 12
+myfunc()
+
+
 # Root nodes
 module = "import math"
 
@@ -85,7 +92,8 @@ count >>= 1
 count <<= 1
 
 # ann_assign
-x: int = 42
+# <--- problem here
+x: int = 42 
 # for_loop
 for i in range(5):
     pass
@@ -154,13 +162,13 @@ with open('file.txt', 'r') as f:
 # Type Parameters
 
 # type_param
-def generic_function[T](x: T) -> T:
+def generic_function(x: T) -> T:
     pass
 # param_spec
-def generic_function[P](x: P) -> P:
+def generic_function(x: P) -> P:
     pass
 # constr
-def generic_function[T: int](x: T) -> T:
+def generic_function(x: T) -> T:
     pass
 
 # Function and Class Definitions

@@ -16,7 +16,7 @@ else:
     pass
 try:
     pass
-except* Exception:
+except Exception:
     pass
 x += 2
 
