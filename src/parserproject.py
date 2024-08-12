@@ -178,14 +178,14 @@ else:
     if len(train_dir) == 0: 
         print("No training files detected. Scraping new ones") 
     
-        url = config.get("User","training_project_url")
+        url = config.get("User","url")
         dr.Git_Train_RepoScrapper(url)
 
     test_dir = os.listdir("../test/")
     if len(test_dir) == 0: 
         print("No testing files detected. Scraping new ones") 
     
-        url = config.get("User","training_project_url")
+        url = config.get("User","url")
         dr.Git_Test_RepoScrapper(url)
 
     print("gathering training data for new model")

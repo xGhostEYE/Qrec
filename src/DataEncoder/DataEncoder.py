@@ -1,7 +1,7 @@
 
 import os
 import re
-
+import configparser
 
 def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
 
@@ -54,11 +54,11 @@ def get_x1(candidates, dataflow, true_api):
 	
     #Change to absolute path if encounter errors
     config.read('../config.ini')
-    system = config.get("User", system)
+    system = config.get("User", "system")
 
     if (system.upper() == "LINUX"):
-	os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
-    elif (system.upper() == "MACOS")
+        os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  
+    elif (system.upper() == "MACOS"):
         os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
     else:
        raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
