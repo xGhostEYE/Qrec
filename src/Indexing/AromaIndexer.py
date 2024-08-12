@@ -44,8 +44,9 @@ def index_data(csv_file_path, recreate_index):
 def search_data():
     # searching section
     ix = open_dir(r"./Indexing")
+    searcher = ix.searcher()
     with ix.searcher as searcher:
-        
+        feature_query = Or([Term("token_feature", u"apple"), Term("parent_feature", "bear"), Term("sibling_feature", ""), Term("variable_usage_feature", "")])
     
 
 
