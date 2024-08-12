@@ -15,10 +15,10 @@ from GitScrapper import Driller as dr
 import sys
 
 #Please add the training projects inside training/. 
-train_directory = "../train/"
+train_directory = "../train/allennlp_training"
 
 #Please add the training projects inside test/. 
-test_directory = "../test/"
+test_directory = "../test/allennlp_testing"
 model = None
 predictions = []
 probabilities_result_correct = []
@@ -58,7 +58,7 @@ def Run_project_prediction():
         for root, directories, files in os.walk(test_directory, topdown=False):
             for filename in files:
                 file_path = (os.path.join(root, filename))
-
+                test_data_dict = {}
                 if file_path.endswith(".py") or file_path.endswith(".pyi"):
                     try:
                         with open(file_path, encoding='utf-8') as file:

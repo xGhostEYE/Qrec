@@ -3,3 +3,4 @@ __pycache__
 test/
 train/
 config.ini
+allennlp_original/

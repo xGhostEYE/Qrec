@@ -39,7 +39,7 @@ def analyze_directory(directory):
                             file_dict[file_path] = fc.extract_bag_of_tokens(file)
 
             for root, directories, files in os.walk(path, topdown=False):
-                
+                print("executing project: ", root)
                 for name in files:
                     
                     file_path = (os.path.join(root, name))
