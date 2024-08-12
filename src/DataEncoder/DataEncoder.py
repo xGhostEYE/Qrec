@@ -19,7 +19,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
             if not (true_api in candidates):
                 candidates.append(true_api)
             
-            x1_dict = get_x1(candidates, value,true_api)
+            # x1_dict = get_x1(candidates, value,true_api)
             print("Extracting features for the candidates")
             for candidate in candidates:
                 isTrue = 0
