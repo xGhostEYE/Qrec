@@ -14,6 +14,11 @@ import configparser
 from GitScrapper import Driller as dr
 import sys
 
+#Please add the training projects inside training/. 
+train_directory = "../train/"
+
+#Please add the training projects inside test/. 
+test_directory = "../test/"
 model = None
 predictions = []
 probabilities_result_correct = []
@@ -169,14 +174,14 @@ else:
     print("no model detected, training a new one")
 
     #NOTE: The training data is very large, make sure to allocate enough disk space.
-    train_dir = os.listdir(../train/)     
+    train_dir = os.listdir("../train/")     
     if len(train_dir) == 0: 
         print("No training files detected. Scraping new ones") 
     
         url = config.get("User","training_project_url")
         dr.Git_Train_RepoScrapper(url)
 
-    test_dir = os.listdir(../test/)
+    test_dir = os.listdir("../test/")
     if len(test_dir) == 0: 
         print("No testing files detected. Scraping new ones") 
     
@@ -207,6 +212,7 @@ print("done sorting data")
 
 # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
 api_dict = {}
+
 for key, value in sorted_data.items():
     candidates = []
     correct_api = None
