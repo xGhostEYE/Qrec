@@ -13,7 +13,17 @@ def analyze_directory(directory):
     undefined_projects = []
     data_dict = {}
     file_dict = {}
-    token_count_dict = {}
+    
+    #Stores frequency of tokens in EACH file    
+    frequency_file_dict = {}
+    #Stores frequency of tokens in ALL files    
+    frequency_files_dict = {}
+
+    #Stores occurence of tokens in EACH file    
+    occurrence_file_dict = {}
+    #Stores occurence of tokens in ALL files    
+    occurrence_files_dict = {}
+
     for file in files:
         file_path = os.path.join(directory, file)
         directoryPath.append(file_path)
@@ -37,7 +47,12 @@ def analyze_directory(directory):
                             #Key: line number
                             #Value: list of tokens from left to right 
                         with open(file_path, encoding='utf-8') as file:
-                            file_dict[file_path] = fc.extract_bag_of_tokens(file)
+                            frequency_dict = {}
+                            occurrence_dict = {}
+                            
+                            file_dict[file_path] = fc.extract_bag_of_tokens(file, frequency_dict, occurrence_dict)
+                            frequency_file_dict[file_path] = frequency_dict
+                            occurrence_file_dict[file_path] = occurrence_dict
 
             for root, directories, files in os.walk(path, topdown=False):
                 print("executing project: ", root)
@@ -58,13 +73,12 @@ def analyze_directory(directory):
                             #Format of data_dict:
                             # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
                             # #Value = [x1,x2,x3,x4]
-                            data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path, token_count_dict))
+                            data_dict.update(de.DataEncoder(method_dict,candidate_dict, file_dict, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict))
                             
 
                         except Exception as e:
                             print(e)
                             unparser_def.append(file_name)
-                                                                
         except Exception as e:
             print(e)
             print(e.__traceback__.tb_lineno)

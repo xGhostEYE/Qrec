@@ -172,7 +172,7 @@ def extract_data(rawfile):
 # with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
 #     extract_data(file)
 
-def extract_bag_of_tokens(file):
+def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
     """
     dictionary format:
         key: line number
@@ -180,15 +180,28 @@ def extract_bag_of_tokens(file):
     """
     bag_of_tokens = {}
     junk_tokens = []
-    junk_nodes_lineno = []
     exception_star_nodes = []
     vararg_arg_nodes = []
     kwarg_arg_nodes = []
-
-    
     list_args_in_arg=[]
 
+    isMethodCall = [False]
+    methodName = []
     class MyVisitor (ast.NodeVisitor):        
+
+        def update_tokens_dict(self, token_label, method_label):
+            try:
+                tokens_occurrence_dict[(token_label, method_label)] = 1
+            except KeyError as e:
+                tokens_occurrence_dict[(token_label, method_label)] = 1
+            
+            try:
+                count = tokens_frequency_dict[(token_label, method_label)]
+                tokens_frequency_dict[(token_label, method_label)] = count + 1
+            except KeyError as e:     
+                tokens_frequency_dict[(token_label, method_label)] = 1
+
+            
         #Try-Catch
         def visit_Try(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -197,6 +210,8 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("try", None)
             super().generic_visit(node)
 
         def visit_TryStar(self,node):
@@ -210,6 +225,8 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            self.update_tokens_dict("try", None)
             super().generic_visit(node)
 
         def visit_ExceptHandler(self, node):
@@ -224,6 +241,7 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
 
+            self.update_tokens_dict(new_tokens[0], None)
             super().generic_visit(node)
 
         #Keyword 
@@ -238,6 +256,8 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict(new_tokens[0], None)            
             super().generic_visit(node)
 
         #If exp
@@ -254,6 +274,10 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("if", None)
+            self.update_tokens_dict("else", None)
+
             super().generic_visit(node)
 
         #Attribute
@@ -270,6 +294,11 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_nodes)
             else:
                 bag_of_tokens[node.lineno] = new_nodes
+            
+            if (isMethodCall[0]):
+                methodName.insert(0, node.attr)
+            
+            self.update_tokens_dict(new_nodes[1], None)
             super().generic_visit(node)
 
         # Function 
@@ -288,6 +317,8 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
 
+            self.update_tokens_dict("lambda", None)
+
             super().generic_visit(node)
             list_args_in_arg.clear()
 
@@ -305,7 +336,12 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
+
             list_args_in_arg.clear()
 
         def visit_AsyncFunctionDef(self,node):
@@ -322,6 +358,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
             list_args_in_arg.clear()
         
@@ -335,6 +375,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
             list_args_in_arg.clear()
 
@@ -357,6 +401,11 @@ def extract_bag_of_tokens(file):
 
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
         
         def visit_arguments(self, node):
@@ -395,6 +444,7 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_nodes)
             else:
                 bag_of_tokens[line_of_function] = new_nodes
+
             super().generic_visit(node)
         
         def visit_Return(self, node):
@@ -404,6 +454,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_Yield(self, node):
@@ -413,6 +467,11 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_YieldFrom(self, node):
@@ -422,6 +481,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
 
@@ -439,6 +502,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         #Control-flow
@@ -449,6 +516,11 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_Break(self, node):
@@ -458,6 +530,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_If(self, node):
@@ -467,10 +543,14 @@ def extract_bag_of_tokens(file):
             if (list_of_tokens):
                 if (list_of_tokens[-1] == "else"):
                     list_of_tokens[-1] = "elif"
+                    new_tokens[0] = "elif"
                 else:
                     list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
 
             #Getting the else token in for-loop statement if it exists
             if (node.orelse):
@@ -486,6 +566,10 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[else_lineno] = new_tokens
+                
+                for token in new_tokens:
+                    self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_With(self, node):
@@ -499,6 +583,11 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         def visit_AsyncWith(self, node):
@@ -512,6 +601,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
 
@@ -520,15 +613,20 @@ def extract_bag_of_tokens(file):
             list_of_tokens = bag_of_tokens[last_key] if last_key in bag_of_tokens else None
                        
             if(list_of_tokens and node in list_of_tokens):
+
                 index = list_of_tokens.index(node)
                 context_expr = node.context_expr
-                optional_vars = node.optional_vars
-                        
+                optional_vars = node.optional_vars      
+
                 if optional_vars:
                     list_of_tokens[index] = optional_vars
                     list_of_tokens.insert(index, context_expr)
+                    self.update_tokens_dict(optional_vars,None)   
                 else:
                     list_of_tokens[index] = context_expr
+                
+                self.update_tokens_dict(context_expr,None)        
+
 
             super().generic_visit(node)
         
@@ -540,6 +638,8 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            self.update_tokens_dict(new_tokens[0],None)        
 
             #Getting the else token in for-loop statement if it exists
             if (node.orelse):
@@ -555,6 +655,9 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[else_lineno] = new_tokens
+                
+                self.update_tokens_dict(new_tokens[0],None)        
+
             super().generic_visit(node)
 
         def visit_For(self, node):
@@ -565,6 +668,9 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            self.update_tokens_dict("for", None)
+            self.update_tokens_dict("in", None)
 
             #Getting the else token in for-loop statement if it exists
             if (node.orelse):
@@ -580,6 +686,9 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[else_lineno] = new_tokens
+
+                for token in new_tokens:
+                    self.update_tokens_dict(token, None)
             super().generic_visit(node)
         
         def visit_AsyncFor(self, node):
@@ -591,6 +700,10 @@ def extract_bag_of_tokens(file):
             else:
                 bag_of_tokens[node.lineno] = new_tokens
 
+            self.update_tokens_dict("async", None)
+            self.update_tokens_dict("for", None)
+            self.update_tokens_dict("in", None)
+
             #Getting the else token in for-loop statement if it exists
             if (node.orelse):
                 end_of_body_lineno = 0
@@ -605,8 +718,11 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[else_lineno] = new_tokens
+                
+                self.update_tokens_dict("else", None)
 
             super().generic_visit(node)
+
         #Call statement
         def visit_Call(self, node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
@@ -626,7 +742,10 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_nodes)
             else:
                 bag_of_tokens[node.lineno] = new_nodes
+
+            isMethodCall[0] = True
             super().generic_visit(node)
+            isMethodCall[0] = False
             
         #Import statement
         def visit_ImportFrom(self, node):
@@ -636,6 +755,11 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+    
+            self.update_tokens_dict("from", None)
+            self.update_tokens_dict(node.module, None)
+            self.update_tokens_dict("import", None)
+
             super().generic_visit(node)
 
         def visit_Import(self,node):
@@ -645,6 +769,8 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("import", None)
             super().generic_visit(node)
         
         def visit_alias(self,node):
@@ -656,6 +782,9 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            for token in new_tokens:
+                self.update_tokens_dict(token,None)
             super().generic_visit(node)
 
         #Variable
@@ -670,6 +799,7 @@ def extract_bag_of_tokens(file):
                 if (list_of_tokens):
                     if list_of_tokens[-1] == "*":
                         list_of_tokens[-1] = list_of_tokens[-1] + node.id
+                        new_tokens[0] = "*" + node.id
                     else:
                         if (node in list_of_tokens):
                             index = list_of_tokens.index(node)
@@ -679,6 +809,13 @@ def extract_bag_of_tokens(file):
                             list_of_tokens.extend(new_tokens)
                 else:
                     bag_of_tokens[node.lineno] = new_tokens
+            
+            if isMethodCall[0] and len(methodName) > 0:
+                self.update_tokens_dict(new_tokens[0], methodName[0])
+                isMethodCall[0] = False
+                methodName.clear()
+            
+            self.update_tokens_dict(new_tokens[0], None)
 
             super().generic_visit(node)
 
@@ -706,9 +843,10 @@ def extract_bag_of_tokens(file):
                         list_of_tokens[index] = name
                 else:
                     list_of_tokens.extend(new_tokens)
-
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict(name,None)
             super().generic_visit(node)
 
         def visit_Global(self, node):
@@ -721,6 +859,9 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+            
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
             super().generic_visit(node)
 
         def visit_Nonlocal(self, node):
@@ -733,6 +874,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            for token in new_tokens:
+                self.update_tokens_dict(token, None)
+
             super().generic_visit(node)
 
         #Statement-type
@@ -743,26 +888,10 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
-            super().generic_visit(node)
-
-        def visit_Del(self,node):
-            line_of_name = list(bag_of_tokens)[-1]
-
-            list_of_tokens = bag_of_tokens[line_of_name] if line_of_name in bag_of_tokens else None
             
-            if (list_of_tokens):
-                list_of_tokens.insert(-1, "del")
-            else:
-                bag_of_tokens[line_of_name] = "del"
-            super().generic_visit(node)
-
-        def visit_Raise(self,node):
-            list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
-            new_tokens = ["raise", node.exc, "from", node.cause]
-            if (list_of_tokens):
-                list_of_tokens.extend(new_tokens)
-            else:
-                bag_of_tokens[node.lineno] = new_tokens
+            self.update_tokens_dict("raise", None)
+            self.update_tokens_dict("from", None)
+            
             super().generic_visit(node)
 
         def visit_Assert(self,node):
@@ -772,6 +901,23 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("assert", None)
+            self.update_tokens_dict("from", None)
+
+            super().generic_visit(node)
+
+        def visit_Delete(self,node):
+            line_of_name = list(bag_of_tokens)[-1]
+
+            list_of_tokens = bag_of_tokens[line_of_name] if line_of_name in bag_of_tokens else None
+            
+            if (list_of_tokens):
+                list_of_tokens.insert(-1, "del")
+            else:
+                bag_of_tokens[line_of_name] = "del"
+
+            self.update_tokens_dict("del", None)
             super().generic_visit(node)
 
         def visit_Pass(self,node):
@@ -781,6 +927,9 @@ def extract_bag_of_tokens(file):
                 list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("pass", None)
+
             super().generic_visit(node)
 
         #Expression 
@@ -794,7 +943,7 @@ def extract_bag_of_tokens(file):
                     new_tokens.append(boolean_operation)
                 new_tokens.append(value)
                 
-                
+
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
@@ -803,6 +952,9 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict(boolean_operation, None)
+
             super().generic_visit(node)
 
         def visit_UnaryOp(self,node):
@@ -818,79 +970,82 @@ def extract_bag_of_tokens(file):
                     list_of_tokens.extend(new_tokens)
             else:
                 bag_of_tokens[node.lineno] = new_tokens
+
+            self.update_tokens_dict("not", None)
+
             super().generic_visit(node)
         
         #Literals
         def visit_Dict(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            new_tokens = []
+            new_nodes = []
             for i in range (len(node.keys)):
 
                 if (node.keys[i]):
-                    new_tokens.append(node.keys[i])
+                    new_nodes.append(node.keys[i])
 
-                new_tokens.append(node.values[i])
+                new_nodes.append(node.values[i])
                 
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes + list_of_tokens[index+1:]
                 else:
-                    list_of_tokens.extend(new_tokens)
+                    list_of_tokens.extend(new_nodes)
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[node.lineno] = new_nodes
             super().generic_visit(node)
 
         def visit_Set(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            new_tokens = []
+            new_nodes = []
             for the_node in node.elts:
-                new_tokens.append(the_node)
+                new_nodes.append(the_node)
                 
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes + list_of_tokens[index+1:]
                 else:
-                    list_of_tokens.extend(new_tokens)
+                    list_of_tokens.extend(new_nodes)
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[node.lineno] = new_nodes
             super().generic_visit(node)
 
         def visit_Tuple(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            new_tokens = []
+            new_nodes = []
             for the_node in node.elts:
-                new_tokens.append(the_node)
+                new_nodes.append(the_node)
                 
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes + list_of_tokens[index+1:]
                 else:
-                    list_of_tokens.extend(new_tokens)
+                    list_of_tokens.extend(new_nodes)
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[node.lineno] = new_nodes
             super().generic_visit(node)
 
         def visit_List(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            new_tokens = []
+            new_nodes = []
             for the_node in node.elts:
-                new_tokens.append(the_node)
+                new_nodes.append(the_node)
                 
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes + list_of_tokens[index+1:]
                 else:
-                    list_of_tokens.extend(new_tokens)
+                    list_of_tokens.extend(new_nodes)
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[node.lineno] = new_nodes
             super().generic_visit(node)
 
         #Subscripting
@@ -914,17 +1069,19 @@ def extract_bag_of_tokens(file):
         def visit_Slice(self,node):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
 
-            new_tokens = [node.lower, node.upper]
+            new_nodes = [node.lower, node.upper]
 
+            if (node.step):
+                new_nodes.append(node.step)
                 
             if (list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_tokens + list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes + list_of_tokens[index+1:]
                 else:
-                    list_of_tokens.extend(new_tokens)
+                    list_of_tokens.extend(new_nodes)
             else:
-                bag_of_tokens[node.lineno] = new_tokens
+                bag_of_tokens[node.lineno] = new_nodes
 
             super().generic_visit(node)
         
