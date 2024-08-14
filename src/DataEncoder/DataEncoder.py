@@ -74,7 +74,7 @@ def get_x1(candidates, dataflow, true_api):
 	
     #Change to absolute path if encounter errors
     config.read('../config.ini')
-    system = config.get("User", "system")
+    system = config.get("System", "system")
 
     if (system.upper() == "LINUX"):
         os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  

@@ -1,8 +1,9 @@
+import argparse
 import ultils as ult
 import os.path as op
 import os
 from joblib import dump, load
-from Models.Randomforest import RunRandomForest
+from Models.Randomforest import RunRandomForest, FitRandomForest
 import numpy as np
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
@@ -15,10 +16,10 @@ from GitScrapper import Driller as dr
 import sys
 
 #Please add the training projects inside training/. 
-train_directory = "../train/allennlp_training"
+train_directory = "../train/"
 
 #Please add the training projects inside test/. 
-test_directory = "../test/allennlp_testing"
+test_directory = "../test/"
 model = None
 predictions = []
 probabilities_result_correct = []
@@ -142,14 +143,102 @@ def SortTuples(tuples):
     # sorting function
     return sorted(tuples, key=lambda x: x[2][0, 1], reverse=True)
 
-def GetTrainingData():
-    data_dict = {}
-    data_dict.update(ult.analyze_directory(train_directory))
-    labels = []
-    for key,value in data_dict.items():
-        labels.append(key[3])
-    return (list(data_dict.values()), labels)
-  
+def get_labeled_data(csv_path):
+    data = np.loadtxt(csv_path, delimiter=",", dtype=str)
+
+    labels = list(data[:][3:4])
+    features = list(data[:][4:])
+
+    # for key,value in data_dict.items():
+    #     labels.append(key[3])
+    return (features, labels)
+
+def train(train_csv_file_path):
+    labeled_data_tuple = get_labeled_data(train_csv_file_path)
+    X =  labeled_data_tuple[0]
+    y = labeled_data_tuple[1]
+    FitRandomForest(X, y)  
+
+if __name__ == "__main__":
+    predictions = []
+    probabilities_result_correct = []
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything")    
+    parser.add_argument('-r', '--run', action='store_true', help="A flag to request training and testing only")    
+
+    parser.add_argument('-n', '--csv_train', action='store_true', help="A flag to request creating training dataset (in csv)")    
+    parser.add_argument('-t', '--csv_test', action='store_true', help="A flag to request creating testing dataset (in csv)")    
+    parser.add_argument('-r', '--scrape_train', action='store_true', help="A flag to request scrapping projects for train data ")    
+    parser.add_argument('-e', '--scrape_test', action='store_true', help="A flag to request srapping projects for test data")    
+    parser.add_argument('-i', '--train', action='store_true', help="A flag to request training model")    
+    parser.add_argument('-o', '--test', action='store_true', help="A flag to request testing model")    
+
+    args = parser.parse_args()
+
+    is_csv_train = args.csv_train
+    is_csv_test = args.csv_test
+    is_scrape_train = args.scrape_train
+    is_scrape_test = args.scrape_test
+    is_train = args.train
+    is_test = args.test
+
+    if (args.run):
+        is_csv_train = False
+        is_csv_test = False
+        is_scrape_train = False
+        is_scrape_test = False
+        is_train = True
+        is_test = True
+
+    if (args.all):
+        is_csv_train = True
+        is_csv_test = True
+        is_scrape_train = True
+        is_scrape_test = True
+        is_train = True
+        is_test = True
+
+    
+    train_dr = config.get("User", "train_dir")
+    test_dir = config.get("User", "test_dir")
+
+    train_csv_file_path = config.get("User", "train_csv_path")
+    test_csv_file_path = config.get("User", "test_csv_path")
+
+    if (is_scrape_train):
+        isContinue =  input("The training data is very large, make sure to allocate enough disk space. Please type 'Yes' or 'Y' to continue ") 
+        if (isContinue.upper() == "YES" or isContinue.upper() == "Y"):
+    
+            url = config.get("User","url")
+            dr.Git_Train_RepoScrapper(url)
+        else:
+            print("Canceling projects data scrapping")
+    
+    if (is_scrape_test):
+        isContinue =  input("The testing data is very large, make sure to allocate enough disk space. Please type 'Yes' or 'Y' to continue ") 
+        if (isContinue.upper() == "YES" or isContinue.upper() == "Y"):   
+            url = config.get("User","url")
+            dr.Git_Test_RepoScrapper(url)
+        
+        else:
+            print("Canceling projects data scrapping")
+    
+    if (is_csv_train):
+        ult.create_pyart_dataset(train_dr)
+    
+    if (is_csv_test):
+        ult.create_pyart_dataset(test_dir)
+    
+    if (is_train):
+        train(train_csv_file_path)
+    
+    if (is_test):
+        labeled_data_tuple = get_labeled_data(test_csv_file_path)
+
+
+
 # check if we already have a model
 # if we don't then train a new one
 # if we do then train the already generated model
