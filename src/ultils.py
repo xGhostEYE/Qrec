@@ -35,9 +35,11 @@ def create_pyart_dataset(directory, csv_path):
     #For each projects in directory
     print(directoryPath)
     for path in directoryPath:
-        print("\nExecuting project: ", path)
+        print("\nExecuting Project: " + path + " | Progress: " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
         file_dict = {}
-    
+
+        default_calls_excluding_current_scope = set()
+
         #Stores frequency of tokens in EACH file    
         frequency_file_dict = {}
         #Stores frequency of tokens in ALL files    
@@ -68,33 +70,33 @@ def create_pyart_dataset(directory, csv_path):
                                 file_dict[file_path] = fc.extract_bag_of_tokens(file, frequency_dict, occurrence_dict)
                                 frequency_file_dict[file_path] = frequency_dict
                                 occurrence_file_dict[file_path] = occurrence_dict
+                            
+                            default_calls_excluding_current_scope.update(cg.get_calls_from_others_excluding_current_scope(file_path))
+                        
                         except Exception as e:
                             print(f"Error processing file dictionary for '{file_path}': {e}")
                             traceback.print_exc()   
 
-            for root, directories, files in os.walk(path, topdown=False):
-                for name in files:
-                    
-                    file_path = (os.path.join(root, name))
-                    file_name = file_path
-                    
-                    if file_name.endswith(".py") or file_name.endswith(".pyi"):
+            list_all_file_path = list(file_dict.keys())
 
-                        try:
-                            with open(file_path, encoding='utf-8') as file:
-                                method_dict = fc.extract_data(file)
+            for file_path in list_all_file_path:     
+                try:
+                    with open(file_path, encoding='utf-8') as file:
+                        method_dict = fc.extract_data(file)
 
-                            with open(file_path, encoding='utf-8') as file:
-                                candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
-                            
-                            #Format of data_dict:
-                            # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
-                            # #Value = [x1,x2,x3,x4]
-                            data_dict = de.DataEncoder(method_dict,candidate_dict, file_dict, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict)
-                            write_pyart_csv_data(data_dict, csv_path, file_path)
-                        except Exception as e:
-                            print(f"Error processing during data encoding stage for '{file_path}': {e}")
-                            traceback.print_exc()
+                    with open(file_path, encoding='utf-8') as file:
+                        default_calls = default_calls_excluding_current_scope
+                        default_calls.update(cg.get_calls_from_scope(file_path))
+                        candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict, default_calls)
+                    
+                    #Format of data_dict:
+                    # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
+                    # #Value = [x1,x2,x3,x4]
+                    data_dict = de.DataEncoder(method_dict,candidate_dict, file_dict, list_all_file_path, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict)
+                    write_pyart_csv_data(data_dict, csv_path, file_path)
+                except Exception as e:
+                    print(f"Error processing during data encoding stage for '{file_path}': {e}")
+                    traceback.print_exc()
         except Exception as e:
             print(e)
             traceback.print_exc()

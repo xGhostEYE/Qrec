@@ -2,44 +2,53 @@
 import os
 import re
 import configparser
+from collections import OrderedDict
 
-def DataEncoder(method_dict, candidate_dict, file_dict, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
+def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
     data_dict = {}
     set_of_S = []
-    bag_of_tokens = file_dict[filepath]
-    set_of_S_cursor_value =  list(bag_of_tokens.keys())
-    current_cursor = 0
 
-    print("Encoding data...")
-    count = 0
+    bag_of_tokens = file_dict[filepath]
+    
+    set_of_S_line_num =  list(bag_of_tokens.keys())
+    current_index = 0
+
+    len_list_all_file_path = len(list_all_file_path)
+    current_file_index = list_all_file_path.index(filepath)
+
+    print("Encoding data for file: " + filepath, "| Progress: " + str(current_file_index + 1) + "/" + str(len_list_all_file_path))
+    method_count = 0
     list_keys = [key for key in method_dict.keys() if key[0] != None]
     total = len(list_keys)
-    for key, value in method_dict.items():
+
+    #method_dict is not sorted. 
+    #We sort it by the line number (key[2]) so we can add new tokens in to set of S each line at a time from top to bottom
+    ordered_method_dict = dict(sorted(method_dict.items(), key=lambda t: t[0][2])) #t is the item, t[0] = key and t[1] = value
+    for key, value in ordered_method_dict.items():
         the_object = key[0]
         if the_object != None:
             true_api = key[1]
             line_number = key[2]
             
-            for cursor in range(current_cursor ,len(set_of_S_cursor_value)):
-                current_line_number = set_of_S_cursor_value[cursor]
+            for index in range(current_index ,len(set_of_S_line_num)):
+                current_line_number = set_of_S_line_num[index]
                 tokens = bag_of_tokens[current_line_number]
                 if (current_line_number < line_number):
                     set_of_S.append(tokens)
                     continue
-                
+
                 elif (current_line_number == line_number and true_api in tokens):
                     set_of_S.append(tokens[0: tokens.index(true_api)])
-                    current_cursor = cursor + 1    
+                    current_index = index + 1    
                     break
             
             candidates = candidate_dict[(the_object,line_number)]
 
-            if not (true_api in candidates):
-                candidates.append(true_api)
+            candidates.add(true_api)
             
-            count += 1
-            print("Extracting features for the candidates of method call: ", the_object + "." + true_api, "| Progress: " + str(count) + "/" + str(total))            
+            method_count += 1
+            print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total))            
             # x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
                 isTrue = 0
