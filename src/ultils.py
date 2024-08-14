@@ -5,6 +5,7 @@ import os
 
 from joblib import load
 import numpy as np
+import pandas as pd
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
@@ -12,6 +13,7 @@ import traceback
 
 from Models.Randomforest import FitRandomForest, GetRandomForestModel 
 from Evaluation import Evaluators as ev
+from tqdm import tqdm
 
 # from GetFiles import GetFilesInDirectory
 
@@ -79,7 +81,7 @@ def create_pyart_dataset(directory, csv_path):
 
             list_all_file_path = list(file_dict.keys())
 
-            for file_path in list_all_file_path:     
+            for file_path in tqdm(list_all_file_path):     
                 try:
                     with open(file_path, encoding='utf-8') as file:
                         method_dict = fc.extract_data(file)
@@ -114,20 +116,19 @@ def SortTuples(tuples):
     return sorted(tuples, key=lambda x: x[2][0, 1], reverse=True)
 
 def get_labeled_data(csv_path):
-    data = np.loadtxt(csv_path, delimiter=",", dtype=str)
-
-    labels = list(data[:][3:4])
-    features = list(data[:][4:])
+    data = pd.read_csv(csv_path, header=None,  dtype=str)
+    labels = data.loc[1:, 4:4]
+    features = data.loc[1:, 5:]
 
     # for key,value in data_dict.items():
     #     labels.append(key[3])
     return (features, labels)
 
 def get_detailed_labeling_data(csv_path):
-    data = np.loadtxt(csv_path, delimiter=",", dtype=str)
+    data = pd.read_csv(csv_path, header=None, dtype=str)
 
-    labels = list(data[:][:4])
-    features = list(data[:][4:])
+    labels = data.loc[1:, :4]
+    features = data.loc[1:, 5:]
 
     # for key,value in data_dict.items():
     #     labels.append(key[3])
@@ -135,22 +136,22 @@ def get_detailed_labeling_data(csv_path):
 
 def train(train_csv_file_path):
     labeled_data_tuple = get_labeled_data(train_csv_file_path)
-    X =  labeled_data_tuple[0]
-    y = labeled_data_tuple[1]
+    X =  labeled_data_tuple[0].astype(float)
+    y = labeled_data_tuple[1].astype(float).values.ravel()
     FitRandomForest(X, y)  
 
 def test(test_csv_file_path):
     grouped_dict = defaultdict(list)
-    labeled_data_tuple = get_labeled_data(test_csv_file_path)
+    labeled_data_tuple = get_detailed_labeling_data(test_csv_file_path)
 
-    list_features = labeled_data_tuple[0]
+    list_features = labeled_data_tuple[0].astype(float)
     labels = labeled_data_tuple[1]
 
     model = GetRandomForestModel()
     # Group objects by their key values
-    for index in range(len(labels)):
-        file_path, object_name, api_name, line_number, is_true_api = labels[index]
-        reshaped_value = np.array(list_features[index]).reshape(1, -1)
+    for index in tqdm(range(len(labels))):
+        file_path, object_name, api_name, line_number, is_true_api = list(labels.iloc[index].values)
+        reshaped_value = list_features.iloc[index].values.reshape(1, -1)
         grouped_dict[(file_path, object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
 
     if grouped_dict == None:
