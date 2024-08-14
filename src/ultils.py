@@ -2,6 +2,7 @@ import astor
 import ast
 import os
 import DataExtractor.FeatureCollector as fc
+import DataExtractor.AromaFeatureCollector as afc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
 # from GetFiles import GetFilesInDirectory
@@ -36,11 +37,11 @@ def analyze_directory(directory):
             # os.walk NEEDS a subdirectory in the directory that it's walking for it to work.
             # meaning that it needs 2 layers of folders to work
 
-            for root, directories, files in os.walk(path, topdown=False):
-                for name in files:
-                    file_path = (os.path.join(root, name))
+            # for root, directories, files in os.walk(path, topdown=False):
+            #     for name in files:
+            #         file_path = (os.path.join(root, name))
                     
-                    if file_path.endswith(".py") or file_path.endswith(".pyi"):
+            #         if file_path.endswith(".py") or file_path.endswith(".pyi"):
                         
                         #Key: file_name
                         #Value: bag of tokens (a dictionary)
@@ -65,10 +66,11 @@ def analyze_directory(directory):
 
                         try:
                             with open(file_path, encoding='utf-8') as file:
-                                method_dict = fc.extract_data(file)
+                                
+                                method_dict = afc.extract_aroma_tree(file)
 
-                            with open(file_path, encoding='utf-8') as file:
-                                candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
+                            # with open(file_path, encoding='utf-8') as file:
+                            #     candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict)
                             
                             #Format of data_dict:
                             # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]

@@ -47,7 +47,9 @@ def search_data():
     searcher = ix.searcher()
     with ix.searcher as searcher:
         feature_query = Or([Term("token_feature", u"apple"), Term("parent_feature", "bear"), Term("sibling_feature", ""), Term("variable_usage_feature", "")])
-    
+    # search each of the features using top k as the limit, and use the pyart similarity score in the paper which gives a number
+    # repeat for all the other features and then i get 4 scores in total
+    # calculate the average
 
 
 
