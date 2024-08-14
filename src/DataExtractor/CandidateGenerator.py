@@ -1,6 +1,7 @@
 import importlib
 import os
 import re
+import subprocess
 import sys
 from pytype.tools import traces 
 import textwrap
@@ -105,9 +106,12 @@ def get_calls_from_valid_type(object,the_type):
         try:
             if '.' in the_type:
                 rootmodule = the_type[: type.find('.')]
-                os.system("pip3 install " + rootmodule)
+                subprocess.check_call(['"pip3', 'install', rootmodule], capture_output=False)
+                # os.system("pip3 install " + rootmodule)
             else:
-                os.system("pip3 install " + the_type)
+                subprocess.check_call(['"pip3', 'install', the_type], capture_output=False)
+
+                # os.system("pip3 install " + the_type)
             #Usually the naming format of a type is capitalized. We need to do lowercase on them
             lower = the_type.lower()
             module = importlib.import_module(lower)
@@ -178,10 +182,15 @@ def get_calls_from_third_party_libs(file_path):
 
         try:
             if len(from_module) != 0:
-                os.system("pip3 install " + from_module[0])
+                subprocess.check_call(['"pip3', 'install', from_module[0]], capture_output=False)
+ 
+                # os.system("pip3 install " + from_module[0])
             else:
                 for module in import_module:
-                    os.system("pip3 install " + module)
+                    with open(os.devnull, 'wb') as devnull:
+                        subprocess.check_call(['"pip3', 'install', module], capture_output=False)
+ 
+                    # os.system("pip3 install " + module)
             for modules in import_module:
                 moduleObject = importlib.import_module(modules)
                 calls = calls + dir(moduleObject)

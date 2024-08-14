@@ -12,8 +12,10 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath, frequency_file
     current_cursor = 0
 
     print("Encoding data...")
+    count = 0
+    list_keys = [key for key in method_dict.keys() if key[0] != None]
+    total = len(list_keys)
     for key, value in method_dict.items():
-        
         the_object = key[0]
         if the_object != None:
             true_api = key[1]
@@ -36,8 +38,9 @@ def DataEncoder(method_dict, candidate_dict, file_dict, filepath, frequency_file
             if not (true_api in candidates):
                 candidates.append(true_api)
             
+            count += 1
+            print("Extracting features for the candidates of method call: ", the_object + "." + true_api, "| Progress: " + str(count) + "/" + str(total))            
             # x1_dict = get_x1(candidates, value,true_api)
-            print("Extracting features for the candidates")
             for candidate in candidates:
                 isTrue = 0
                 if (candidate == true_api):
@@ -74,7 +77,7 @@ def get_x1(candidates, dataflow, true_api):
 	
     #Change to absolute path if encounter errors
     config.read('../config.ini')
-    system = config.get("System", "system")
+    system = config.get("System", "os")
 
     if (system.upper() == "LINUX"):
         os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  
