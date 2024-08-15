@@ -5,3 +5,4 @@ train/
 config.ini
 allennlp_original/
 src/screenlog.0
+src/random_forest_model.joblib
