@@ -65,7 +65,8 @@ if __name__ == "__main__":
     if (is_scrape_train):
         isContinue =  input("The training data is very large, make sure to allocate enough disk space. Please type 'Yes' or 'Y' to continue ") 
         if (isContinue.upper() == "YES" or isContinue.upper() == "Y"):
-    
+            print("Scraping train data...")
+
             url = config.get("User","url")
             dr.Git_Train_RepoScrapper(url)
         else:
@@ -73,7 +74,9 @@ if __name__ == "__main__":
     
     if (is_scrape_test):
         isContinue =  input("The testing data is very large, make sure to allocate enough disk space. Please type 'Yes' or 'Y' to continue ") 
-        if (isContinue.upper() == "YES" or isContinue.upper() == "Y"):   
+        if (isContinue.upper() == "YES" or isContinue.upper() == "Y"):
+            print("Scraping test data...")
+   
             url = config.get("User","url")
             dr.Git_Test_RepoScrapper(url)
         
@@ -81,14 +84,18 @@ if __name__ == "__main__":
             print("Canceling projects data scrapping")
     
     if (is_csv_train):
+        print("Creating train dataset...")
         ult.create_pyart_dataset(train_dr, train_csv_file_path)
-    
+
     if (is_csv_test):
+        print("Creating test dataset...")
         ult.create_pyart_dataset(test_dir, test_csv_file_path)
-    
+
     if (is_train):
+        print("Training...")
         ult.train(train_csv_file_path)
-    
+
     if (is_test):
+        print("Testing...")
         ult.test(test_csv_file_path)
         

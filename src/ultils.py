@@ -35,9 +35,8 @@ def create_pyart_dataset(directory, csv_path):
         directoryPath.append(file_path)
     
     #For each projects in directory
-    print(directoryPath)
-    for path in directoryPath:
-        print("\nExecuting Project: " + path + " | Progress: " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
+    for path in tqdm(directoryPath):
+        # print("\nExecuting Project: " + path + " | Progress: " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
         file_dict = {}
 
         default_calls_excluding_current_scope = set()
@@ -152,7 +151,7 @@ def test(test_csv_file_path):
     for index in tqdm(range(len(labels))):
         file_path, object_name, api_name, line_number, is_true_api = list(labels.iloc[index].values)
         reshaped_value = list_features.iloc[index].values.reshape(1, -1)
-        grouped_dict[(file_path, object_name, line_number)].append((is_true_api, api_name, model.predict_proba(reshaped_value)))
+        grouped_dict[(file_path, object_name, line_number)].append((int(is_true_api), api_name, model.predict_proba(reshaped_value)))
 
     if grouped_dict == None:
         exit(1)
@@ -171,6 +170,7 @@ def test(test_csv_file_path):
             candidates.append(tuple[1])
             if tuple[0] == 1:
                 correct_api = tuple[1]
+                
         if (correct_api):
             api_dict[correct_api] = candidates
 
