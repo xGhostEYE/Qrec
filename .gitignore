@@ -7,3 +7,5 @@ src/screenlog.0
 src/random_forest_model.joblib
 data/
 config.ini
+data/aroma_dataset.csv
+/data
