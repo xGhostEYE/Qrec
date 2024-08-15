@@ -1,6 +1,7 @@
 import importlib
 import os
 import re
+import subprocess
 import sys
 from pytype.tools import traces 
 import textwrap
@@ -42,14 +43,13 @@ stdlib = list(sys.stdlib_module_names)
 #TODO - doc
 #method_dict format: {(object, api, linenumber): [variables and methods in order of data flow]}                               
 #A recommendation point is an API call
-def CandidatesGenerator ( file, file_path, method_dict):
+def CandidatesGenerator ( file, file_path, method_dict, default_calls):
 
     #perform type inference
     #types_dict format: {target object: target object type}
     raw_file = file.read()
 
     types_dict = get_inferred_type_dynamic(raw_file)
-    default_calls = get_calls_from_others(file_path)
     API_candidates_for_object = {} 
     for key in method_dict.keys():
         the_object = key[0]
@@ -75,47 +75,49 @@ def CandidatesGenerator ( file, file_path, method_dict):
         
         
 def get_calls(object, type):
-    calls = []
+    calls = set()
     if (type != None and type != "None" and type != "Any"):
         for call in get_calls_from_valid_type(object, type):
             if call.startswith('__') or re.match('[A-Z0-9_]+$',call) or call.strip()=='_':
                 continue
-            calls.append(call)
+            calls.add(call)
     return calls   
     
 def get_calls_from_valid_type(object,the_type):
-    calls = []
+    calls = set()
     if (the_type == 'module'):
         #object is a string. We need to convert it into a class object
         module = importlib.import_module(object)
         #if object is type "module" then we can just get the calls straight from the object
         return dir(module)
     try:
-        #importlib.import_module returns a module of name "str" for type str.
+        #Since importlib.import_module returns a module of name "str" for type str. Which we won't get calls for a string
         #We explicitly implement this case
         if (the_type != "str"):
             module = importlib.import_module(the_type)
         else:
             module = the_type
-        calls = calls + dir(module)
+        calls.update(set(dir(module)))
     
     except Exception as error_1:
         print(error_1)
-        print("Proceed to install potential missing modules")
+        print("Proceed to install potential missing modules for type: ", the_type)
+        package = the_type.split(".")
         try:
-            if '.' in the_type:
-                rootmodule = the_type[: type.find('.')]
-                os.system("pip3 install " + rootmodule)
-            else:
-                os.system("pip3 install " + the_type)
+            subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+
             #Usually the naming format of a type is capitalized. We need to do lowercase on them
             lower = the_type.lower()
             module = importlib.import_module(lower)
-            calls = calls + dir(module)
+            calls.update(dir(module))
+        except subprocess.CalledProcessError as error_1:
+            print("Encountered error when installing third party library name: " + package[0] + ". This library is used to provide type: " + the_type + " .Error: ", error_1)
+            print("Returning empty list of calls for type: " + the_type + " due to exception")
+
         except Exception as error_2:
             print(error_2)
             print("Returning empty list of calls for type: " + the_type + " due to exception")
-            calls = []
+            calls = set()
     return calls
 
 #Return calls from:
@@ -124,7 +126,18 @@ def get_calls_from_valid_type(object,the_type):
 #3. all the callable methods declared in the current scope
 def get_calls_from_others(file_path):
     refined_calls = []
-    calls = get_calls_from_standard_libs() + get_calls_from_third_party_libs(file_path) + get_calls_from_scope(file_path)
+    calls = set()
+    calls.update(get_calls_from_standard_libs(),get_calls_from_third_party_libs(file_path),get_calls_from_scope(file_path))
+    for call in calls:
+        if call.startswith('__') or re.match('[A-Z0-9_]+$',call) or call.strip()=='_':
+            continue
+        refined_calls.append(call)
+    return refined_calls
+
+def get_calls_from_others_excluding_current_scope(file_path):
+    refined_calls = []
+    calls = set()
+    calls.update(get_calls_from_standard_libs(),get_calls_from_third_party_libs(file_path))
     for call in calls:
         if call.startswith('__') or re.match('[A-Z0-9_]+$',call) or call.strip()=='_':
             continue
@@ -132,16 +145,15 @@ def get_calls_from_others(file_path):
     return refined_calls
 
 def get_calls_from_standard_libs():
-    calls = []
+    calls = set()
     for lib in stdlib:
-        
         try:
             module = importlib.import_module(lib)           
-            calls = calls + dir(module)
+            calls.update(set(dir(module)))
         except Exception as e:
             try:
                 module = eval(lib)           
-                calls = calls + dir(module)
+                calls.update(set(dir(module)))
             #Continue to the extract the methods of the next module in the list if there is an exception.
             except Exception as e:
                 continue
@@ -154,54 +166,108 @@ def get_calls_from_third_party_libs(file_path):
         with open(file_path) as file:        
             tree = ast.parse(file.read())
         
-        #format of modules = [ [from module, import module, alias], ...]
-        imports = []
+        #Format of imports: 
+        #imports = [ [from keyword, import keyword: list] ]
+        imports = {}
         for node in ast.iter_child_nodes(tree):
             if isinstance(node, ast.Import):
-                module = []
+                list_import_statement_in_a_line = set()
+                for n in node.names:
+                    list_import_statement_in_a_line.add(n.name)
+                
+                try:
+                    sub_list = imports[None]
+                    sub_list.update(list_import_statement_in_a_line)
+                except KeyError as e:
+                    imports[None] = list_import_statement_in_a_line
+
             elif isinstance(node, ast.ImportFrom):  
-                module = node.module.split('.')
+                key = (node.module)
+
+                list_import_statement_in_a_line = set()
+                for n in node.names:
+                    list_import_statement_in_a_line.add(n.name)
+
+                try:
+                    sub_list = imports[key]
+                    sub_list.update(list_import_statement_in_a_line)
+                except KeyError as e:
+                    
+                    imports[key] = list_import_statement_in_a_line
+
             else:
                 continue
 
-            for n in node.names:
-                line_of_module_import = [module, n.name.split('.'), n.asname]
-                imports.append(line_of_module_import)
         return imports
     
-    calls = []
+    calls = set()
     imports = get_imports(file_path)
 
-    for import_statement in imports:
-        from_module = import_statement[0]
-        import_module = import_statement[1]
-
-        try:
-            if len(from_module) != 0:
-                os.system("pip3 install " + from_module[0])
-            else:
-                for module in import_module:
-                    os.system("pip3 install " + module)
-            for modules in import_module:
-                moduleObject = importlib.import_module(modules)
-                calls = calls + dir(moduleObject)
-        except Exception as e:
+    #Get calls from the module in 'from' keyword
+    for from_module, import_modules in imports.items():
+        if from_module != None:
+            package = from_module.split(".")
+            #1. install module in 'from' keyword
             try:
-                #There is a chance the calls are stored in the from-module, we will retrieve that
-                if (len(from_module) != 0):
-                    calls = calls + dir(from_module[0])
-                else:
-                    raise e
+                status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                if (status.returncode != 0):
+                    print("Status code of library installation was " +  status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'from' keyword")
             except Exception as e:
-                print("Encountered exception when getting third party library calls. Proceed to use whatever calls we have scraped from this task: ", e)
+                    print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error: ", e)
+            
+            #2. Extract methods from the installed module
+            try: 
+                moduleObject = importlib.import_module(from_module)
+                calls.update(set(dir(moduleObject)))
+
+            except Exception as e:
+                #If failed, attempt to get calls from the main package. 
+                #For example, instead of extracting methods in 'camera.Camera', we extract methods in 'camera' (excluding the sub packages after dot)
+                try:
+                    moduleObject = importlib.import_module(package[0])
+                    calls.update(set(dir(moduleObject)))
+
+                except Exception as e:
+                    print("Encountered exception when getting calls from library name: " + package[0] + ". Proceed to use whatever calls we have scraped from this task. Error:", e)
+        
+        #Get calls from the module in 'import' keyword
+        if len(import_modules) > 0:
+
+            #1. install module in import keyword
+            for import_module in import_modules:
+                package = import_module.split(".")
+
+                try:
+                        status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                        if (status.returncode != 0):
+                            print("Status code of library installation was " + status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'import' keyword")
+                except Exception as e:
+                        print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error:", e)
+                
+                #2. Extract methods from the installed module
+                try:
+                    moduleObject = importlib.import_module(import_module)
+                    calls.update(set(dir(moduleObject)))
+
+                except Exception as e:
+                    try:
+                        #Try to get calls from the package. 
+                        #For example, instead of extracting methods in camera.Camera, we extract methods in camera (excluding the sub packages after dot)
+                        moduleObject = importlib.import_module(package[0])
+                        calls.update(set(dir(moduleObject)))
+
+                    except Exception as e:
+                        print("Encountered exception when getting calls from library name: " + package[0] + ". Proceed to use whatever calls we have scraped from this task. Error:", e)
+
+
     return calls
 
 def get_calls_from_scope(file_path):
-    calls = []
+    calls = set()
     class Traverser(ast.NodeTransformer):
 
         def visit_FunctionDef(self, node):
-            calls.append( node.name)
+            calls.add(node.name)
 
     with open(file_path) as file:      
         code  = file.read()
