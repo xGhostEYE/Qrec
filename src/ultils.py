@@ -40,8 +40,8 @@ def create_pyart_dataset(directory, csv_path):
     #For each projects in directory
     with tqdm(directoryPath, total = len(directoryPath)) as t:
         for path in t:
-            t.set_description("Executing Project: %s. Current Progress:" %path)
-            print("[LOGGING] Executing Project: " + path + " | project number/total projects : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
+            t.set_description("Processing Project: %s. Current Progress:" %path)
+            print("[LOGGING] Processing Project: " + path + " | project number/total projects : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
             elapsed = t.format_dict['elapsed']
             elapsed_str = t.format_interval(elapsed)            
             rate = t.format_dict["rate"]
@@ -90,10 +90,12 @@ def create_pyart_dataset(directory, csv_path):
 
                 for file_path in list_all_file_path:     
                     try:
+                        print("Processing file: " + file_path, "| Progress: " + str(list_all_file_path.index(file_path) + 1) + "/" + str(len(list_all_file_path)))
                         with open(file_path, encoding='utf-8') as file:
                             method_dict = fc.extract_data(file)
 
                         with open(file_path, encoding='utf-8') as file:
+                            print("Generating candidates...")
                             default_calls = stdlibs_calls.copy()
                             default_calls.update(cg.get_calls_from_third_party_libs(file_path))
                             default_calls.update(cg.get_calls_from_scope(file_path))
@@ -102,6 +104,7 @@ def create_pyart_dataset(directory, csv_path):
                         #Format of data_dict:
                         # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
                         # #Value = [x1,x2,x3,x4]
+                        print("Encoding data...")
                         data_dict = de.DataEncoder(method_dict,candidate_dict, file_dict, list_all_file_path, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict)
                         write_pyart_csv_data(data_dict, csv_path, file_path)
                     except Exception as e:
