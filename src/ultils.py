@@ -28,6 +28,8 @@ def create_pyart_dataset(directory, csv_path):
     writer = csv.DictWriter(file, fieldnames=fields)
     writer.writeheader()
     file.close()
+    
+    stdlibs_calls = cg.get_calls_from_standard_libs()
 
     for file in files:
         #directory contains projects (folders). We collect the path of those projects
@@ -39,7 +41,6 @@ def create_pyart_dataset(directory, csv_path):
         # print("\nExecuting Project: " + path + " | Progress: " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
         file_dict = {}
 
-        default_calls_excluding_current_scope = set()
 
         #Stores frequency of tokens in EACH file    
         frequency_file_dict = {}
@@ -72,7 +73,6 @@ def create_pyart_dataset(directory, csv_path):
                                 frequency_file_dict[file_path] = frequency_dict
                                 occurrence_file_dict[file_path] = occurrence_dict
                             
-                            default_calls_excluding_current_scope.update(cg.get_calls_from_others_excluding_current_scope(file_path))
                         
                         except Exception as e:
                             print(f"Error processing file dictionary for '{file_path}': {e}")
@@ -80,13 +80,14 @@ def create_pyart_dataset(directory, csv_path):
 
             list_all_file_path = list(file_dict.keys())
 
-            for file_path in tqdm(list_all_file_path):     
+            for file_path in list_all_file_path:     
                 try:
                     with open(file_path, encoding='utf-8') as file:
                         method_dict = fc.extract_data(file)
 
                     with open(file_path, encoding='utf-8') as file:
-                        default_calls = default_calls_excluding_current_scope
+                        default_calls = stdlibs_calls.copy()
+                        default_calls.update(cg.get_calls_from_third_party_libs(file_path))
                         default_calls.update(cg.get_calls_from_scope(file_path))
                         candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict, default_calls)
                     
