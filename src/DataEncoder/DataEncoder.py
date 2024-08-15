@@ -49,12 +49,12 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
             
             method_count += 1
             print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total))            
-            # x1_dict = get_x1(candidates, value,true_api)
+            x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
                 isTrue = 0
                 if (candidate == true_api):
                     isTrue = 1         
-                x1 = 0 
+                x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
                 x3 = get_x3(file_dict, filepath, the_object, candidate, frequency_files_dict, frequency_file_dict)
                 x4 = get_x4(file_dict, filepath, candidate, set_of_S,occurrence_files_dict, occurrence_file_dict)
@@ -91,7 +91,7 @@ def get_x1(candidates, dataflow, true_api):
     if (system.upper() == "LINUX"):
         os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  
     elif (system.upper() == "MACOS"):
-        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/experiment-lm.lm.bin -debug 2 > ../../Qrec/Ngram-output/output.ppl')
     else:
        raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
 	
@@ -116,8 +116,6 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm ../../Qrec/Ngram-output/output.ppl')
-    os.system('rm ../../Qrec/Ngram-output/ngram_input.txt')
     return ngram_scores  
           
 
