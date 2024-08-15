@@ -31,6 +31,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
             true_api = key[1]
             line_number = key[2]
             
+            tokens = []
             for index in range(current_index ,len(set_of_S_line_num)):
                 current_line_number = set_of_S_line_num[index]
                 tokens = bag_of_tokens[current_line_number]
@@ -38,13 +39,16 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                     set_of_S.append(tokens)
                     continue
 
-                elif (current_line_number == line_number and true_api in tokens):
-                    set_of_S.append(tokens[0: tokens.index(true_api)])
-                    current_index = index + 1    
+                if (current_line_number >= line_number):
+                    if (true_api in tokens):
+                        set_of_S.append(tokens[0: tokens.index(true_api)])
+                        current_index = index + 1
+                    else:
+                        set_of_S.append(tokens)    
+                        current_index = index + 1
                     break
             
             candidates = candidate_dict[(the_object,line_number)]
-
             candidates.add(true_api)
             
             method_count += 1
@@ -62,8 +66,13 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
 
                 data_dict[ (the_object, candidate, line_number, isTrue)] = x
 
-            set_of_S[-1].extend(tokens[tokens.index(true_api): ])
-
+            try:
+                continue_index = tokens.index(true_api)
+                set_of_S[-1].extend(tokens[continue_index: ])
+            except Exception as e:
+                print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
+                print("Proceed to not appending the left-out tokens")
+                
     return data_dict        
 def get_x1(candidates, dataflow, true_api):
     s = ""
@@ -91,7 +100,7 @@ def get_x1(candidates, dataflow, true_api):
     if (system.upper() == "LINUX"):
         os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  
     elif (system.upper() == "MACOS"):
-        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/experiment-lm.lm.bin -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/experiment.lm.bin -debug 2 > ../../Qrec/Ngram-output/output.ppl')
     else:
        raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
 	
