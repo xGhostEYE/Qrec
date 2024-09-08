@@ -12,13 +12,10 @@ public class ProjectThread extends Thread {
         this.processingTasks = processingTasks;
         this.threadId = threadId;
     }
-
-    //TODO
-    public static synchronized void writeToCSV() {
-        
+    
+    public String getThreadId(){
+        return this.threadId;
     }
-     
-    //TODO
     public void extractData(){
         for (ProjectProcessingTask task : processingTasks){
             task.process(threadId);
@@ -31,10 +28,6 @@ public class ProjectThread extends Thread {
 
             extractData();
 
-            //Write output of run to CSV
-            synchronized(ProjectThread.class) {
-                writeToCSV();
-            }
 
         } catch (Exception e){
             e.printStackTrace();

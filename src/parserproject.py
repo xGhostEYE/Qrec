@@ -70,7 +70,7 @@ if __name__ == "__main__":
     if (project is not None and output_file is not None):
             f = open("../data/" + output_file, "w")
 
-            ult.create_art_dataset_for_one_project(project, output_file)
+            ult.create_art_dataset_for_one_project(project, "../data/" + output_file)
             exit(0)
 
     train_dr = config.get("User", "train_dir")
