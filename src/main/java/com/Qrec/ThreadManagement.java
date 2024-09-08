@@ -72,7 +72,7 @@ public class ThreadManagement {
         //clean up
         finally{
             long estimatedTime = System.nanoTime() - startTime;
-            System.out.print("Cleaning up result files");
+            System.out.println("Cleaning up result files");
             threads.forEach(thread -> {
                 String command = "rm -rf " + "thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv";
                 try {
@@ -82,7 +82,7 @@ public class ThreadManagement {
                 } 
             });
             
-            System.out.print("Finished. Elapsed time: " + String.valueOf(TimeUnit.MINUTES.convert(estimatedTime, TimeUnit.NANOSECONDS)) + " (min)");
+            System.out.println("Finished. Elapsed time: " + String.valueOf(TimeUnit.MINUTES.convert(estimatedTime, TimeUnit.NANOSECONDS)) + " (min)");
 
         }
 
