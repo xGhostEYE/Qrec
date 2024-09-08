@@ -17,6 +17,86 @@ from tqdm import tqdm
 
 # from GetFiles import GetFilesInDirectory
 
+def create_art_dataset_for_one_project(project, csv_path):
+        
+    #clear csv file
+    file = open(csv_path, "w+")
+    # writing headers (field names)
+    fields = ["file_path", "object", "api", "line_number", "is_true_api", "x1", "x2", "x3", "x4"]
+    writer = csv.DictWriter(file, fieldnames=fields)
+    writer.writeheader()
+    file.close()
+    
+    stdlibs_calls = cg.get_calls_from_standard_libs()
+    
+    #For each projects in directory
+    print("[LOGGING] Processing Project: " + project)
+    file_dict = {}
+
+    #Stores frequency of tokens in EACH file    
+    frequency_file_dict = {}
+    #Stores frequency of tokens in ALL files    
+    frequency_files_dict = {}
+
+    #Stores occurence of tokens in EACH file    
+    occurrence_file_dict = {}
+    #Stores occurence of tokens in ALL files    
+    occurrence_files_dict = {}
+
+    try:
+        for root, directories, files in os.walk(project, topdown=False):
+            for name in files:
+                file_path = (os.path.join(root, name))
+                
+                if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                    try: 
+                        #Key: file_name
+                        #Value: bag of tokens (a dictionary)
+                                #Key: line number
+                                #Value: list of tokens from left to right 
+                        with open(file_path, encoding='utf-8') as file:
+                            frequency_dict = {}
+                            occurrence_dict = {}
+                            
+                            file_dict[file_path] = fc.extract_bag_of_tokens(file, frequency_dict, occurrence_dict)
+                            frequency_file_dict[file_path] = frequency_dict
+                            occurrence_file_dict[file_path] = occurrence_dict
+                        
+                    
+                    except Exception as e:
+                        print(f"Error processing file dictionary for '{file_path}': {e}")
+                        traceback.print_exc()   
+
+        list_all_file_path = list(file_dict.keys())
+
+        for file_path in list_all_file_path:     
+            try:
+                print("Processing file: " + file_path, "| Progress: " + str(list_all_file_path.index(file_path) + 1) + "/" + str(len(list_all_file_path)))
+                with open(file_path, encoding='utf-8') as file:
+                    method_dict = fc.extract_data(file)
+
+                with open(file_path, encoding='utf-8') as file:
+                    print("Generating candidates...")
+                    default_calls = stdlibs_calls.copy()
+                    default_calls.update(cg.get_calls_from_third_party_libs(file_path))
+                    default_calls.update(cg.get_calls_from_scope(file_path))
+                    candidate_dict = cg.CandidatesGenerator(file, file_path, method_dict, default_calls)
+                
+                #Format of data_dict:
+                # #Key = [object, api, line number, 0 if it is not true api and 1 otherwise]
+                # #Value = [x1,x2,x3,x4]
+                print("Encoding data...")
+                data_dict = de.DataEncoder(method_dict,candidate_dict, file_dict, list_all_file_path, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict)
+                write_pyart_csv_data(data_dict, csv_path, file_path)
+            except Exception as e:
+                print(f"Error processing during data encoding stage for '{file_path}': {e}")
+                traceback.print_exc()
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+
+    print("\n")
+    
 def create_pyart_dataset(directory, csv_path):
     files = os.listdir(directory)
     directoryPath = []
