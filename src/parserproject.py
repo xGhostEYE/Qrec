@@ -3,7 +3,6 @@ import ultils as ult
 import os.path as op
 import os
 from joblib import dump, load
-from Models.Randomforest import RunRandomForest, FitRandomForest, GetRandomForestModel
 import numpy as np
 import DataExtractor.FeatureCollector as fc
 import DataExtractor.CandidateGenerator as cg
@@ -24,12 +23,15 @@ config.read('../config.ini')
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything. This flag has the highest priority")    
-    parser.add_argument('-r', '--run', action='store_true', help="A flag to request running training and testing only")    
+    parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything (except for --project and --outputfile). This flag has the highest priority")    
+    parser.add_argument('-r', '--run', action='store_true', help="A flag to request running training and testing only for the default train and test dataset")    
+    
+    parser.add_argument('-p', '--project', help="A flag to specify the project to be extracted. Run with --outputfile flag to specify the output file")  
+    parser.add_argument('-f', '--outputfile', help="A flag to specify the csv file name for the extracted dataset. Run with --project flag to specify the project to be extracted")  
 
     parser.add_argument('-n', '--csv_train', action='store_true', help="A flag to request creating training dataset (in csv)")    
     parser.add_argument('-t', '--csv_test', action='store_true', help="A flag to request creating testing dataset (in csv)")    
-    parser.add_argument('-p', '--scrape_train', action='store_true', help="A flag to request scrapping projects for train data ")    
+    parser.add_argument('-d', '--scrape_train', action='store_true', help="A flag to request scrapping projects for train data ")    
     parser.add_argument('-c', '--scrape_test', action='store_true', help="A flag to request srapping projects for test data")    
     parser.add_argument('-i', '--train', action='store_true', help="A flag to request running training")    
     parser.add_argument('-o', '--test', action='store_true', help="A flag to request running testing")    
@@ -42,10 +44,18 @@ if __name__ == "__main__":
     is_scrape_test = args.scrape_test
     is_train = args.train
     is_test = args.test
-
+    project = args.project
+    output_file = args.outputfile
+    
     if (args.run):
+        is_csv_train = False
+        is_csv_test = False
+        is_scrape_train = False
+        is_scrape_test = False
         is_train = True
         is_test = True
+        project = None
+        output_file = None
 
     if (args.all):
         is_csv_train = True
@@ -54,11 +64,17 @@ if __name__ == "__main__":
         is_scrape_test = True
         is_train = True
         is_test = True
+        project = None
+        output_file = None
 
-    
+    if (project is not None and output_file is not None):
+            f = open("../data/" + output_file, "w")
+
+            ult.create_art_dataset_for_one_project(project, "../data/" + output_file)
+            exit(0)
+
     train_dr = config.get("User", "train_dir")
-    test_dir = config.get("User", "test_dir")
-
+    test_dir = config.get("User", "test_dir")    
     train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
     test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
 
@@ -82,11 +98,11 @@ if __name__ == "__main__":
         
         else:
             print("Canceling projects data scrapping")
-    
+
     if (is_csv_train):
         print("Creating train dataset...")
         ult.create_pyart_dataset(train_dr, train_csv_file_path)
-
+    
     if (is_csv_test):
         print("Creating test dataset...")
         ult.create_pyart_dataset(test_dir, test_csv_file_path)

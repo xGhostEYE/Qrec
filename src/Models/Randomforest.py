@@ -13,7 +13,7 @@ config = configparser.ConfigParser()
 config.read('../config.ini')
 model_path = config.get("User", "model_path")
 
-def RunRandomForest(X, y):
+def RunRandomForestWithGridSearchCV(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
     
     rf = RandomForestClassifier(random_state=42, n_jobs=-1)
@@ -40,7 +40,7 @@ def RunRandomForest(X, y):
     print("Accuracy:", accuracy)
     
 
-def FitRandomForest(X, y):
+def FitRandomForestWithGridSearchCV(X, y):
     X_train = X
     y_train = y
     # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
@@ -64,6 +64,15 @@ def FitRandomForest(X, y):
     # apply the best hyper parameters
     classifier_rf = grid_search.best_estimator_
     dump(classifier_rf, model_path)
+
+def FitRandomForest(X, y):
+    X_train = X
+    y_train = y
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
+    
+    rf = RandomForestClassifier(n_jobs=-1)
+    rf.fit(X_train, y_train)
+    dump(rf, model_path)
 
     
 def TestRandomForest(X, y):    
