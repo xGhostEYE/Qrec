@@ -9,17 +9,23 @@ import java.io.Reader;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.ini4j.Ini;
 
 public class MainCSVFile {
     public synchronized void writeToFile(String threadId, String resultFilePath) throws IOException{
 
             
             String [] headers = {"file_path","object","api","line_number","is_true_api","x1","x2","x3","x4"};
+            
+            File fileToParse = new File("config.ini");
+            Ini ini = new Ini(fileToParse);
+            String outputFileName = ini.get("User", "output_multi_thread_file_name");
+            File outputFile = new File( new File("data").getCanonicalPath() + "/" + outputFileName );
 
-            //Create the main csv file if it does not exist
-            File outputFile = new File( new File("data").getCanonicalPath() + "/main_result.csv" );
             FileWriter fw;
             CSVFormat outputFileFormat;
+            
+            //Create the main csv file if it does not exist
             if(outputFile.exists() && !outputFile.isDirectory()) {                 
                 fw = new FileWriter(outputFile, true);
                 outputFileFormat = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
@@ -32,34 +38,17 @@ public class MainCSVFile {
                 .build();
             }
             
-            try (final CSVPrinter printer = new CSVPrinter(fw, outputFileFormat)) {
+            try (final FileWriter fw_2 = fw;   
+                 final Reader in = new FileReader(resultFilePath);
+                 final CSVPrinter printer = new CSVPrinter(fw_2, outputFileFormat)) {
                 
-                // File resultFile = new File(resultFilePath);
-                Reader in = new FileReader(resultFilePath);
                 CSVFormat resultFileFormat = CSVFormat.DEFAULT.builder()
                     .setHeader(headers)
                     .setSkipHeaderRecord(true)
                     .build();
 
-                Iterable<CSVRecord> records = resultFileFormat.parse(in);
-
-                for (CSVRecord record : records) {
-
-                    String file_path = record.get("file_path");
-                    String object = record.get("object");
-                    String api = record.get("api");
-                    Integer line_number = Integer.valueOf(record.get("line_number"));
-                    Integer is_true_api = Integer.valueOf(record.get("is_true_api"));
-                    Float x1 = Float.valueOf(record.get("x1"));
-                    Float x2 = Float.valueOf(record.get("x2"));
-                    Float x3 = Float.valueOf(record.get("x3"));
-                    Float x4 = Float.valueOf(record.get("x4"));
-
-                    printer.printRecord(file_path, object,api,line_number,is_true_api,x1,x2,x3,x4);
-
-                }
-            }
-        
-            
+                Iterable<CSVRecord> records = resultFileFormat.parse(in);                
+                printer.printRecords(records);
+            }            
     }
 }

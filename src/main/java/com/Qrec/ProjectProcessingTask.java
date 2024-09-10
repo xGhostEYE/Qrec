@@ -40,7 +40,6 @@ public class ProjectProcessingTask {
                 Process proc = Runtime.getRuntime().exec(command.toString(), null, new File("src"));                                             
                 
                 int statusCode = proc.waitFor();
-
                 System.out.println("Thread id " + threadId + " finished computing project: " + projectFile.getAbsolutePath() + " with status code: " + String.valueOf(statusCode));
 
                 System.out.println("Thread id " + threadId + " is appending result of " + projectFile.getAbsolutePath() + " to the main csv file");

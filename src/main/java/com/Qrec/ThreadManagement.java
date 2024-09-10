@@ -22,14 +22,13 @@ public class ThreadManagement {
             File fileToParse = new File("config.ini");
             Ini ini = new Ini(fileToParse);
     
-            
-            String trainDirRelativePath = ini.get("User", "train_dir");
+            String dirRelativePath = ini.get("User", "multi_thread_dir");
             int numWorkers = Integer.parseInt(ini.get("System", "num_cores"));
     
             //https://stackoverflow.com/questions/2683676/generating-a-canonical-path
             File trainDirFile = new File("src").getAbsoluteFile(); 
             String delimiters = "" + '\\' + '/';         
-            StringTokenizer st = new StringTokenizer(trainDirRelativePath, delimiters);
+            StringTokenizer st = new StringTokenizer(dirRelativePath, delimiters);
             while(st.hasMoreTokens()) {
                 String s = st.nextToken();
                 if(s.trim().isEmpty() || s.equals(".")) 
@@ -74,16 +73,16 @@ public class ThreadManagement {
             long estimatedTime = System.nanoTime() - startTime;
             System.out.println("Cleaning up result files");
             threads.forEach(thread -> {
-                String command = "rm -rf " + "thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv";
+                File thread_result_file;
                 try {
-                    Runtime.getRuntime().exec(command.toString(), null, new File("data"));
+                    thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv");
+                    thread_result_file.delete();
                 } catch (IOException e) {
                     e.printStackTrace();
-                } 
+                }
             });
             
-            System.out.println("Finished. Elapsed time: " + String.valueOf(TimeUnit.MINUTES.convert(estimatedTime, TimeUnit.NANOSECONDS)) + " (min)");
-
+            System.out.println("Finished. Elapsed time: " + String.valueOf(TimeUnit.MINUTES.convert(estimatedTime, TimeUnit.NANOSECONDS)) + " (mins)");
         }
 
         
