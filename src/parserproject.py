@@ -23,6 +23,7 @@ config.read('../config.ini')
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--type', help = "A flag to specify either PYART or AROMA should be ran") 
     parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything (except for --project and --outputfile). This flag has the highest priority")    
     parser.add_argument('-r', '--run', action='store_true', help="A flag to request running training and testing only for the default train and test dataset")    
     
@@ -38,6 +39,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    type = args.type
     is_csv_train = args.csv_train
     is_csv_test = args.csv_test
     is_scrape_train = args.scrape_train
@@ -67,6 +69,17 @@ if __name__ == "__main__":
         project = None
         output_file = None
 
+    if (type is not None and type.upper() == "PYART"):
+        create_data_set = ult.create_pyart_dataset
+        train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
+        test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
+    elif (type is not None and type.upper() == "AROMA"):
+        create_data_set = ult.create_aroma_dataset
+        train_csv_file_path = config.get("User", "training_data_aroma_csv_path")
+        test_csv_file_path = config.get("User", "testing_data_aroma_csv_path")
+    else:
+        exit(1)
+        
     if (project is not None and output_file is not None):
             f = open("../data/" + output_file, "w")
 
@@ -74,9 +87,8 @@ if __name__ == "__main__":
             exit(0)
 
     train_dr = config.get("User", "train_dir")
-    test_dir = config.get("User", "test_dir")    
-    train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
-    test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
+    test_dir = config.get("User", "test_dir")
+        
 
     if (is_scrape_train):
         isContinue =  input("The training data is very large, make sure to allocate enough disk space. Please type 'Yes' or 'Y' to continue ") 
@@ -101,11 +113,11 @@ if __name__ == "__main__":
 
     if (is_csv_train):
         print("Creating train dataset...")
-        ult.create_pyart_dataset(train_dr, train_csv_file_path)
+        create_data_set(train_dr, train_csv_file_path)
     
     if (is_csv_test):
         print("Creating test dataset...")
-        ult.create_pyart_dataset(test_dir, test_csv_file_path)
+        create_data_set(test_dir, test_csv_file_path)
 
     if (is_train):
         print("Training...")

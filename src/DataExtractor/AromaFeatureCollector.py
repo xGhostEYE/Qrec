@@ -4,7 +4,6 @@ from anytree import Node, NodeMixin, RenderTree, node
 from queue import Queue
 import csv
 
-
 # global variables
 is_assignment_in_global = [False]
 is_assignment_in_local = [False]
@@ -28,8 +27,9 @@ def extract_aroma_tree(file):
         def __init__(self, label, position, parent=None, children=None, true_label=None, is_receiver=False, is_method_call=False):
             super().__init__()
             self.label = label
+            assert self.label != None, "label must be specified"
             self.true_label = true_label
-
+            
             self.position = position
 
             self.parent = parent
@@ -128,7 +128,7 @@ def extract_aroma_tree(file):
         def visit_Constant(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             
-            value = node.value
+            value = repr(node.value)
             
             Constant_AnyTreeNode = MyAnyTreeNode(value, position, parent)
             
@@ -1877,12 +1877,6 @@ def extract_aroma_features(aromatree):
         features = [token, parent, sibling, variable_usage]
         aroma_dict[leaf] = features
     
-    for key,value in aroma_dict.items():
-        
-        print(key.label," : ", value)
-    
-    
-    return aroma_dict
 def get_method_calls(leaf_nodes):
     method_call = []
     receiver = None
@@ -1896,6 +1890,7 @@ def get_method_calls(leaf_nodes):
             receiver = leaf
 
     return method_call
+
 def extract_aroma_features_for_method_calls(aroma_tree):
     leaf_nodes = aroma_tree.leaves
     method_calls = get_method_calls(aroma_tree.leaves)
@@ -1911,23 +1906,6 @@ def extract_aroma_features_for_method_calls(aroma_tree):
         aroma_dict[method_call] = features
         
     return aroma_dict
-def write_csv_data_set(file_path ,aroma_dict):
-   
-    with open("../data/aroma_dataset.csv", 'a') as csvfile:
-        # creating a csv dict writer object
-        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
-        writer = csv.DictWriter(csvfile, fieldnames=fields)
-
-        for key, value in aroma_dict.items():
-            receiver = key[0]
-            position = str(receiver.position)
-            receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
-            
-            method = key[1]
-            method_label = method.label
-            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
-
-
 
 
     

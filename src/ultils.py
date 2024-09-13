@@ -97,13 +97,65 @@ def create_art_dataset_for_one_project(project, csv_path):
         traceback.print_exc()
 
     print("\n")
-    
+
+def create_aroma_dataset(directory, csv_path):
+
+        files = os.listdir(directory)
+        directoryPath = []
+
+        #clear csv file
+        file = open(csv_path, "w+")
+        
+        # writing headers (field names)
+        fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        file.close()
+        
+        for file in files:
+            #directory contains projects (folders). We collect the path of those projects
+            file_path = os.path.join(directory, file)
+            directoryPath.append(file_path)
+
+
+        #For each projects in directory
+        with tqdm(directoryPath, total = len(directoryPath)) as t:
+            for path in t:
+                t.set_description("Processing Project: %s. Current Progress:" %path)
+                print("[LOGGING] Processing Project: " + path + " | project number/total projects : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
+                elapsed = t.format_dict['elapsed']
+                elapsed_str = t.format_interval(elapsed)            
+                rate = t.format_dict["rate"]
+                remaining = (t.total - t.n) / rate if rate and t.total else 0
+                print("Elapsed: " + elapsed_str, "| Rate: " + str(rate), "| Remaining (seconds): " + str(remaining) + "\n")
+                
+                try:
+                    #Iterate through each files in the project
+                    for root, directories, files in os.walk(path, topdown=False):
+                        for name in files:
+                            file_path = (os.path.join(root, name))
+                            if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                                try: 
+                                    with open(file_path, encoding='utf-8') as file:
+                                        aroma_tree = afc.extract_aroma_tree(file)
+                                        method_calls_aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree)
+                                        write_method_calls_aroma_csv_data_set( csv_path, file_path, method_calls_aroma_dict)
+
+                                except Exception as e:
+                                    print(f"Error processing file '{file_path}': {e}")
+                                    traceback.print_exc()
+                    
+                except Exception as e:
+                    print(f"An unexpected error occurred: {e}")
+                    traceback.print_exc()   
+
 def create_pyart_dataset(directory, csv_path):
     files = os.listdir(directory)
     directoryPath = []
         
     #clear csv file
     file = open(csv_path, "w+")
+    
     # writing headers (field names)
     fields = ["file_path", "object", "api", "line_number", "is_true_api", "x1", "x2", "x3", "x4"]
     writer = csv.DictWriter(file, fieldnames=fields)
@@ -201,6 +253,23 @@ def create_pyart_dataset(directory, csv_path):
         elapsed = t.format_dict['elapsed']
         elapsed_str = t.format_interval(elapsed)  
         print("Finished creating csv file with runtime: " + elapsed_str)
+
+
+def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_aroma_dict):
+    with open(csv_file_path, 'a') as csvfile:
+        # creating a csv dict writer object
+        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+
+        for key, value in method_dict_aroma_dict.items():
+            receiver = key[0]
+            position = str(receiver.position)
+            receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
+            
+            method = key[1]
+            method_label = method.label
+            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
+
 
 
 def write_pyart_csv_data(data_dict, csv_file_path, file_path):
