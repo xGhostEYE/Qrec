@@ -1,8 +1,7 @@
 package com.Qrec;
 
-import java.io.File;
-
 import java.util.concurrent.locks.ReentrantLock;
+import java.io.*;
 
 public class ProjectProcessingTask {
 
@@ -27,21 +26,40 @@ public class ProjectProcessingTask {
             }
 
             try {                
-                //Building command
+                //Building command                                
                 String resultFileName  = "thread_" + String.valueOf(threadId) + "_result" + ".csv";
                 String resultFilePath  = new File("data").getCanonicalPath() + "/thread_" + String.valueOf(threadId) + "_result" + ".csv";
-
-                StringBuilder command = new StringBuilder("python3 parserproject.py");
+                StringBuilder command = new StringBuilder("python3 parserproject.py");  
                 command.append(" --project " + projectFile.getCanonicalPath());
                 command.append(" --outputfile " + resultFileName);
 
                 System.out.println("Thread id " + threadId + " is computing project: " + projectFile.getAbsolutePath());
- 
-                Process proc = Runtime.getRuntime().exec(command.toString(), null, new File("src"));                                             
-                
-                int statusCode = proc.waitFor();
-                System.out.println("Thread id " + threadId + " finished computing project: " + projectFile.getAbsolutePath() + " with status code: " + String.valueOf(statusCode));
 
+                //executing command
+                ProcessBuilder pb = new ProcessBuilder(command.toString().split(" ")).redirectErrorStream(true);
+                pb.directory(new File("src"));
+                Process process = pb.start();
+
+                
+                String logFilePath  = new File("data").getCanonicalPath() + "/thread_" + String.valueOf(threadId) + "_log" + ".txt";
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                     BufferedWriter bw = new BufferedWriter(new FileWriter(logFilePath)))
+                {
+                    br.transferTo(bw);
+                    while (true)
+                    {
+                        String line = br.readLine();
+                        if (line == null)
+                            break;
+                        bw.write(line);
+                        bw.newLine();
+                        bw.flush(); 
+                    }
+                }
+               
+                int statusCode = process.waitFor();
+
+                System.out.println("Thread id " + threadId + " finished computing project: " + projectFile.getAbsolutePath() + " with status code: " + String.valueOf(statusCode));
                 System.out.println("Thread id " + threadId + " is appending result of " + projectFile.getAbsolutePath() + " to the main csv file");
 
                 mainCSVFile.writeToFile(threadId, resultFilePath);

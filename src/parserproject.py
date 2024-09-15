@@ -23,7 +23,6 @@ config.read('../config.ini')
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--type', help = "A flag to specify either PYART or AROMA should be ran") 
     parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything (except for --project and --outputfile). This flag has the highest priority")    
     parser.add_argument('-r', '--run', action='store_true', help="A flag to request running training and testing only for the default train and test dataset")    
     
@@ -39,7 +38,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    type = args.type
     is_csv_train = args.csv_train
     is_csv_test = args.csv_test
     is_scrape_train = args.scrape_train
@@ -69,15 +67,16 @@ if __name__ == "__main__":
         project = None
         output_file = None
 
-    if (type is not None and type.upper() == "PYART"):
+    if (config.get("User", "type").upper() == "PYART"):
         create_data_set = ult.create_pyart_dataset
         train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
         test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
-    elif (type is not None and type.upper() == "AROMA"):
+    elif (config.get("User", "type").upper() == "AROMA"):
         create_data_set = ult.create_aroma_dataset
         train_csv_file_path = config.get("User", "training_data_aroma_csv_path")
         test_csv_file_path = config.get("User", "testing_data_aroma_csv_path")
     else:
+        print("Error: type of run is not defined in the config file")
         exit(1)
         
     if (project is not None and output_file is not None):

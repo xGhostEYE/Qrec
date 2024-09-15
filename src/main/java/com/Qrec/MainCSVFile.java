@@ -25,12 +25,12 @@ public class MainCSVFile {
             FileWriter fw;
             CSVFormat outputFileFormat;
             
-            //Create the main csv file if it does not exist
             if(outputFile.exists() && !outputFile.isDirectory()) {                 
                 fw = new FileWriter(outputFile, true);
-                outputFileFormat = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
+                outputFileFormat = CSVFormat.DEFAULT.builder().setHeader(headers).setSkipHeaderRecord(true).build();
             }
 
+            //Create the main csv file if it does not exist
             else{
                 fw = new FileWriter(outputFile);
                 outputFileFormat = CSVFormat.DEFAULT.builder()
@@ -38,9 +38,9 @@ public class MainCSVFile {
                 .build();
             }
             
-            try (final FileWriter fw_2 = fw;   
-                 final Reader in = new FileReader(resultFilePath);
-                 final CSVPrinter printer = new CSVPrinter(fw_2, outputFileFormat)) {
+            try (final Reader in = new FileReader(resultFilePath);
+                final FileWriter fw_2 = fw;
+                final CSVPrinter printer = new CSVPrinter(fw_2, outputFileFormat)) {
                 
                 CSVFormat resultFileFormat = CSVFormat.DEFAULT.builder()
                     .setHeader(headers)
