@@ -65,6 +65,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 x = [x1,x2,x3,x4]
 
                 data_dict[ (the_object, candidate, line_number, isTrue)] = x
+            print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
 
             try:
                 continue_index = tokens.index(true_api)
@@ -77,6 +78,9 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
 def get_x1(candidates, dataflow, true_api):
     s = ""
     ngram_scores = {}
+    ngram_input_file_path = "../../Qrec/Ngram-output/ngram_input_" + str(os.getpid()) + ".txt"
+    ngram_output_file_path = "../../Qrec/Ngram-output/ngram_output_" +  str(os.getpid()) + ".ppl"
+    
     for candidate in candidates:
         for data in dataflow:
             token = data
@@ -88,7 +92,7 @@ def get_x1(candidates, dataflow, true_api):
                 s = s + " " + token
         s = s + " \n"
 
-    with open('../../Qrec/Ngram-output/ngram_input.txt','w+') as f:
+    with open(ngram_input_file_path,'w+') as f:
         f.write(s)
 	
     config = configparser.ConfigParser()
@@ -98,13 +102,13 @@ def get_x1(candidates, dataflow, true_api):
     system = config.get("System", "os")
 
     if (system.upper() == "LINUX"):
-        os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')  
+        os.system(f"../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > {ngram_output_file_path}")  
     elif (system.upper() == "MACOS"):
-        os.system('../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl ../../Qrec/Ngram-output/ngram_input.txt -order 4 -lm ../../Qrec/experiment.lm.bin -debug 2 > ../../Qrec/Ngram-output/output.ppl')
+        os.system(f"../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/experiment.lm.bin -debug 2 > {ngram_output_file_path}")
     else:
        raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
 	
-    with open('../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    with open(ngram_output_file_path,encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -125,6 +129,14 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
+    try:
+        if os.path.exists(ngram_input_file_path):
+            os.remove(ngram_input_file_path)
+        if os.path.exists(ngram_output_file_path):
+            os.remove(ngram_output_file_path)
+    except OSError:
+        print("Encountered error when deleting ngram input/output file")
+
     return ngram_scores  
           
 
