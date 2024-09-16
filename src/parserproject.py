@@ -71,10 +71,14 @@ if __name__ == "__main__":
         create_data_set = ult.create_pyart_dataset
         train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
         test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
+        train = ult.train_pyart
+        test = ult.test_pyart
     elif (config.get("User", "type").upper() == "AROMA"):
         create_data_set = ult.create_aroma_dataset
         train_csv_file_path = config.get("User", "training_data_aroma_csv_path")
         test_csv_file_path = config.get("User", "testing_data_aroma_csv_path")
+        train = ult.train_aroma
+        test = ult.test_aroma
     else:
         print("Error: type of run is not defined in the config file")
         exit(1)
@@ -120,9 +124,9 @@ if __name__ == "__main__":
 
     if (is_train):
         print("Training...")
-        ult.train(train_csv_file_path)
+        train(train_csv_file_path)
 
     if (is_test):
         print("Testing...")
-        ult.test(test_csv_file_path)
+        test(test_csv_file_path)
         

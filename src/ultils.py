@@ -10,6 +10,7 @@ import DataExtractor.FeatureCollector as fc
 import DataExtractor.AromaFeatureCollector as afc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
+import Indexing.AromaIndexer as ai
 import traceback
 
 from Models.Randomforest import FitRandomForest, GetRandomForestModel 
@@ -107,7 +108,7 @@ def create_aroma_dataset(directory, csv_path):
         file = open(csv_path, "w+")
         
         # writing headers (field names)
-        fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"]
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()
         file.close()
@@ -258,7 +259,7 @@ def create_pyart_dataset(directory, csv_path):
 def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_aroma_dict):
     with open(csv_file_path, 'a') as csvfile:
         # creating a csv dict writer object
-        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feauture", "sibling_feature", "variable_usage_feature"]
+        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"]
         writer = csv.DictWriter(csvfile, fieldnames=fields)
 
         for key, value in method_dict_aroma_dict.items():
@@ -268,7 +269,7 @@ def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_
             
             method = key[1]
             method_label = method.label
-            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feauture": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
+            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feature": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
 
 
 
@@ -303,13 +304,19 @@ def get_detailed_labeling_data(csv_path):
     #     labels.append(key[3])
     return (features, labels)
 
-def train(train_csv_file_path):
+def train_aroma(train_csv_file_path):
+    ai.index_data(train_csv_file_path, True)
+
+def train_pyart(train_csv_file_path):
     labeled_data_tuple = get_labeled_data(train_csv_file_path)
     X =  labeled_data_tuple[0].astype(float)
     y = labeled_data_tuple[1].astype(float).values.ravel()
     FitRandomForest(X, y)  
 
-def test(test_csv_file_path):
+def test_aroma(test_csv_file_path):
+    ai.search_data(test_csv_file_path, 10)
+    
+def test_pyart(test_csv_file_path):
     grouped_dict = defaultdict(list)
     labeled_data_tuple = get_detailed_labeling_data(test_csv_file_path)
 
