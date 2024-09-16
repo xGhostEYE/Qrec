@@ -12,7 +12,7 @@ Please edit the config file according to the comments<br /><br />
 
 **Run the project**<br />
 
-<ins>Synchronous Run<ins>: <br/>
+<ins>Synchronous Run</ins>: <br/><br/>
 Please run ```python3 parserproject.py --[FLAGS]``` to run the project<br />
 
 The [FLAGS] options are: <br/>
