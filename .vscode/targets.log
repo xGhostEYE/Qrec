@@ -12,7 +12,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Fri Jun 07 09:58:54 2024
+# Make data base, printed on Sun Jul 21 22:49:45 2024
 
 # Variables
 
@@ -31,7 +31,7 @@ LOCALAPPDATA = C:\Users\melvi\AppData\Local
 # environment
 VSCODE_CRASH_REPORTER_PROCESS_TYPE = extensionHost
 # environment
-VSCODE_CWD = C:\Users\melvi\AppData\Local\Programs\Microsoft VS Code
+VSCODE_CWD = \\wsl.localhost\Ubuntu\home\melvin\runshit\QrecVersion2\Qrec
 # environment
 CHOCOLATEYINSTALL = C:\ProgramData\chocolatey
 # environment
@@ -47,7 +47,7 @@ MAKE_COMMAND := make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_6152_CDOHAHHEBWPQSPNS
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_29008_DDOZSKAJDALOVQIK
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # default
@@ -59,7 +59,7 @@ VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # automatic
 %F = $(notdir $%)
 # environment
-VSCODE_CODE_CACHE_PATH = C:\Users\melvi\AppData\Roaming\Code\CachedData\dc96b837cf6bb4af9cd736aa3af08cf8279f7685
+VSCODE_CODE_CACHE_PATH = C:\Users\melvi\AppData\Roaming\Code\CachedData\5437499feb04f7a586f677b155b039bc2b3669eb
 # environment
 LANG = C
 # default
@@ -97,7 +97,7 @@ MAKEFILE_LIST :=
 # automatic
 @F = $(notdir $@)
 # environment
-VSCODE_PID = 6152
+VSCODE_PID = 29008
 # environment
 CUDA_PATH = C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1
 # automatic
@@ -168,8 +168,6 @@ USERDOMAIN = MELVINPC
 GNUMAKEFLAGS := 
 # environment
 OS = Windows_NT
-# environment
-__COMPAT_LAYER = DetectorsAppHealth
 # makefile
 .DEFAULT_GOAL := 
 # environment
@@ -199,7 +197,7 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 TEMP = C:\Users\melvi\AppData\Local\Temp
 # environment
-VSCODE_IPC_HOOK = \\.\pipe\08abe68f-1.89.1-main-sock
+VSCODE_IPC_HOOK = \\.\pipe\08abe68f-1.90.2-main-sock
 # default
 .RECIPEPREFIX := 
 # automatic
@@ -217,7 +215,7 @@ PROCESSOR_REVISION = a701
 # environment
 PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 167 Stepping 1, GenuineIntel
 # variable set hash-table stats:
-# Load=100/1024=10%, Rehash=0, Collisions=10/124=8%
+# Load=99/1024=10%, Rehash=0, Collisions=10/123=8%
 
 # Pattern-specific Variable Values
 
@@ -225,9 +223,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 167 Stepping 1, GenuineIntel
 
 # Directories
 
-# . (key C:/Windows, mtime 1717601638): 121 files, no impossibilities.
+# . (key C:/Windows, mtime 1721584510): 120 files, no impossibilities.
 
-# 121 files, no impossibilities in 1 directories.
+# 120 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -284,12 +282,12 @@ GNUmakefile:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 128 / storage = 1369 B / avg = 10 B
-# current buf: size = 8162 B / used = 1369 B / count = 128 / avg = 10 B
+# strcache buffers: 1 (0) / strings = 127 / storage = 1360 B / avg = 10 B
+# current buf: size = 8162 B / used = 1360 B / count = 127 / avg = 10 B
 
-# strcache performance: lookups = 131 / hit rate = 2%
+# strcache performance: lookups = 130 / hit rate = 2%
 # hash-table stats:
-# Load=128/8192=2%, Rehash=0, Collisions=0/131=0%
-# Finished Make data base on Fri Jun 07 09:58:54 2024
+# Load=127/8192=2%, Rehash=0, Collisions=0/130=0%
+# Finished Make data base on Sun Jul 21 22:49:45 2024
 
  

@@ -1,41 +1,86 @@
 
 import os
 import re
+import configparser
+from collections import OrderedDict
 
-
-def DataEncoder(method_dict, candidate_dict, file_dict, filepath):
+def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
     data_dict = {}
-    print("Encoding data...")
-    for key, value in method_dict.items():
-        
+    set_of_S = []
+
+    bag_of_tokens = file_dict[filepath]
+    
+    set_of_S_line_num =  list(bag_of_tokens.keys())
+    current_index = 0
+
+    len_list_all_file_path = len(list_all_file_path)
+    current_file_index = list_all_file_path.index(filepath)
+
+    print("Encoding data for file: " + filepath, "| Progress: " + str(current_file_index + 1) + "/" + str(len_list_all_file_path))
+    method_count = 0
+    list_keys = [key for key in method_dict.keys() if key[0] != None]
+    total = len(list_keys)
+
+    #method_dict is not sorted. 
+    #We sort it by the line number (key[2]) so we can add new tokens in to set of S each line at a time from top to bottom
+    ordered_method_dict = dict(sorted(method_dict.items(), key=lambda t: t[0][2])) #t is the item, t[0] = key and t[1] = value
+    for key, value in ordered_method_dict.items():
         the_object = key[0]
         if the_object != None:
             true_api = key[1]
             line_number = key[2]
-
-            candidates = candidate_dict[(the_object,line_number)]
-
-            if not (true_api in candidates):
-                candidates.append(true_api)
             
+            tokens = []
+            for index in range(current_index ,len(set_of_S_line_num)):
+                current_line_number = set_of_S_line_num[index]
+                tokens = bag_of_tokens[current_line_number]
+                if (current_line_number < line_number):
+                    set_of_S.append(tokens)
+                    continue
+
+                if (current_line_number >= line_number):
+                    if (true_api in tokens):
+                        set_of_S.append(tokens[0: tokens.index(true_api)])
+                        current_index = index + 1
+                    else:
+                        set_of_S.append(tokens)    
+                        current_index = index + 1
+                    break
+            
+            candidates = candidate_dict[(the_object,line_number)]
+            candidates.add(true_api)
+            
+            method_count += 1
+            print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total))            
             x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
                 isTrue = 0
                 if (candidate == true_api):
-                    isTrue = 1
-                
+                    isTrue = 1         
                 x1 = x1_dict[candidate]
                 x2 = get_x2(candidate, value, true_api)
-                x3 = get_x3(the_object, candidate, line_number, method_dict, file_dict, filepath)
-                x4 = get_x4(file_dict, filepath, line_number, candidate, true_api)
+                x3 = get_x3(file_dict, filepath, the_object, candidate, frequency_files_dict, frequency_file_dict)
+                x4 = get_x4(file_dict, filepath, candidate, set_of_S,occurrence_files_dict, occurrence_file_dict)
                 x = [x1,x2,x3,x4]
 
                 data_dict[ (the_object, candidate, line_number, isTrue)] = x
+            print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
+
+            try:
+                continue_index = tokens.index(true_api)
+                set_of_S[-1].extend(tokens[continue_index: ])
+            except Exception as e:
+                print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
+                print("Proceed to not appending the left-out tokens")
+                
     return data_dict        
 def get_x1(candidates, dataflow, true_api):
     s = ""
     ngram_scores = {}
+    ngram_input_file_path = "../../Qrec/Ngram-output/ngram_input_" + str(os.getpid()) + ".txt"
+    ngram_output_file_path = "../../Qrec/Ngram-output/ngram_output_" +  str(os.getpid()) + ".ppl"
+    
     for candidate in candidates:
         for data in dataflow:
             token = data
@@ -47,13 +92,23 @@ def get_x1(candidates, dataflow, true_api):
                 s = s + " " + token
         s = s + " \n"
 
-    with open('test.txt','w+') as f:
+    with open(ngram_input_file_path,'w+') as f:
         f.write(s)
+	
+    config = configparser.ConfigParser()
+	
+    #Change to absolute path if encounter errors
+    config.read('../config.ini')
+    system = config.get("System", "os")
 
-    #Only works with absolute path
-    os.system('../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl test.txt  -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > ../../Qrec/Ngram-output/output.ppl')
-
-    with open('../../Qrec/Ngram-output/output.ppl',encoding='ISO-8859-1') as f: 
+    if (system.upper() == "LINUX"):
+        os.system(f"../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > {ngram_output_file_path}")  
+    elif (system.upper() == "MACOS"):
+        os.system(f"../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/experiment.lm.bin -debug 2 > {ngram_output_file_path}")
+    else:
+       raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
+	
+    with open(ngram_output_file_path,encoding='ISO-8859-1') as f: 
          lines=f.readlines()
 	
     for candidate in candidates:
@@ -74,8 +129,14 @@ def get_x1(candidates, dataflow, true_api):
                     break
             if flag==0:
                 ngram_scores[candidate]=0.0
-    os.system('rm ../../Qrec/Ngram-output/output.ppl')
-    os.system('rm test.txt')
+    try:
+        if os.path.exists(ngram_input_file_path):
+            os.remove(ngram_input_file_path)
+        if os.path.exists(ngram_output_file_path):
+            os.remove(ngram_output_file_path)
+    except OSError:
+        print("Encountered error when deleting ngram input/output file")
+
     return ngram_scores  
           
 
@@ -117,108 +178,197 @@ def sim(candidate, data, d):
         
 
 
-def get_x3(the_object, candidate, line_number, method_dict, file_dict, file_path):
-    bag_of_tokens = file_dict[file_path]
-            
-    return get_x3_confidence(the_object, candidate, line_number, method_dict, bag_of_tokens)
+def get_x3(file_dict, file_path, the_object, candidate, frequency_files_dict, frequency_file_dict):
 
-def get_x3_confidence(the_object, candidate, line_number, method_dict, bag_of_tokens):
-    n_x = get_n_x3(the_object, line_number, bag_of_tokens)
-    n_x_api = get_n_x3_api(the_object, candidate, line_number, method_dict)
+    return get_x3_confidence(file_dict, file_path, the_object, candidate, frequency_files_dict, frequency_file_dict)
+
+def get_x3_confidence(file_dict, file_path, the_object, candidate, frequency_files_dict, frequency_file_dict):
+    n_x_api = get_n_x3_api(file_dict, file_path, the_object, candidate, frequency_files_dict, frequency_file_dict)
+    
+    if n_x_api == 0:
+        return 0
+    
+    n_x = get_n_x3(file_dict, file_path, the_object, frequency_files_dict, frequency_file_dict )
 
     if n_x == 0:
         return 0
-    else:
-        return n_x_api/n_x
+
+    return n_x_api/n_x
+
+def get_current_file_tokens_frequency(token, candidate, frequency_current_file_dict):
+    try:
+        count = frequency_current_file_dict[(token,candidate)]
+        return count
+    except KeyError as e:
+        return 0
+      
+def get_n_x3_api(file_dict, file_path, object, candidate, frequency_files_dict, frequency_file_dict):
+    try:
+        count = frequency_files_dict[(object,candidate)]
+        frequency_current_file_dict = frequency_file_dict[file_path]
+        count_current_file = frequency_current_file_dict[(object,candidate)]
+        return count - count_current_file
     
-def get_n_x3(the_object, line_num, bag_of_tokens):
-    count = 0
+    except KeyError as e:
+        total_count = 0
+        count_current_file = 0
+        for key, value in file_dict.items():
+            frequency_current_file_dict = frequency_file_dict[key]
+            count = get_current_file_tokens_frequency(object, candidate, frequency_current_file_dict)
+            total_count = total_count + count
+            if (key == file_path):
+                count_current_file = count
 
-    for line in bag_of_tokens:
-        if line < line_num:
-            count = count + 1 if the_object in bag_of_tokens[line] else count
-    return count
 
-def get_n_x3_api(the_object, candidate, line_num, method_dict):
-    count = 0
-    for key in method_dict.keys():
-        object_in_dict = key[0]
-        api_in_dict = key[1]
-        line_num_in_dict = key[2]
-        if (the_object == object_in_dict and candidate == api_in_dict and line_num > line_num_in_dict ):
-            count += 1
-    return count
+        frequency_files_dict[(object, candidate)] = total_count
 
-def get_x4(file_dict, file_path, line_number, candidate, true_api):
+        return total_count - count_current_file
 
-    bag_of_tokens = file_dict[file_path]
 
-    set_of_S = []
-    for key,value in bag_of_tokens.items():
-        if (key < line_number):
-            set_of_S.extend(value)
-            continue
+def get_n_x3(file_dict, file_path, object, frequency_files_dict, frequency_file_dict):
+    
+
+    try:
+        count = frequency_files_dict[(object, None)]
+        frequency_current_file_dict = frequency_file_dict[file_path]
+        count_current_file = frequency_current_file_dict[(object, None)]
         
-        if (key == line_number and true_api in value):
-            set_of_S.extend(value[0: value.index(true_api)])     
-        break
+        return count - count_current_file
     
+    except KeyError as e:
+    
+        total_count = 0
+        count_current_file = 0
+        for key, value in file_dict.items():
+            frequency_current_file_dict = frequency_file_dict[key]
+            count = get_current_file_tokens_frequency(object, None, frequency_current_file_dict)
+            total_count = total_count + count
+            if (key == file_path):
+                count_current_file = count
+
+
+        frequency_files_dict[(object, None)] = total_count
+
+        return total_count - count_current_file
+
+
+def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occurrence_file_dict):
+
     total_confidence = 0
-
+    
     for i in range(len(set_of_S)):
-        confidence = get_x4_confidence(file_dict, file_path, set_of_S[i], candidate)
-        distance = get_distance(i, len(set_of_S))
+        for j in range(len(set_of_S[i])):
+            confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
+            distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
         
-        if distance == 0:
-            continue
+            if distance == 0:
+                continue
 
-        total_confidence = total_confidence + confidence/distance
+            total_confidence = total_confidence + confidence/distance
 
     return (1/len(set_of_S)) * total_confidence
 
-def get_x4_confidence(file_dict, file_path, token, candidate):
-    nx_api = get_n_x4_api(file_dict, file_path, token, candidate)
-    
+def get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict):
+    nx_api = get_n_x4_api(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
+
     if nx_api == 0:
         return 0
     
-    nx = get_n_x4(file_dict, file_path, token)
+    nx = get_n_x4(file_dict, file_path, token, occurrence_files_dict, occurrence_file_dict)
 
     if nx == 0:
         return 0
         
     return nx_api/nx
 
-def get_n_x4(file_dict, file_path, token):
-    count = 0
-    for key, value in file_dict.items():
+def get_current_file_token_occurrence(token, occurrence_current_file_dict):
+    try:
+        isExist = occurrence_current_file_dict[(token, None)]
+        return True
+    except KeyError as e:
+        return False
+    
+def get_n_x4_api(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict):
+    #Assume we have stored this value for every file. We need to exclude the current file
+    try:        
+        count = occurrence_files_dict[(token, candidate)]
         
-        if key != file_path:    
-            for tokens in value.values():
-                if token in tokens:
-                    count = count + 1
-                    break
-    return count
+        occurrence_current_file_dict = occurrence_file_dict[file_path]
+        found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict)
+        found_candidate = get_current_file_token_occurrence(candidate, occurrence_current_file_dict)
 
-def get_n_x4_api(file_dict, file_path, token, candidate):
-    count = 0
-    for key, value in file_dict.items():
-        found_token = False
-        found_candidate = False
-        if key != file_path:    
-            for tokens in value.values():
-                if not found_token and token in tokens:
-                    found_token = True
+        #exclude the current file
+        if found_token and found_candidate:
+            return count - 1
+        
+        return count      
+
+    except KeyError as e:    
+        #If we have NOT stored this value for all files dictionary, we need to do so.
+        
+        total_count = 0
+
+        #value of the current file
+        count_current_file = 0
+
+        for key, value in file_dict.items():
+            occurrence_current_file_dict = occurrence_file_dict[key]
+            found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict)
+            found_candidate = get_current_file_token_occurrence(candidate, occurrence_current_file_dict)
                     
-                if not found_candidate and candidate in tokens:
-                    found_candidate = True
+            if found_token and found_candidate:
+                total_count += 1
+                
+                if (key == file_path):
+                    count_current_file = 1
+        
+        occurrence_files_dict[(token, candidate)] = total_count
 
-                if found_token and found_candidate:
-                    count += 1
-                    break
+        return total_count - count_current_file
             
-    return count
-def get_distance(index, size_of_set_S):
-    return size_of_set_S - index
+    
+
+def get_n_x4(file_dict, file_path, token, occurrence_files_dict, occurrence_file_dict):
+    try:
+        count = occurrence_files_dict[(token, None)]
+        occurrence_current_file_dict = occurrence_file_dict[file_path]
+        found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict)
+
+        #exclude the current file
+        if found_token:
+            return count - 1
+        return count      
+
+    except KeyError as e:
+        total_count = 0
+        count_current_file = 0
+        for key, value in file_dict.items():
+            occurrence_current_file_dict = occurrence_file_dict[key]
+            found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict = occurrence_file_dict[file_path]
+)
+            if found_token:
+                total_count += 1
+                if (key == file_path):
+                    count_current_file = 1
+                 
+
+        occurrence_files_dict[(token, None)] = total_count
+
+        return total_count - count_current_file
+
+
+#TODO: check how PyArt defines "distance between tokens"
+def get_distance(index_of_sublist, set_S, index_in_sublist, len_sublist):
+    distance_to_end_of_sublist = len_sublist - index_in_sublist
+
+    try:
+        start_index = index_of_sublist + 1
+        for i in range(start_index, len(set_S)):
+            distance_to_end_of_sublist = distance_to_end_of_sublist + len(set_S[i])
+        
+    except Exception as e:    
+        pass
+
+    return distance_to_end_of_sublist
 
                 

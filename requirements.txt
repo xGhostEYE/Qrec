@@ -1,0 +1,8 @@
+joblib
+numpy
+pydriller
+pandas
+scikit-learn
+torch
+GitPython
+anytree

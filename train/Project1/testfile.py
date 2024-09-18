@@ -16,7 +16,7 @@ else:
     pass
 try:
     pass
-except* Exception:
+except Exception:
     pass
 x += 2
 
@@ -25,3 +25,4 @@ y = ["the","python","tool"]
 @decorator2
 class Foo(base1, base2, metaclass=meta):
     pass 
+
