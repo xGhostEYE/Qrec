@@ -3,6 +3,7 @@ import os
 import re
 import configparser
 from collections import OrderedDict
+import kenlm
 
 def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
@@ -76,66 +77,28 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 
     return data_dict        
 def get_x1(candidates, dataflow, true_api):
-    s = ""
     ngram_scores = {}
-    ngram_input_file_path = "../../Qrec/Ngram-output/ngram_input_" + str(os.getpid()) + ".txt"
-    ngram_output_file_path = "../../Qrec/Ngram-output/ngram_output_" +  str(os.getpid()) + ".ppl"
-    
+    model = kenlm.Model("../../Qrec/trainfile.arpa")
     for candidate in candidates:
+        input = ""
         for data in dataflow:
             token = data
             if token == true_api:
                 token = candidate
-            if not s or s.split(" ")[-1] == "\n":
-                s = s + token
+            if not input or input.split(" ")[-1] == "\n":
+                input = input + token
             else:
-                s = s + " " + token
-        s = s + " \n"
+                input = input + " " + token
 
-    with open(ngram_input_file_path,'w+') as f:
-        f.write(s)
-	
-    config = configparser.ConfigParser()
-	
-    #Change to absolute path if encounter errors
-    config.read('../config.ini')
-    system = config.get("System", "os")
-
-    if (system.upper() == "LINUX"):
-        os.system(f"../../Qrec/utils/Linux/srilm-1.7.3/lm/bin/i686-m64/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/trainfile.lm -debug 2 > {ngram_output_file_path}")  
-    elif (system.upper() == "MACOS"):
-        os.system(f"../../Qrec/utils/MacOs/srilm-1.7.3/lm/bin/macosx/ngram  -ppl {ngram_input_file_path} -order 4 -lm ../../Qrec/experiment.lm.bin -debug 2 > {ngram_output_file_path}")
-    else:
-       raise Exception("Error due to unspecified or incorrect value for [User]'s system ") 
-	
-    with open(ngram_output_file_path,encoding='ISO-8859-1') as f: 
-         lines=f.readlines()
-	
-    for candidate in candidates:
-            flag=0
-            for i in range(0,len(lines)):
-                kname=lines[i].strip().split(' ')		
-                for item in kname:
-                    if item==candidate:
-                        flag=1
-                        break
-                if flag==1:
-                    #print(lines[i])
-                    j=i+1
-                    while 'logprob=' not in lines[j]:
-                        j=j+1
-                    score=re.findall('logprob=\s[0-9\-\.]+',lines[j])
-                    ngram_scores[candidate]=float(score[0][9:])
-                    break
-            if flag==0:
-                ngram_scores[candidate]=0.0
-    try:
-        if os.path.exists(ngram_input_file_path):
-            os.remove(ngram_input_file_path)
-        if os.path.exists(ngram_output_file_path):
-            os.remove(ngram_output_file_path)
-    except OSError:
-        print("Encountered error when deleting ngram input/output file")
+        #Format of each result [set(first, second, third)] in full_scores: 
+            #first = log prob 
+            #second = ngram length
+            #third = true if word is OOV (out of vocabulary). false otherwise       
+        total_logprob = 0
+        for result in list(model.full_scores(input)):
+            if result[2] == False:
+                total_logprob = total_logprob + result[0]
+        ngram_scores[candidate]=total_logprob
 
     return ngram_scores  
           

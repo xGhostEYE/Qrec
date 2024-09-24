@@ -74,9 +74,14 @@ public class ThreadManagement {
             System.out.println("Cleaning up result files");
             threads.forEach(thread -> {
                 File thread_result_file;
+                File thread_log_file;
                 try {
                     thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv");
                     thread_result_file.delete();
+
+                    thread_log_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_log" + ".txt");
+                    thread_log_file.delete();
+                    
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
