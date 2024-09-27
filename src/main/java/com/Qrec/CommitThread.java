@@ -2,13 +2,13 @@ package com.Qrec;
 
 import java.util.List;
 
-public class ProjectThread extends Thread {
+public class CommitThread extends Thread {
 
 
-    private List<ProjectProcessingTask> processingTasks;
+    private List<CommitProcessingTask> processingTasks;
     private String threadId;
 
-    public ProjectThread ( List<ProjectProcessingTask> processingTasks, String threadId){            
+    public CommitThread ( List<CommitProcessingTask> processingTasks, String threadId){            
         this.processingTasks = processingTasks;
         this.threadId = threadId;
     }
@@ -17,7 +17,7 @@ public class ProjectThread extends Thread {
         return this.threadId;
     }
     public void extractData(){
-        for (ProjectProcessingTask task : processingTasks){
+        for (CommitProcessingTask task : processingTasks){
             task.process(threadId);
             continue;
         }

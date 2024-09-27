@@ -3,15 +3,15 @@ package com.Qrec;
 import java.util.concurrent.locks.ReentrantLock;
 import java.io.*;
 
-public class ProjectProcessingTask {
+public class CommitProcessingTask {
 
-        private File projectFile;
+        private File commitFile;
         private ReentrantLock lock;
         private boolean isProcessed;
         private MainCSVFile mainCSVFile;
 
-        public ProjectProcessingTask(File projectFile, MainCSVFile mainCSVFile) {
-            this.projectFile = projectFile;
+        public CommitProcessingTask(File commitFile, MainCSVFile mainCSVFile) {
+            this.commitFile = commitFile;
             this.lock = new ReentrantLock();
             this.isProcessed = false;
             this.mainCSVFile = mainCSVFile;
@@ -30,12 +30,13 @@ public class ProjectProcessingTask {
                 String resultFileName  = "thread_" + String.valueOf(threadId) + "_result" + ".csv";
                 String resultFilePath  = new File("data").getCanonicalPath() + "/thread_" + String.valueOf(threadId) + "_result" + ".csv";
                 StringBuilder command = new StringBuilder("python3 parserproject.py");  
-                command.append(" --project " + projectFile.getCanonicalPath());
+                String relativeCommitFilePath = "../" + (new File("").toURI().relativize(commitFile.toURI()));
+                command.append(" --commit " + relativeCommitFilePath);
                 command.append(" --outputfile " + resultFileName);
 
-                System.out.println("Thread id " + threadId + " is computing project: " + projectFile.getAbsolutePath());
+                System.out.println("Thread id " + threadId + " is computing commit: " + commitFile.getAbsolutePath());
 
-                //executing command
+                //Executing command
                 ProcessBuilder pb = new ProcessBuilder(command.toString().split(" ")).redirectErrorStream(true);
                 pb.directory(new File("src"));
                 Process process = pb.start();
@@ -59,16 +60,16 @@ public class ProjectProcessingTask {
                
                 int statusCode = process.waitFor();
 
-                System.out.println("Thread id " + threadId + " finished computing project: " + projectFile.getAbsolutePath() + " with status code: " + String.valueOf(statusCode));
-                System.out.println("Thread id " + threadId + " is appending result of " + projectFile.getAbsolutePath() + " to the main csv file");
+                System.out.println("Thread id " + threadId + " finished computing commit: " + commitFile.getAbsolutePath() + " with status code: " + String.valueOf(statusCode));
+                System.out.println("Thread id " + threadId + " is appending result of " + commitFile.getAbsolutePath() + " to the main csv file");
 
                 mainCSVFile.writeToFile(threadId, resultFilePath);
                 
-                System.out.println("Thread id " + threadId + " finished processing project " + projectFile.getAbsolutePath());
+                System.out.println("Thread id " + threadId + " finished processing commit " + commitFile.getAbsolutePath());
                 
 
             } catch (Exception e) {
-                System.out.println("Thread id " + threadId + " encountered an exception when executing project: " + projectFile.getAbsolutePath());
+                System.out.println("Thread id " + threadId + " encountered an exception when executing commit: " + commitFile.getAbsolutePath());
                 e.printStackTrace();
             } finally {
                 this.isProcessed = true;

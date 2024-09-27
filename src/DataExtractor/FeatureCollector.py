@@ -1,4 +1,5 @@
 import ast
+import json
 import sys
 def extract_data_flows(node):
     """
@@ -9,6 +10,7 @@ def extract_data_flows(node):
     assign_lines = []
 
     def process_call(call_node):
+        
         func_name = None
         call_object = None
         call_args = []
@@ -117,19 +119,17 @@ def extract_data_flows(node):
             
     return data_flows
 
-def extract_data(rawfile):
+def extract_data(rawfile, changed_lines_dict):
     """
     dictionary format:
-        key:[method name, function name, line number]
-            - method name would be foo in this case (foo.bar())
-            - method name would be bar in the above example
+        key:[object name, function name, line number]
+            - object name would be foo in this case (foo.bar())
+            - function name would be bar in the above example
             - line number for the line the code is at
-        value:[follows the data flow]
-        
-        
-    
+        value:[follows the data flow] 
     """
     tree = ast.parse(rawfile.read())
+
     dataflows = extract_data_flows(tree)
     for key, value in dataflows.items():
         
@@ -166,7 +166,24 @@ def extract_data(rawfile):
                 words.replace(')', "")
         dataflows[key] = new_words
     # sys.exit()
-    return dataflows
+
+    #Filter out data flows of code that are not new
+    dataflows_tobe_processed = {}
+    for key,value in dataflows.items():
+        lineno_string = str(key[2])
+        if (lineno_string not in changed_lines_dict):
+            continue
+        else:
+            object_name = key[0]
+            func_name = key[1]
+            changed_code = changed_lines_dict[lineno_string]
+            
+            if ( (object_name != None and object_name not in changed_code) or func_name not in changed_code):
+                continue
+            
+            dataflows_tobe_processed[key] = value
+
+    return dataflows_tobe_processed
 
 
 # with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:

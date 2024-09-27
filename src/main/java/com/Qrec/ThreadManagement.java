@@ -15,7 +15,7 @@ public class ThreadManagement {
 
     public static void main(String[] args) {
 
-        List<ProjectThread> threads = new ArrayList<ProjectThread>();
+        List<CommitThread> threads = new ArrayList<CommitThread>();
         long startTime = System.nanoTime();    
 
         try{
@@ -44,12 +44,12 @@ public class ThreadManagement {
     
             MainCSVFile mainCSVFile = new MainCSVFile();
             List<File> fileList = Arrays.asList(trainDirFile.listFiles());
-            List<ProjectProcessingTask> projectProcessingTasks = fileList.stream().map( file -> {
-                return new ProjectProcessingTask(file, mainCSVFile);}).toList();
+            List<CommitProcessingTask> projectProcessingTasks = fileList.stream().map( file -> {
+                return new CommitProcessingTask(file, mainCSVFile);}).toList();
     
 
             for (int i = 0; i < numWorkers; i++){
-                ProjectThread thread = new ProjectThread(projectProcessingTasks, String.valueOf(i+1));
+                CommitThread thread = new CommitThread(projectProcessingTasks, String.valueOf(i+1));
                 threads.add(thread);
                 thread.start();
             }

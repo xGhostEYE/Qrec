@@ -53,7 +53,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
             candidates.add(true_api)
             
             method_count += 1
-            print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total))            
+            print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total) + " (methods to be processed)")            
             x1_dict = get_x1(candidates, value,true_api)
             for candidate in candidates:
                 isTrue = 0

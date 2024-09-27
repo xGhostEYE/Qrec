@@ -1,5 +1,7 @@
 from collections import defaultdict
+import configparser
 import csv
+import json
 import os.path as op
 import os
 
@@ -19,7 +21,13 @@ from tqdm import tqdm
 
 # from GetFiles import GetFilesInDirectory
 
-def create_art_dataset_for_one_project(project, csv_path):
+# Create a ConfigParser object
+config = configparser.ConfigParser()
+ 
+# Read the configuration file
+config.read('../config.ini')
+
+def create_pyart_dataset_for_one_commit(commit, csv_path):
         
     #clear csv file
     file = open(csv_path, "w+")
@@ -32,7 +40,7 @@ def create_art_dataset_for_one_project(project, csv_path):
     stdlibs_calls = cg.get_calls_from_standard_libs()
     
     #For each projects in directory
-    print("[LOGGING] Processing Project: " + project)
+    print("[LOGGING] Processing Commit: " + commit)
     file_dict = {}
 
     #Stores frequency of tokens in EACH file    
@@ -46,7 +54,7 @@ def create_art_dataset_for_one_project(project, csv_path):
     occurrence_files_dict = {}
 
     try:
-        for root, directories, files in os.walk(project, topdown=False):
+        for root, directories, files in os.walk(commit, topdown=False):
             for name in files:
                 file_path = (os.path.join(root, name))
                 
@@ -75,7 +83,21 @@ def create_art_dataset_for_one_project(project, csv_path):
             try:
                 print("Processing file: " + file_path, "| Progress: " + str(list_all_file_path.index(file_path) + 1) + "/" + str(len(list_all_file_path)))
                 with open(file_path, encoding='utf-8') as file:
-                    method_dict = fc.extract_data(file)
+                    json_file_name = config.get("User", "json_file_name")
+                    json_file_path = os.path.join(root, json_file_name)
+                    with open(json_file_path, encoding='utf-8') as json_file:
+                        json_dict = json.load(json_file)
+
+                        if file_path not in json_dict:
+                            print("The python file to be processed does not contain new changes. Continue to process next python file")
+                            continue
+                        
+                        changed_lines_dict = json_dict[file_path]
+                        method_dict = fc.extract_data(file, changed_lines_dict)
+
+                        #If no data flows are extracted, skip to process next file
+                        if len(method_dict) == 0:
+                            continue
 
                 with open(file_path, encoding='utf-8') as file:
                     print("Generating candidates...")
@@ -122,8 +144,8 @@ def create_aroma_dataset(directory, csv_path):
         #For each projects in directory
         with tqdm(directoryPath, total = len(directoryPath)) as t:
             for path in t:
-                t.set_description("Processing Project: %s. Current Progress:" %path)
-                print("[LOGGING] Processing Project: " + path + " | project number/total projects : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
+                t.set_description("Processing Commit: %s. Current Progress:" %path)
+                print("[LOGGING] Processing Commit: " + path + " | commit number/total commits : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
                 elapsed = t.format_dict['elapsed']
                 elapsed_str = t.format_interval(elapsed)            
                 rate = t.format_dict["rate"]
@@ -153,7 +175,7 @@ def create_aroma_dataset(directory, csv_path):
 def create_pyart_dataset(directory, csv_path):
     files = os.listdir(directory)
     directoryPath = []
-        
+    
     #clear csv file
     file = open(csv_path, "w+")
     
@@ -173,8 +195,8 @@ def create_pyart_dataset(directory, csv_path):
     #For each projects in directory
     with tqdm(directoryPath, total = len(directoryPath)) as t:
         for path in t:
-            t.set_description("Processing Project: %s. Current Progress:" %path)
-            print("[LOGGING] Processing Project: " + path + " | project number/total projects : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
+            t.set_description("Processing Commit: %s. Current Commit:" %path)
+            print("[LOGGING] Processing Commit: " + path + " | commit number/total commits : " + str(directoryPath.index(path) + 1)+ "/" + str(len(directoryPath)))
             elapsed = t.format_dict['elapsed']
             elapsed_str = t.format_interval(elapsed)            
             rate = t.format_dict["rate"]
@@ -225,7 +247,22 @@ def create_pyart_dataset(directory, csv_path):
                     try:
                         print("Processing file: " + file_path, "| Progress: " + str(list_all_file_path.index(file_path) + 1) + "/" + str(len(list_all_file_path)))
                         with open(file_path, encoding='utf-8') as file:
-                            method_dict = fc.extract_data(file)
+                            
+                            json_file_name = config.get("User", "json_file_name")
+                            json_file_path = os.path.join(root, json_file_name)
+                            with open(json_file_path, encoding='utf-8') as json_file:
+                                json_dict = json.load(json_file)
+
+                                if file_path not in json_dict:
+                                    print("The python file to be processed does not contain new changes. Continue to process next python file")
+                                    continue
+                                
+                                changed_lines_dict = json_dict[file_path]
+                                method_dict = fc.extract_data(file, changed_lines_dict)
+
+                                #If no data flows are extracted, skip to process next file
+                                if len(method_dict) == 0:
+                                    continue
 
                         with open(file_path, encoding='utf-8') as file:
                             print("Generating candidates...")
