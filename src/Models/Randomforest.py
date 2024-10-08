@@ -70,8 +70,12 @@ def FitRandomForest(X, y):
     y_train = y
     # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
 
-    #Option 1: Original implementation. Would run into memory problem if dataset is huge:
+    #Option 0: Original implementation. Would run into memory problem if dataset is huge:
     # rf = RandomForestClassifier(n_jobs=-1)
+    # rf.fit(X_train, y_train)
+
+    #Option 1: Set n_jobs to 1 to use only one core. It might slow down the process.
+    # rf = RandomForestClassifier(n_jobs=1)
     # rf.fit(X_train, y_train)
 
     #Option 2: Using warm start to reuse previous trained version of rf to continue training: 
