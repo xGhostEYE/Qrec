@@ -1,5 +1,6 @@
 # Qrec
-University project for CMPT 470 with Julian where we build a quick method recommendation system for Python.<br />
+University project for CMPT 470 by Julian and Melvin, developing a quick method recommendation system for Python.
+<br />
 
 **Pre-installations**:<br />
 You need at minimum **50 GB** for the project (depending on the training set)<br /><br />
@@ -20,8 +21,8 @@ The [FLAGS] options are: <br/>
 `-a` or `--all`: A flag to request everything (except for --project and --outputfile). This flag has the highest priority <br/> 
 `-r` or `--run`: A flag to request running training and testing only for the default train and test dataset <br/>
     
-`-p` or `--project`: A flag to specify the project/commit to be extracted. Run with --outputfile flag to specify the output file <br/>
-`-f` or `--outputfile`: A flag to specify the csv file name for the extracted dataset. Run with --project flag to specify the project to be extracted <br/>
+`-p` or `--commit`: A flag to specify the project/commit to be extracted. Run with --outputfile flag to specify the output file <br/>
+`-f` or `--outputfile`: A flag to specify the csv file name for the extracted dataset. Run with --commit flag to specify the project to be extracted <br/>
 
 `-n` or `--csv_train`: A flag to request creating training dataset (in csv) <br/>
 `-t` or `--csv_test`: A flag to request creating testing dataset (in csv) <br/>
