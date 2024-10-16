@@ -516,10 +516,10 @@ def extract_aroma_tree(file):
                 keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
                 keyword_AnyTreeNode_Children = MyAnyTreeNode("#VAR", position, keyword_AnyTreeNode, true_label=node.arg)
                 self.visit(node.value, keyword_AnyTreeNode)
+                return keyword_AnyTreeNode
             else:
-                self.visit(node.value, parent)       
-                
-            return keyword_AnyTreeNode
+                self.visit(node.value, parent)                      
+                return parent
             
         def visit_IfExp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
@@ -576,15 +576,23 @@ def extract_aroma_tree(file):
 
         def visit_Slice(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "#:#"
             
+            label = ""
+            if (node.lower):
+                label = label + "#"
+            if (node.upper):
+                label = label + ":#"
             if (node.step):
                 label = label + ":#"
-
+            
             Slice_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
-            self.visit(node.lower,Slice_AnyTreeNode)
-            self.visit(node.upper,Slice_AnyTreeNode)
+            if (node.lower):
+                self.visit(node.lower,Slice_AnyTreeNode)
+            
+            if (node.upper):
+                self.visit(node.upper,Slice_AnyTreeNode)
+
             if (node.step):
                 self.visit(node.step, Slice_AnyTreeNode)
 
@@ -780,7 +788,9 @@ def extract_aroma_tree(file):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
             Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
             self.visit(node.test, Assert_AnyTreeNode)
-            self.visit(node.msg, Assert_AnyTreeNode)            
+
+            if (node.msg):
+                self.visit(node.msg, Assert_AnyTreeNode)            
             
             return Assert_AnyTreeNode
         
