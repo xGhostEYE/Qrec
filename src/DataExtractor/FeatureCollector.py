@@ -186,9 +186,6 @@ def extract_data(rawfile, changed_lines_dict):
     return dataflows_tobe_processed
 
 
-# with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
-#     extract_data(file)
-
 def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
     """
     dictionary format:

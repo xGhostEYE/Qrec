@@ -320,7 +320,7 @@ def write_pyart_csv_data(data_dict, csv_file_path, file_path):
     
 def SortTuples(tuples):
     # sorting function
-    return sorted(tuples, key=lambda x: x[2][0, 1], reverse=True)
+    return sorted(tuples, key=lambda x: x[2], reverse=True)
 
 def get_labeled_data(csv_path):
     data = pd.read_csv(csv_path, header=None,  dtype=str)
@@ -361,11 +361,14 @@ def test_pyart(test_csv_file_path):
     labels = labeled_data_tuple[1]
 
     model = GetRandomForestModel()
+
+    #Each probability is an array: [prob_for_0, prob_for_1]
+    probabilities = model.predict_proba(list_features)
+    
     # Group objects by their key values
     for index in tqdm(range(len(labels))):
         file_path, object_name, api_name, line_number, is_true_api = list(labels.iloc[index].values)
-        reshaped_value = list_features.iloc[index].values.reshape(1, -1)
-        grouped_dict[(file_path, object_name, line_number)].append((int(is_true_api), api_name, model.predict_proba(reshaped_value)))
+        grouped_dict[(file_path, object_name, line_number)].append((int(is_true_api), api_name, probabilities[index][1]))
 
     if grouped_dict == None:
         exit(1)
@@ -393,8 +396,8 @@ def test_pyart(test_csv_file_path):
     print("\ncorrect apis: ", list(api_dict.keys())[0])
     print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[:10])
     print("calculating mrr")
-    k = [1,2,3,4,5,10]
     print("MRR: ", ev.calculate_mrr(api_dict))
+    k = [1,2,3,4,5,10]
     for i in k:
         print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(api_dict, i))
     # print("Precision Recall: ",ev.calculate_precision_recall(recommendation, correct_apis))
