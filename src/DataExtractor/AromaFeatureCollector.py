@@ -1589,7 +1589,8 @@ def extract_aroma_tree(file):
 
             yield_node = MyAnyTreeNode(label, position, parent)
 
-            self.visit(node.value, yield_node)
+            if (node.value):
+                self.visit(node.value, yield_node)
 
             return yield_node 
 
