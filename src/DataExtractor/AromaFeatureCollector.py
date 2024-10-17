@@ -1916,12 +1916,21 @@ def get_method_calls(leaf_nodes):
 
     return method_call
 
-def extract_aroma_features_for_method_calls(aroma_tree):
+def extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict):
     leaf_nodes = aroma_tree.leaves
     method_calls = get_method_calls(aroma_tree.leaves)
     aroma_dict = {}
     for method_call in method_calls:
         receiver = method_call[0]
+        
+        lineno_string = str(receiver.position.lineno)
+        if (lineno_string not in changed_lines_dict):
+            continue
+        else:
+            changed_code = changed_lines_dict[lineno_string]
+            receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
+            if (receiver_label not in changed_code):
+                continue
         token = token_feature(receiver)
         parent = parent_feature(receiver)
         sibling = sibling_feature(receiver, leaf_nodes)

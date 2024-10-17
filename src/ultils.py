@@ -27,6 +27,48 @@ config = configparser.ConfigParser()
 # Read the configuration file
 config.read('../config.ini')
 
+def create_aroma_dataset_for_one_commit(commit, csv_path):
+    #clear csv file
+    file = open(csv_path, "w+")
+    
+    # writing headers (field names)
+    fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"]
+    writer = csv.DictWriter(file, fieldnames=fields)
+    writer.writeheader()
+    file.close()
+                        
+    try:
+        json_file_name = config.get("User", "json_file_name")
+        json_file_path = os.path.join(commit, json_file_name)
+        
+        #Iterate through each files in the project
+        for root, directories, files in os.walk(commit, topdown=False):
+            for name in files:
+                file_path = (os.path.join(root, name))
+                if file_path.endswith(".py") or file_path.endswith(".pyi"):
+                    try: 
+                        with open(file_path, encoding='utf-8') as file:
+
+                            with open(json_file_path, encoding='utf-8') as json_file:
+                                json_dict = json.load(json_file)
+
+                                if file_path not in json_dict:
+                                    print("The python file to be processed does not contain new changes. Continue to process next python file")
+                                    continue
+                            
+                                changed_lines_dict = json_dict[file_path]
+                                aroma_tree = afc.extract_aroma_tree(file)
+                                method_calls_aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict)
+                            write_method_calls_aroma_csv_data_set( csv_path, file_path, method_calls_aroma_dict)
+
+                    except Exception as e:
+                        print(f"Error processing file '{file_path}': {e}")
+                        traceback.print_exc()
+        
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        traceback.print_exc() 
+
 def create_pyart_dataset_for_one_commit(commit, csv_path):
         
     #clear csv file
@@ -152,6 +194,9 @@ def create_aroma_dataset(directory, csv_path):
                 remaining = (t.total - t.n) / rate if rate and t.total else 0
                 print("Elapsed: " + elapsed_str, "| Rate: " + str(rate), "| Remaining (seconds): " + str(remaining) + "\n")
                 
+                json_file_name = config.get("User", "json_file_name")
+                json_file_path = os.path.join(path, json_file_name)
+                          
                 try:
                     #Iterate through each files in the project
                     for root, directories, files in os.walk(path, topdown=False):
@@ -160,8 +205,17 @@ def create_aroma_dataset(directory, csv_path):
                             if file_path.endswith(".py") or file_path.endswith(".pyi"):
                                 try: 
                                     with open(file_path, encoding='utf-8') as file:
-                                        aroma_tree = afc.extract_aroma_tree(file)
-                                        method_calls_aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree)
+
+                                        with open(json_file_path, encoding='utf-8') as json_file:
+                                            json_dict = json.load(json_file)
+
+                                            if file_path not in json_dict:
+                                                print("The python file to be processed does not contain new changes. Continue to process next python file")
+                                                continue
+                                        
+                                            changed_lines_dict = json_dict[file_path]
+                                            aroma_tree = afc.extract_aroma_tree(file)
+                                            method_calls_aroma_dict = afc.extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict)
                                         write_method_calls_aroma_csv_data_set( csv_path, file_path, method_calls_aroma_dict)
 
                                 except Exception as e:
@@ -361,7 +415,6 @@ def test_pyart(test_csv_file_path):
     labels = labeled_data_tuple[1]
 
     model = GetRandomForestModel()
-
     #Each probability is an array: [prob_for_0, prob_for_1]
     probabilities = model.predict_proba(list_features)
     
