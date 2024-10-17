@@ -1112,14 +1112,25 @@ def extract_aroma_tree(file):
         def visit_ExceptHandler(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
             
+            label = "exception"
+
             if type(parent) is tuple and len(parent) == 2 and parent[1] == "star":
-                except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent[0])
+                if (node.type):
+                    label = label + "*##"
+                else:
+                    label = label + "*#"
+                except_AnyTreeNode = MyAnyTreeNode(label, position, parent[0])
             else:
-                except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
+                if (node.type):
+                    label = label + "##"
+                else:
+                    label = label + "#"
+                except_AnyTreeNode = MyAnyTreeNode(label, position, parent)
 
-            exception_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, except_AnyTreeNode)
-
-            self.visit(node.type, exception_conditional_AnyTreeNode)
+            #If exception type is specified
+            if (node.type):
+                exception_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, except_AnyTreeNode)
+                self.visit(node.type, exception_conditional_AnyTreeNode)
             
             exception_body_label = ":"
             for i in range ( len(node.body)):
@@ -1533,11 +1544,15 @@ def extract_aroma_tree(file):
         def visit_Return(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
 
-            label = "return#"
+            label = "return"
+
+            if (node.value):
+                label = label + "#"
 
             return_node = MyAnyTreeNode(label, position, parent)
-
-            self.visit(node.value, return_node)
+            
+            if (node.value):
+                self.visit(node.value, return_node)
 
             return return_node
         
