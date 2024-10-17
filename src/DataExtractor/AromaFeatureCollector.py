@@ -1048,8 +1048,11 @@ def extract_aroma_tree(file):
                     finally_lineno = node.orelse[-1].end_lineno + 1
                 elif (len(node.handlers) != 0):
                     finally_lineno = node.handlers[-1].end_lineno + 1
+                else:
+                    finally_lineno = node.lineno
 
-  
+
+                #Position won't be accurate because of node.end_col_offset
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
 
@@ -1107,7 +1110,10 @@ def extract_aroma_tree(file):
                     finally_lineno = node.orelse[-1].end_lineno + 1
                 elif (len(node.handlers) != 0):
                     finally_lineno = node.handlers[-1].end_lineno + 1
-                      
+                else:
+                    finally_lineno = node.lineno
+
+                #Position won't be accurate because of node.end_col_offset
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
 
