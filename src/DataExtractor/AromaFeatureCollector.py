@@ -1044,7 +1044,11 @@ def extract_aroma_tree(file):
                 for i in range ( len(node.finalbody)):
                     finally_body_label = finally_body_label + "#"
 
-                finally_lineno = node.orelse[-1].end_lineno + 1
+                if (len(node.orelse) != 0):
+                    finally_lineno = node.orelse[-1].end_lineno + 1
+                elif (len(node.handlers) != 0):
+                    finally_lineno = node.handlers[-1].end_lineno + 1
+
   
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
@@ -1099,8 +1103,11 @@ def extract_aroma_tree(file):
                 for i in range ( len(node.finalbody)):
                     finally_body_label = finally_body_label + "#"
 
-                finally_lineno = node.orelse[-1].end_lineno + 1
-  
+                if (len(node.orelse) != 0):
+                    finally_lineno = node.orelse[-1].end_lineno + 1
+                elif (len(node.handlers) != 0):
+                    finally_lineno = node.handlers[-1].end_lineno + 1
+                      
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
 
