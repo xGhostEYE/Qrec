@@ -61,7 +61,7 @@ def search_data(test_csv_file_path, top_k = None):
             #Key: (true method)
             #Value: list of recommendations (sorted)
             recommendation_dict = {}
-            with tqdm(data_reader, total = len(data_reader)) as t:
+            with tqdm(data_reader, total = data_reader.line_num) as t:
 
                 for row in t:
                     elapsed = t.format_dict['elapsed']
