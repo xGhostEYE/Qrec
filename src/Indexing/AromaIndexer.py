@@ -99,7 +99,6 @@ def search_data(test_csv_file_path, top_k = None):
                             method_result_list = [0,0,0,0]
                             method_result_list[index] = 1
                             search_result_dict[method_call] = method_result_list
-                            print(search_result_dict)
 
                 w1 = 0.25
                 w2 = 0.25
