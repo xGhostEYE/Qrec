@@ -2,7 +2,7 @@ from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh.query import *
 from whoosh.qparser import QueryParser
-
+from whoosh.analysis import *
 import csv
 from Evaluation import Evaluators as ev
 
@@ -16,7 +16,12 @@ def index_data(csv_file_path, recreate_index):
         # title is the method call (object.method)
         # path will be the path to the file where the method calls are
         # the rest are the features we collected
-        schema = Schema(file_path=TEXT(stored=True), position=TEXT(stored=True) ,reciever=TEXT(stored=True), method=TEXT(stored=True), token_feature=TEXT, parent_feature=TEXT, sibling_feature=TEXT, variable_usage_feature=TEXT)
+
+        # expression = r'[\w\'#(),[\]=\s]+'
+        expression = r'.+'
+        myanalyzer = analysis.RegexTokenizer(expression=expression)
+
+        schema = Schema(file_path=TEXT(stored=True,analyzer=myanalyzer), position=TEXT(stored=True,analyzer=myanalyzer) ,reciever=TEXT(stored=True,analyzer=myanalyzer), method=TEXT(stored=True,analyzer=myanalyzer), token_feature=TEXT(analyzer=myanalyzer), parent_feature=TEXT(analyzer=myanalyzer), sibling_feature=TEXT(analyzer=myanalyzer), variable_usage_feature=TEXT(analyzer=myanalyzer))
         ix = create_in(r"./Indexing", schema)
                 
     ix = open_dir(r"./Indexing")
@@ -34,11 +39,11 @@ def index_data(csv_file_path, recreate_index):
             position = row[column_indices[1]]              
             reciever = row[column_indices[2]]
             method = row[column_indices[3]]
-            token_feature = row[column_indices[4]]
-            parent_feature = row[column_indices[5]]
-            sibling_feature = row[column_indices[6]]
-            variable_usage_feature = row[column_indices[7]]
-            writer.add_document(file_path=file_path, position = position ,reciever=reciever, method = method, token_feature = token_feature, parent_feature = parent_feature, sibling_feature = sibling_feature, variable_usage_feature = variable_usage_feature)
+            token_feature = row[column_indices[4]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+            parent_feature = row[column_indices[5]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+            sibling_feature = row[column_indices[6]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+            variable_usage_feature = row[column_indices[7]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+            writer.add_document(file_path=u'%s'%file_path, position = u'%s'%position ,reciever=u'%s'%reciever, method = u'%s'%method, token_feature = u'%s'%token_feature, parent_feature = u'%s'%parent_feature, sibling_feature = u'%s'%sibling_feature, variable_usage_feature = u'%s'%variable_usage_feature)
     writer.commit()
 
 
@@ -66,19 +71,22 @@ def search_data(test_csv_file_path, top_k = None):
                 receiver = row[column_indices[2]]
                 method = row[column_indices[3]]
 
-                token_feature = row[column_indices[4]]
-                parent_feature = row[column_indices[5]]
-                sibling_feature = row[column_indices[6]]
-                variable_usage_feature = row[column_indices[7]]
+                token_feature = row[column_indices[4]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+                parent_feature = row[column_indices[5]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+                sibling_feature = row[column_indices[6]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
+                variable_usage_feature = row[column_indices[7]].replace("[","").replace("]","").replace(" ","").replace("),",") ")
 
                 
-                # feature_query = Or([Term("token_feature", token_feature), Term("parent_feature", parent_feature), Term("sibling_feature", sibling_feature), Term("variable_usage_feature", variable_usage_feature)])
-                # recomemnded_methods_call = searcher.query(feature_query, limit=top_k)
-                
-                token_feature_query = QueryParser("token_feature", token_feature).parse(token_feature)
-                parent_feature_query = QueryParser("parent_feature", token_feature).parse(parent_feature)
-                sibling_feature_query = QueryParser("sibling_feature", token_feature).parse(sibling_feature)
-                variable_usage_feature_query = QueryParser("variable_usage_feature", token_feature).parse(variable_usage_feature)
+                # Using QueryParser. A popular practice but could not land any hit, need more investigation
+                # token_feature_query = QueryParser("token_feature", ix.schema).parse(u'%s'%token_feature)
+                # parent_feature_query = QueryParser("parent_feature", ix.schema).parse(u'%s'%parent_feature)
+                # sibling_feature_query = QueryParser("sibling_feature", ix.schema).parse(u'%s'%sibling_feature)
+                # variable_usage_feature_query = QueryParser("variable_usage_feature", ix.schema).parse(u'%s'%variable_usage_feature)
+
+                token_feature_query = Term("token_feature", u'%s'%token_feature)
+                parent_feature_query = Term("parent_feature",u'%s'%parent_feature)
+                sibling_feature_query = Term("sibling_feature", u'%s'%sibling_feature)
+                variable_usage_feature_query = Term("variable_usage_feature", u'%s'%variable_usage_feature)
 
                 list_feature_queries = [token_feature_query,parent_feature_query,sibling_feature_query,variable_usage_feature_query]
                 
