@@ -1,3 +1,4 @@
+import configparser
 from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh.query import *
@@ -7,6 +8,11 @@ import csv
 from Evaluation import Evaluators as ev
 
 
+# Create a ConfigParser object
+config = configparser.ConfigParser()
+ 
+# Read the configuration file
+config.read('../config.ini')
 
 def index_data(csv_file_path, recreate_index):
     # index section
@@ -106,12 +112,12 @@ def search_data(test_csv_file_path, top_k = None):
                         else:
                             method_result_list = [0,0,0,0]
                             method_result_list[index] = 1
-                            search_result_dict[method_call] = method_result_list
-
-                w1 = 0.25
-                w2 = 0.25
-                w3 = 0.25
-                w4 = 0.25
+                            search_result_dict[method_call] = method_result_list    
+                
+                w1 = float(config.get("User", "w1"))
+                w2 = float(config.get("User", "w2"))
+                w3 = float(config.get("User", "w3"))
+                w4 = float(config.get("User", "w4"))
 
                 def sort(item):
                     return w1*item[1][0] + w2*item[1][1] + w3*item[1][2] + w4*item[1][3]                

@@ -405,7 +405,9 @@ def train_pyart(train_csv_file_path):
     FitRandomForest(X, y)  
 
 def test_aroma(test_csv_file_path):
-    ai.search_data(test_csv_file_path, 10)
+    top_k = int(config.get("User", "top_k"))
+
+    ai.search_data(test_csv_file_path, top_k)
     
 def test_pyart(test_csv_file_path):
     grouped_dict = defaultdict(list)
