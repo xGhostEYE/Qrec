@@ -1851,6 +1851,18 @@ def sibling_feature(leaf_node, leaf_nodes):
         sibling_features.append( (leaf_node.label, right_sibling.label))
 
     return sibling_features
+
+#Only extract features only up to current "leaf_node", hence only left siblings.
+def sibling_feature_excluding_right_sibling(leaf_node, leaf_nodes):
+    index = leaf_nodes.index(leaf_node)
+    sibling_features = []
+    left_index = index - 1
+    if (left_index >= 0):
+        left_sibling = leaf_nodes[left_index]
+        sibling_features.append( (left_sibling.label, leaf_node.label) )
+    
+    return sibling_features
+
 def get_child_position(child, parent):
         
         position = 1
@@ -1904,6 +1916,65 @@ def variable_usage_feature(leaf_node, leaf_nodes):
         
     return variable_usage_features
 
+#Only extract features only up to current "leaf_node", hence only previous usage.
+#To accompany the lost of next_usage, we will scrape the "second" closest previous usage
+def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
+
+    def get_context(node):
+        parent = node.parent
+        if (parent != None):
+            position = get_child_position(node, parent)
+
+            if parent.label != "#.#":
+                return (position, parent.label)
+
+            else:
+                children = parent.leaves
+                label = ""
+                for child in children:
+                    if child.label != "#VAR":
+                        label = child.label
+                        break
+
+                return (position, label)
+        return ("","")
+    
+    def get_parent_context(node):
+        parent = node.parent
+        if (parent != None):
+            position = get_child_position(node, parent)
+
+            if parent.label != "#.#":
+                return (position, parent.label)
+
+            else:
+                grand_parent = parent.parent
+                if grand_parent:
+                    position = get_child_position(node, parent)
+                    return (position, grand_parent.label)
+        return ("","")         
+       
+    variable_usage_features = []
+    counter = 2
+    if leaf_node.label == "#VAR":
+        index = leaf_nodes.index(leaf_node)
+        label = leaf_node.true_label
+
+        #Only extract the previous usage
+        if (index - 1 >= 0 ):
+            for i in range(index - 1,0,-1):
+                
+                another_leaf_node = leaf_nodes[i]
+                another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
+                if another_leaf_node_label == label:       
+                    variable_usage_features.append( (get_context(another_leaf_node), get_parent_context(another_leaf_node)) )
+                    counter -= 1
+                    if (counter == 0):
+                        break
+        
+        
+    return variable_usage_features
+
 def extract_aroma_features(aromatree):
     leaf_nodes = aromatree.leaves
     aroma_dict = {}
@@ -1946,10 +2017,11 @@ def extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict):
             receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
             if (receiver_label not in changed_code):
                 continue
+
         token = token_feature(receiver)
         parent = parent_feature(receiver)
-        sibling = sibling_feature(receiver, leaf_nodes)
-        variable_usage = variable_usage_feature ( receiver, leaf_nodes )
+        sibling = sibling_feature_excluding_right_sibling(receiver, leaf_nodes)
+        variable_usage = variable_usage_feature_excluding_next_usage( receiver, leaf_nodes )
 
         features = [token, parent, sibling, variable_usage]
         aroma_dict[method_call] = features

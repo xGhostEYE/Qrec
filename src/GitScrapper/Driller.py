@@ -96,7 +96,7 @@ def Git_Test_RepoScrapper(repo_url):
     repo_url_split = repo_url.split('/')
     
     # Directory where you want to save the commit snapshots
-    save_dir = '../test/'+repo_url_split[-1]+'_training'
+    save_dir = '../test/'+repo_url_split[-1]+'_testing'
     local_repo_path = '../'+repo_url_split[-1]+'_original'
     
     # Clone the repository if it's not already cloned
