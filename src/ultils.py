@@ -350,7 +350,7 @@ def create_pyart_dataset(directory, csv_path):
 def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_aroma_dict):
     with open(csv_file_path, 'a') as csvfile:
         # creating a csv dict writer object
-        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"]
+        fields = ["file_path", "position", "receiver","method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature", "variable_with_method_usage_feature"]
         writer = csv.DictWriter(csvfile, fieldnames=fields)
 
         for key, value in method_dict_aroma_dict.items():
@@ -360,7 +360,7 @@ def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_
             
             method = key[1]
             method_label = method.label
-            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feature": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3]})
+            writer.writerow({"file_path": file_path, "position": position, "receiver": receiver_label, "method": method_label, "token_feature": value[0], "parent_feature": value[1], "sibling_feature": value[2], "variable_usage_feature": value[3], "variable_with_method_usage_feature": value[4]})
 
 
 

@@ -549,7 +549,8 @@ def extract_aroma_tree(file):
                 object.is_receiver = True
 
             Attribute_AnyTreeNode_Attribute = MyAnyTreeNode(node.attr, position, Attribute_AnyTreeNode)
-            
+            if (parent.is_method_call):
+                Attribute_AnyTreeNode_Attribute.is_method_call = True
             return Attribute_AnyTreeNode
         
         def visit_NamedExpr(self, node, parent):
@@ -1916,8 +1917,19 @@ def variable_usage_feature(leaf_node, leaf_nodes):
         
     return variable_usage_features
 
+def get_parent_context(node):
+    parent = node.parent
+    if (parent != None):
+        grand_parent = parent.parent
+        if grand_parent:
+            position = get_child_position(node, parent)
+            return (position, grand_parent.label)
+    return ("","")
+
 #Only extract features only up to current "leaf_node", hence only previous usage.
-#To accompany the lost of next_usage, we will scrape the "second" closest previous usage
+#To accompany the lost of next_usage we will conduct some experiments:
+#Experiment 1: Also scrape the "second" closest previous usage
+#Experiment 2: Don't scrape the second closest previous usage
 def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
 
     def get_context(node):
@@ -1938,22 +1950,7 @@ def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
 
                 return (position, label)
         return ("","")
-    
-    def get_parent_context(node):
-        parent = node.parent
-        if (parent != None):
-            position = get_child_position(node, parent)
-
-            if parent.label != "#.#":
-                return (position, parent.label)
-
-            else:
-                grand_parent = parent.parent
-                if grand_parent:
-                    position = get_child_position(node, parent)
-                    return (position, grand_parent.label)
-        return ("","")         
-       
+          
     variable_usage_features = []
     counter = 2
     if leaf_node.label == "#VAR":
@@ -1972,6 +1969,56 @@ def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
                     if (counter == 0):
                         break
         
+        
+    return variable_usage_features
+
+def variable_with_method_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
+
+    def get_context(node):
+        parent = node.parent
+        if (parent != None):
+            position = get_child_position(node, parent)
+
+            if parent.label != "#.#":
+                return (position, parent.label)
+
+            else:
+                children = parent.leaves
+                label = ""
+                for child in children:
+                    if child.label != "#VAR":
+                        label = child.label
+                        break
+
+                return (position, label)
+        return ("","")
+           
+    variable_usage_features = []
+    counter = 1
+    if leaf_node.label == "#VAR":
+        index = leaf_nodes.index(leaf_node)
+        label = leaf_node.true_label
+        if leaf_node.label == "wrapped_model" or label == "wrapped_model":
+            test = 1
+
+        method_call = None
+        if (index - 1 >= 0 ):
+            for i in range(index - 1,0,-1):
+                
+                another_leaf_node = leaf_nodes[i]
+                if (another_leaf_node.is_method_call):
+                    method_call = another_leaf_node
+
+                
+                if another_leaf_node.is_receiver:
+                    another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
+                    if another_leaf_node_label == label and method_call:
+                        variable_usage_features.append( (get_context(another_leaf_node), get_parent_context(another_leaf_node)) )
+                        counter -= 1
+                        if (counter == 0):
+                            break
+                    else:
+                        method_call = None
         
     return variable_usage_features
 
@@ -2022,8 +2069,8 @@ def extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict):
         parent = parent_feature(receiver)
         sibling = sibling_feature_excluding_right_sibling(receiver, leaf_nodes)
         variable_usage = variable_usage_feature_excluding_next_usage( receiver, leaf_nodes )
-
-        features = [token, parent, sibling, variable_usage]
+        variable_with_method_usage = variable_with_method_usage_feature_excluding_next_usage(receiver, leaf_nodes)
+        features = [token, parent, sibling, variable_usage, variable_with_method_usage]
         aroma_dict[method_call] = features
         
     return aroma_dict
