@@ -1917,14 +1917,6 @@ def variable_usage_feature(leaf_node, leaf_nodes):
         
     return variable_usage_features
 
-def get_parent_context(node):
-    parent = node.parent
-    if (parent != None):
-        grand_parent = parent.parent
-        if grand_parent:
-            position = get_child_position(node, parent)
-            return (position, grand_parent.label)
-    return ("","")
 
 #Only extract features only up to current "leaf_node", hence only previous usage.
 #To accompany the lost of next_usage we will conduct some experiments:
@@ -1949,6 +1941,16 @@ def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
                         break
 
                 return (position, label)
+        return ("","")
+    
+    def get_parent_context(node):
+        parent = node.parent
+        if parent:
+            grand_parent = parent.parent
+            if grand_parent:
+                position = get_child_position(parent, grand_parent)
+                return (position, grand_parent.label)
+                
         return ("","")
           
     variable_usage_features = []
@@ -1992,7 +1994,17 @@ def variable_with_method_usage_feature_excluding_next_usage(leaf_node, leaf_node
 
                 return (position, label)
         return ("","")
-           
+ 
+    def get_parent_context(node):
+        parent = node.parent
+        if (parent != None):
+            grand_parent = parent.parent
+            great_grand_parent = parent.parent.parent    
+            if great_grand_parent:
+                position = get_child_position(grand_parent, great_grand_parent)
+                return (position, great_grand_parent.label)
+        return ("","")   
+          
     variable_usage_features = []
     counter = 1
     if leaf_node.label == "#VAR":
