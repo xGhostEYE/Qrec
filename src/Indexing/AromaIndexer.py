@@ -1,4 +1,5 @@
 import configparser
+import json
 from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh.query import *
@@ -6,6 +7,9 @@ from whoosh.qparser import QueryParser
 from whoosh.analysis import *
 import csv
 from Evaluation import Evaluators as ev
+from strsimpy.longest_common_subsequence import LongestCommonSubsequence
+from strsimpy.cosine import Cosine
+
 
 
 # Create a ConfigParser object
@@ -15,7 +19,6 @@ config = configparser.ConfigParser()
 config.read('../config.ini')
 
 def index_data(csv_file_path, recreate_index):
-    # index section
     columns_to_extract = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature", "variable_with_method_usage_feature"] 
     
     if recreate_index:
@@ -27,7 +30,7 @@ def index_data(csv_file_path, recreate_index):
         expression = r'.+'
         myanalyzer = analysis.RegexTokenizer(expression=expression)
 
-        schema = Schema(file_path=TEXT(stored=True,analyzer=myanalyzer), position=TEXT(stored=True,analyzer=myanalyzer) ,reciever=TEXT(stored=True,analyzer=myanalyzer), method=TEXT(stored=True,analyzer=myanalyzer), token_feature=TEXT(analyzer=myanalyzer), parent_feature=TEXT(analyzer=myanalyzer), sibling_feature=TEXT(analyzer=myanalyzer), variable_usage_feature=TEXT(analyzer=myanalyzer), variable_with_method_usage_feature=TEXT(analyzer=myanalyzer))
+        schema = Schema(file_path=TEXT(stored=True,analyzer=myanalyzer), position=TEXT(stored=True,analyzer=myanalyzer) ,reciever=TEXT(stored=True,analyzer=myanalyzer), method=TEXT(stored=True,analyzer=myanalyzer), token_feature=TEXT(stored=True,analyzer=myanalyzer), parent_feature=TEXT(stored=True,analyzer=myanalyzer), sibling_feature=TEXT(stored=True,analyzer=myanalyzer), variable_usage_feature=TEXT(stored=True,analyzer=myanalyzer), variable_with_method_usage_feature=TEXT(stored=True,analyzer=myanalyzer))
         ix = create_in(r"./Indexing", schema)
                 
     ix = open_dir(r"./Indexing")
@@ -56,9 +59,6 @@ def index_data(csv_file_path, recreate_index):
 
 
 def search_data(test_csv_file_path, top_k = None):
-
-    # searching section
-
     with open(test_csv_file_path, 'r') as csv_file:
         ix = open_dir(r"./Indexing")
 
@@ -73,6 +73,9 @@ def search_data(test_csv_file_path, top_k = None):
             #Key: (true method)
             #Value: list of recommendations (sorted)
             recommendation_dict = {}
+
+            f = open("../data/results.json", 'w', encoding='utf-8')
+            f.close()
             for row in data_reader:
                 
                 file_path = row[column_indices[0]]
@@ -97,101 +100,76 @@ def search_data(test_csv_file_path, top_k = None):
                 variable_usage_feature_query = Term("variable_usage_feature", u'%s'%variable_usage_feature)
                 variable_with_method_usage_feature_query = Term("variable_with_method_usage_feature", u'%s'%variable_with_method_usage_feature)
 
+                list_feature = [token_feature,parent_feature,sibling_feature,variable_usage_feature,variable_with_method_usage_feature]
                 list_feature_queries = [token_feature_query,parent_feature_query,sibling_feature_query,variable_usage_feature_query,variable_with_method_usage_feature_query]
                 
-                #Ranking system version 1
-                # search_result_dict = {}
-                # for index in range(len(list_feature_queries)):
-                #     feature_query = list_feature_queries[index]
-
-                #     #Top K results for each feature-search
-                #     results = searcher.search(feature_query, limit = top_k)
-
-                #     #Saving the occurance of a method_call for a feature-search
-                #     for matched_document in results:
-                #         method_call = matched_document['method']
-                #         if method_call in search_result_dict:
-                #             method_result_list = search_result_dict[method_call]
-                #             method_result_list[index] = method_result_list[index] + 1
-                #         else:
-                #             method_result_list = [0,0,0,0]
-                #             method_result_list[index] = 1
-                #             search_result_dict[method_call] = method_result_list    
-                
-                # w1 = float(config.get("User", "w1"))
-                # w2 = float(config.get("User", "w2"))
-                # w3 = float(config.get("User", "w3"))
-                # w4 = float(config.get("User", "w4"))
-                # def sort(item):
-                #     return w1*item[1][0] + w2*item[1][1] + w3*item[1][2] + w4*item[1][3]                
-                # sorted_search_result_dict = dict(sorted(search_result_dict.items(), key=sort, reverse=True))
-                # recommendation_dict[method] = list(sorted_search_result_dict.keys())
-
                 #Ranking system version 2
-                search_result_list = []
+                grouped_search_result_list = {}
+                found_results = set()
+
+                w1 = float(config.get("User", "w1"))
+                w2 = float(config.get("User", "w2"))
+                w3 = float(config.get("User", "w3"))
+                w4 = float(config.get("User", "w4"))
+                w5 = float(config.get("User", "w5"))
+                weights_list = [w1,w2,w3,w4,w5]
+                fields = ["token_feature","parent_feature","sibling_feature","variable_usage_feature","variable_with_method_usage_feature"]
+                
+                def similarity_score(result_feature, query_feature):
+                    #LCS
+                    lcs = LongestCommonSubsequence()
+                    lcs_result = lcs.distance(result_feature, query_feature)
+
+                    #Cosine
+                    cosine = Cosine(2)
+                    cosine_result = cosine.similarity(result_feature, query_feature)
+
+                    #TODO: custom sim. Number of similar term/ total number of terms
+                    #custom_sim_result = custom_sim_result(result,list_feature[index])
+                    return cosine_result
+                
+                def rank(result):
+                    sum = 0
+                    for index in range(len(fields)):
+                        if result in grouped_search_result_list[fields[index]]:
+                            sum = sum + weights_list[index] * grouped_search_result_list[fields[index]][result]
+                    return sum
+                 
                 for index in range(len(list_feature_queries)):
                     feature_query = list_feature_queries[index]
 
                     #Top K results for each feature-search
                     results = searcher.search(feature_query, limit = top_k)
-
+                    search_result_dict = {}
                     for matched_document in results:
                         method_call = matched_document['method']
-                        search_result_list.insert((method_call,matched_document))
-                
-                w1 = float(config.get("User", "w1"))
-                w2 = float(config.get("User", "w2"))
-                w3 = float(config.get("User", "w3"))
-                w4 = float(config.get("User", "w4"))
-                w5 = float(config.get("User", "w4"))
-                
-                def sort(result):
-                    matched_document = result[1]
-                    matched_document_token_feature = matched_document['token_feature']
-                    matched_document_parent_feature =  matched_document['parent_feature']
-                    matched_document_sibling_feature =  matched_document['sibling_feature']
-                    matched_document_variable_usage_feature =  matched_document['variable_usage_feature']
-                    matched_document_variable_with_method_usage_feature =  matched_document['variable_with_method_usage_feature']
+                        found_results.add(method_call)
+                        sim_score = similarity_score(matched_document[fields[index]],list_feature[index])
+                        
+                        if method_call not in search_result_dict:
+                            search_result_dict[method_call] = sim_score
+                        else:
+                            current_sim_score = search_result_dict[method_call]
+                            if current_sim_score < sim_score:
+                                search_result_dict[method_call] = sim_score
+                    grouped_search_result_list[fields[index]] = search_result_dict
+                                
+                sorted_found_results = sorted(found_results, key=rank, reverse=True)
+                recommendation_dict[method] = sorted_found_results
 
-                    s1 = 0
-                    if (matched_document_token_feature == token_feature):
-                        s1 = s1 * w1
-                    
-                    s2 = 0
-                    if (matched_document_parent_feature == parent_feature):
-                        s2 = s2 * w2
+                method_json_dict = {}
+                result_json_dict = {}
+                for result in sorted_found_results:
+                    result_json_dict[result] = rank(result)
+                method_json_dict[method] = result_json_dict
 
-                    s3 = 0
-                    if (matched_document_sibling_feature == sibling_feature):
-                        s3 = s3 * w3
-
-                    s4 = 0
-                    if (matched_document_variable_usage_feature == variable_usage_feature):
-                        s4 = s4 * w4
-
-                    s5 = 0
-                    if (matched_document_variable_with_method_usage_feature == variable_with_method_usage_feature):
-                        s5 = s5 * w5
-
-                    return s1+s2+s3+s4+s5
-                    
-
-                search_result_list.sort(key=sort)
-                sorted_result = {}
-                for result in search_result_list:
-                    sorted_result.add(result)
-                
-                recommendation_dict[method] = list(sorted_result)
+                with open("../data/results.json", 'a', encoding='utf-8') as f:
+                    json.dump(method_json_dict, f, ensure_ascii=False)
 
             evaluate_result(recommendation_dict)
                 
-    # search each of the features using top k as the limit, and use the pyart similarity score in the paper which gives a number
-    # repeat for all the other features and then i get 4 scores in total
-    # calculate the average
 
-
-
-# evalution section (determine which feature has the most impact on performance)
+#Evalution section (determine which feature has the most impact on performance)
 def evaluate_result(api_dict):
     first_recommendation_set_true_api = list(api_dict.keys())[0]
     first_recommendation_set = api_dict[first_recommendation_set_true_api]
@@ -203,4 +181,34 @@ def evaluate_result(api_dict):
     print("MRR: ", ev.calculate_mrr(api_dict))
     for i in k:
         print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(api_dict, i))
-    
+
+
+#ARCHIVED:
+#Ranking system version 1
+# search_result_dict = {}
+# for index in range(len(list_feature_queries)):
+#     feature_query = list_feature_queries[index]
+
+#     #Top K results for each feature-search
+#     results = searcher.search(feature_query, limit = top_k)
+
+#     #Saving the occurance of a method_call for a feature-search
+#     for matched_document in results:
+#         method_call = matched_document['method']
+#         if method_call in search_result_dict:
+#             method_result_list = search_result_dict[method_call]
+#             method_result_list[index] = method_result_list[index] + 1
+#         else:
+#             method_result_list = [0,0,0,0,0]
+#             method_result_list[index] = 1
+#             search_result_dict[method_call] = method_result_list    
+
+# w1 = float(config.get("User", "w1"))
+# w2 = float(config.get("User", "w2"))
+# w3 = float(config.get("User", "w3"))
+# w4 = float(config.get("User", "w4"))
+# w5 = float(config.get("User", "w5"))
+# def sort(item):
+#     return w1*item[1][0] + w2*item[1][1] + w3*item[1][2] + w4*item[1][3] + w5*item[1][4]               
+# sorted_search_result_dict = dict(sorted(search_result_dict.items(), key=sort, reverse=True))
+# recommendation_dict[method] = list(sorted_search_result_dict.keys())
