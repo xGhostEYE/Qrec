@@ -172,7 +172,7 @@ def create_aroma_dataset(directory, csv_path):
         file = open(csv_path, "w+")
         
         # writing headers (field names)
-        fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature"]
+        fields = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature","variable_with_method_usage_feature"]
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()
         file.close()
