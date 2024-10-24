@@ -1,5 +1,6 @@
 import configparser
 import json
+import random
 from whoosh.index import create_in, open_dir
 from whoosh.fields import *
 from whoosh.query import *
@@ -9,7 +10,7 @@ import csv
 from Evaluation import Evaluators as ev
 from strsimpy.longest_common_subsequence import LongestCommonSubsequence
 from strsimpy.cosine import Cosine
-
+from strsimpy.ngram import NGram
 
 
 # Create a ConfigParser object
@@ -74,7 +75,7 @@ def search_data(test_csv_file_path, top_k = None):
             #Value: list of recommendations (sorted)
             recommendation_dict = {}
 
-            f = open("../data/results.json", 'w', encoding='utf-8')
+            f = open("../data/results_topk_" + str(top_k) + ".json", 'w', encoding='utf-8')
             f.close()
             for row in data_reader:
                 
@@ -117,9 +118,13 @@ def search_data(test_csv_file_path, top_k = None):
                 
                 def similarity_score(result_feature, query_feature):
                     #LCS
-                    lcs = LongestCommonSubsequence()
-                    lcs_result = lcs.distance(result_feature, query_feature)
+                    # lcs = LongestCommonSubsequence()
+                    # lcs_result = lcs.distance(result_feature, query_feature)
 
+                    #NGram - 4 Gram
+                    # fourgram = NGram(4)
+                    # fourgram_result = fourgram.distance(result_feature, query_feature)
+                    
                     #Cosine
                     cosine = Cosine(2)
                     cosine_result = cosine.similarity(result_feature, query_feature)
@@ -139,7 +144,11 @@ def search_data(test_csv_file_path, top_k = None):
                     feature_query = list_feature_queries[index]
 
                     #Top K results for each feature-search
-                    results = searcher.search(feature_query, limit = top_k)
+                    if top_k == "UNLIMITED":
+                        top_k_value = None
+                    else:
+                        top_k_value = int(top_k)
+                    results = searcher.search(feature_query, limit = top_k_value)
                     search_result_dict = {}
                     for matched_document in results:
                         method_call = matched_document['method']
@@ -163,7 +172,7 @@ def search_data(test_csv_file_path, top_k = None):
                     result_json_dict[result] = rank(result)
                 method_json_dict[method] = result_json_dict
 
-                with open("../data/results.json", 'a', encoding='utf-8') as f:
+                with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
                     json.dump(method_json_dict, f, ensure_ascii=False)
 
             evaluate_result(recommendation_dict)
@@ -171,9 +180,10 @@ def search_data(test_csv_file_path, top_k = None):
 
 #Evalution section (determine which feature has the most impact on performance)
 def evaluate_result(api_dict):
-    first_recommendation_set_true_api = list(api_dict.keys())[0]
+    index = random.randint(0, len((api_dict.keys())))
+    first_recommendation_set_true_api = list(api_dict.keys())[index]
     first_recommendation_set = api_dict[first_recommendation_set_true_api]
-    print("\ncorrect apis: ", list(api_dict.keys())[0])
+    print("\ncorrect apis: ", list(api_dict.keys())[index])
     print("\ntop 10 recommended apis for: ",first_recommendation_set_true_api,"\n",first_recommendation_set[:10])
     print("calculating mrr")
     
