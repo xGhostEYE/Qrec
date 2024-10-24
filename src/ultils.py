@@ -405,7 +405,7 @@ def train_pyart(train_csv_file_path):
     FitRandomForest(X, y)  
 
 def test_aroma(test_csv_file_path):
-    top_k = int(config.get("User", "top_k"))
+    top_k = config.get("User", "top_k")
 
     ai.search_data(test_csv_file_path, top_k)
     
