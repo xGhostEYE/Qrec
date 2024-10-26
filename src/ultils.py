@@ -221,10 +221,13 @@ def create_aroma_dataset(directory, csv_path):
                                 except Exception as e:
                                     print(f"Error processing file '{file_path}': {e}")
                                     traceback.print_exc()
+                                    exit(1)   
+
                     
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
-                    traceback.print_exc()   
+                    traceback.print_exc()
+                    exit(1)   
 
 def create_pyart_dataset(directory, csv_path):
     files = os.listdir(directory)
@@ -293,7 +296,8 @@ def create_pyart_dataset(directory, csv_path):
                             
                             except Exception as e:
                                 print(f"Error processing file dictionary for '{file_path}': {e}")
-                                traceback.print_exc()   
+                                traceback.print_exc()  
+                                exit(1) 
 
                 list_all_file_path = list(file_dict.keys())
 
@@ -334,9 +338,11 @@ def create_pyart_dataset(directory, csv_path):
                     except Exception as e:
                         print(f"Error processing during data encoding stage for '{file_path}': {e}")
                         traceback.print_exc()
+                        exit(1)
             except Exception as e:
                 print(e)
                 traceback.print_exc()
+                exit(1)
 
             print("\n")
             t.update(1)

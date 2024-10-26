@@ -1838,6 +1838,32 @@ def parent_feature(leaf_node):
     parent_feature(leaf_node, leaf_node.parent, parent_features, leaf_node.label)
     return parent_features
 
+#start processing from the great_grand_parent of the node instead of the node itself.
+def great_grand_parent_feature(leaf_node):
+    
+    def parent_feature(child, parent, parent_features, label):
+
+        if len(parent_features) == 3:
+            return 
+        
+        if (parent != None):
+            position = get_child_position(child, parent) 
+            parent_label = parent.label
+            if (":#" in parent.label):
+                parent_label = ":#"
+            elif ("##" in parent.label):
+                parent_label = "#"     
+            parent_features.append( (label,position, parent_label) )
+            return parent_feature(parent, parent.parent, parent_features, label)
+        return parent_features
+        
+    parent_features = []
+    #Check if it have great grand parent
+    if (leaf_node.parent and leaf_node.parent.parent):
+        node = leaf_node.parent.parent
+        parent_feature(node, node.parent, parent_features, leaf_node.label)
+    return parent_features
+
 def sibling_feature(leaf_node, leaf_nodes):
     index = leaf_nodes.index(leaf_node)
     sibling_features = []
@@ -1872,6 +1898,7 @@ def get_child_position(child, parent):
                 if child == the_child:
                     return position
                 position = position + 1
+
 
 def variable_usage_feature(leaf_node, leaf_nodes):
 
