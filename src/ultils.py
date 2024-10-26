@@ -14,6 +14,7 @@ import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
 import Indexing.AromaIndexer as ai
 import traceback
+from timeit import default_timer as timer
 
 from Models.Randomforest import FitRandomForest, GetRandomForestModel 
 from Evaluation import Evaluators as ev
@@ -410,12 +411,13 @@ def train_pyart(train_csv_file_path):
     y = labeled_data_tuple[1].astype(float).values.ravel()
     FitRandomForest(X, y)  
 
-def test_aroma(test_csv_file_path):
+def test_aroma(test_csv_file_path, isEval=True):
     top_k = config.get("User", "top_k")
 
-    ai.search_data(test_csv_file_path, top_k)
+    ai.search_data(test_csv_file_path, top_k, isEval=isEval)
     
-def test_pyart(test_csv_file_path):
+def test_pyart(test_csv_file_path, isEval=True):
+    start = timer()
     grouped_dict = defaultdict(list)
     labeled_data_tuple = get_detailed_labeling_data(test_csv_file_path)
 
@@ -440,7 +442,7 @@ def test_pyart(test_csv_file_path):
 
     # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
     api_dict = {}
-
+    api_details_dict = {}
     for key, value in sorted_data.items():
         candidates = []
         correct_api = None
@@ -451,17 +453,27 @@ def test_pyart(test_csv_file_path):
                 
         if (correct_api):
             api_dict[correct_api] = candidates
+            api_details_dict[(key,correct_api)] = candidates
 
-    first_recommendation_set_true_api = list(api_dict.keys())[0]
-    first_recommendation_set = api_dict[first_recommendation_set_true_api]
-    print("\ncorrect apis: ", list(api_dict.keys())[0])
-    print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[:10])
-    print("calculating mrr")
-    print("MRR: ", ev.calculate_mrr(api_dict))
-    k = [1,2,3,4,5,10]
-    for i in k:
-        print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(api_dict, i))
-    # print("Precision Recall: ",ev.calculate_precision_recall(recommendation, correct_apis))
+    if (isEval):
+        first_recommendation_set_true_api = list(api_dict.keys())[0]
+        first_recommendation_set = api_dict[first_recommendation_set_true_api]
+        print("\ncorrect apis: ", list(api_dict.keys())[0])
+        print("\ntop 10 recommended apis for: ",next(iter(sorted_data)),"\n",first_recommendation_set[:10])
+        print("calculating mrr")
+        print("MRR: ", ev.calculate_mrr(api_dict))
+        k = [1,2,3,4,5,10]
+        for i in k:
+            print("Top K Accuracy ",i,": ", ev.calculate_top_k_accuracy(api_dict, i))
+        # print("Precision Recall: ",ev.calculate_precision_recall(recommendation, correct_apis))
+        end = timer()
+        print(end - start, "(seconds)")
+    else:
+        return api_details_dict
+#TODO
+def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
+    pyart_dict = test_pyart(test_pyart_csv_file_path, isEval=False)
+    aroma_dict = test_aroma(test_aroma_csv_file_path, isEval=False)
 
 #Not in use any more. For reference.
 def Run_file_prediction():
