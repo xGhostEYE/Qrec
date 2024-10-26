@@ -414,7 +414,7 @@ def train_pyart(train_csv_file_path):
 def test_aroma(test_csv_file_path, isEval=True):
     top_k = config.get("User", "top_k")
 
-    ai.search_data(test_csv_file_path, top_k, isEval=isEval)
+    return ai.search_data(test_csv_file_path, top_k, isEval=isEval)
     
 def test_pyart(test_csv_file_path, isEval=True):
     start = timer()
@@ -440,22 +440,19 @@ def test_pyart(test_csv_file_path, isEval=True):
     sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
     print("Done sorting data")
 
-    # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
-    api_dict = {}
-    api_details_dict = {}
-    for key, value in sorted_data.items():
-        candidates = []
-        correct_api = None
-        for tuple in value:
-            candidates.append(tuple[1])
-            if tuple[0] == 1:
-                correct_api = tuple[1]
-                
-        if (correct_api):
-            api_dict[correct_api] = candidates
-            api_details_dict[(key,correct_api)] = candidates
-
     if (isEval):
+        # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
+        api_dict = {}
+        for key, value in sorted_data.items():
+            candidates = []
+            correct_api = None
+            for tuple in value:
+                candidates.append(tuple[1])
+                if tuple[0] == 1:
+                    correct_api = tuple[1]                    
+            if (correct_api):
+                api_dict[correct_api] = candidates
+
         first_recommendation_set_true_api = list(api_dict.keys())[0]
         first_recommendation_set = api_dict[first_recommendation_set_true_api]
         print("\ncorrect apis: ", list(api_dict.keys())[0])
@@ -469,11 +466,60 @@ def test_pyart(test_csv_file_path, isEval=True):
         end = timer()
         print(end - start, "(seconds)")
     else:
+        api_details_dict = {}
+        for key, value in sorted_data.items():
+            candidates = []
+            correct_api = None
+            for tuple in value:
+                candidates.append(tuple[1])
+                if tuple[0] == 1:
+                    correct_api = tuple[1]   
+            if (correct_api):
+                api_details_dict[(key,correct_api)] = candidates
         return api_details_dict
 #TODO
 def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
     pyart_dict = test_pyart(test_pyart_csv_file_path, isEval=False)
     aroma_dict = test_aroma(test_aroma_csv_file_path, isEval=False)
+    
+    top_k_list = [1,10]
+    top_k_dict = {}
+    for k in top_k_list:    
+        total = 0
+        aroma_correct_only = 0
+        pyart_correct_only = 0
+        aroma_and_pyart_correct = 0
+        aroma_and_pyart_incorrect = 0
+
+        for key,value in aroma_dict.items():
+            info = key[0]
+            correct_method = key[1]
+
+            if info in pyart_dict:
+                pyart_candidates = pyart_dict[info]
+                pyart_top_k_candidates = pyart_candidates[:k]
+
+                aroma_candidates = value
+                aroma_top_k_candidates = aroma_candidates[:k]
+
+                if (correct_method in pyart_top_k_candidates and correct_method in aroma_top_k_candidates):
+                    aroma_and_pyart_correct += 1
+
+                elif(correct_method in pyart_top_k_candidates):
+                    pyart_correct_only += 1
+                elif(correct_method in aroma_top_k_candidates):
+                    aroma_correct_only += 1
+                else:
+                    aroma_and_pyart_incorrect += 1
+            else :
+                continue
+
+        top_k_dict[str(k)] = {"total": total, "aroma_correct_only": aroma_correct_only, "pyart_correct_only": pyart_correct_only, "aroma_and_pyart_correct": aroma_and_pyart_correct, "aroma_and_pyart_incorrect": aroma_and_pyart_incorrect}
+    
+    with open("../data/comparison_" + str(top_k_list) + ".json", 'w', encoding='utf-8') as f:
+            json.dump(top_k_dict, f, ensure_ascii=False)
+
+
 
 #Not in use any more. For reference.
 def Run_file_prediction():

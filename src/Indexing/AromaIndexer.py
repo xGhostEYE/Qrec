@@ -59,9 +59,11 @@ def index_data(csv_file_path, recreate_index):
     writer.commit()
 
 
-def search_data(test_csv_file_path, top_k = None, isJsonExtracted = True, isEval = True):
+def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEval = True):
+    f = open("../data/results_topk_" + str(top_k) + ".json", 'w', encoding='utf-8')
+    f.close()    
+    
     start = timer()
-
     with open(test_csv_file_path, 'r') as csv_file:
         ix = open_dir(r"./Indexing")
 
@@ -78,8 +80,6 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = True, isEval
             recommendation_dict = {}
             details_recommendation_dict = {}
 
-            f = open("../data/results_topk_" + str(top_k) + ".json", 'w', encoding='utf-8')
-            f.close()
             for row in data_reader:
                 
                 file_path = row[column_indices[0]]
@@ -153,7 +153,8 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = True, isEval
                     results = searcher.search(feature_query, limit = top_k_value)
 
                     for matched_document in results:
-                        results_features_dict[str(matched_document.fields())] = matched_document
+                        if str(matched_document.fields()) not in results_features_dict:
+                            results_features_dict[str(matched_document.fields())] = matched_document
 
 
                 for string_matched_document, matched_document in results_features_dict.items():
@@ -172,16 +173,15 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = True, isEval
                         if current_sum < sum:
                             results_dict[method_call] = (sum,list_score)
 
+                sorted_results_dict = dict(sorted(results_dict.items(), key=rank, reverse=True))            
                 if (isEval):
-                    sorted_results_dict = dict(sorted(results_dict.items(), key=rank, reverse=True))            
                     recommendation_dict[method] = list(sorted_results_dict.keys())
-
-                    result_json_dict = {}
-                    result_json_dict[method] = sorted_results_dict
-
-                    if (isJsonExtracted):
-                        with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
-                            json.dump(result_json_dict, f, ensure_ascii=False)
+                    #Uncomment to extract the dict as json for researching purpose
+                    # if (isJsonExtracted):
+                    #     result_json_dict = {}
+                    #     result_json_dict[method] = sorted_results_dict
+                    #     with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
+                    #         json.dump(result_json_dict, f, ensure_ascii=False)
                 else:
                     position_category = position.replace(" ","").split("|")
                     position_line = position_category[0].split("-")
