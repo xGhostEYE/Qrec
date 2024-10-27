@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--scrape_test', action='store_true', help="A flag to request srapping commits for test data")    
     parser.add_argument('-i', '--train', action='store_true', help="A flag to request running training")    
     parser.add_argument('-o', '--test', action='store_true', help="A flag to request running testing")    
+    parser.add_argument('-j', '--compare', action='store_true', help="A flag to compare the accuracy between pyart and aroma")    
 
     args = parser.parse_args()
 
@@ -43,6 +44,7 @@ if __name__ == "__main__":
     is_scrape_test = args.scrape_test
     is_train = args.train
     is_test = args.test
+    is_compare = args.compare
     commit = args.commit
     output_file = args.outputfile
     
@@ -125,10 +127,16 @@ if __name__ == "__main__":
     if (is_train):
         print("Training...")
         train(train_csv_file_path)
-
+    
 
     if (is_test):
         print("Testing...")
         test(test_csv_file_path)
+
+    if (is_compare):
+        print("Comparing...")
+        test_pyart_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
+        test_aroma_csv_file_path = config.get("User", "testing_data_aroma_csv_path")
+        ult.pyart_vs_aroma(test_pyart_csv_file_path,test_aroma_csv_file_path)
 
         
