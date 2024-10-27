@@ -719,7 +719,10 @@ def extract_aroma_tree(file):
                 is_assignment_in_global[0] = True
                 
             self.visit(node.target, AnnAssign_AnyTreeNode)
-            self.visit(node.annotation, AnnAssign_AnyTreeNode)
+            ann_node = self.visit(node.annotation, AnnAssign_AnyTreeNode)
+            if (ann_node.label == "#VAR"):
+                ann_node.label = ann_node.true_label
+                ann_node.true_label = None
 
             if node.value != None:
                 self.visit(node.value, AnnAssign_AnyTreeNode)
@@ -1436,7 +1439,10 @@ def extract_aroma_tree(file):
                 self.visit(node.args, parameter_func_node)
 
             if (node.returns):
-                self.visit(node.returns, parameter_func_node)
+                ann_node = self.visit(node.returns, parameter_func_node)
+                if (ann_node.label == "#VAR"):
+                    ann_node.label = ann_node.true_label
+                    ann_node.true_label = None
 
             #Body
             body_label = ":"
@@ -1544,7 +1550,11 @@ def extract_aroma_tree(file):
                 label = "#:#"
                 arg_node = MyAnyTreeNode(label, position, parent)
                 MyAnyTreeNode("#VAR", position, arg_node, true_label=node.arg)
-                self.visit(node.annotation, arg_node)
+                ann_node = self.visit(node.annotation, arg_node)
+
+                if (ann_node.label == "#VAR"):
+                    ann_node.label = ann_node.true_label
+                    ann_node.true_label = None
 
             else:
                 label = str(node.arg)
