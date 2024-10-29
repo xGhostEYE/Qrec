@@ -19,6 +19,8 @@ from timeit import default_timer as timer
 
 from Models.Randomforest import FitRandomForest, GetRandomForestModel 
 from Evaluation import Evaluators as ev
+from matplotlib_venn import venn3 
+from matplotlib import pyplot as plt 
 from tqdm import tqdm
 
 # from GetFiles import GetFilesInDirectory
@@ -512,18 +514,18 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
         aroma_and_pyart_correct = 0
         aroma_and_pyart_incorrect = 0
 
-        for key,value in aroma_dict.items():
+        for key,value in pyart_dict.items():
             info = key.split(":")
             file_path = info[0]
             receiver = info[1]
             position = info[2]
             correct_method = info[3]
 
-            if key in pyart_dict:
-                pyart_candidates = pyart_dict[info]
+            if key in aroma_dict:
+                pyart_candidates = value
                 pyart_top_k_candidates = pyart_candidates[:k]
 
-                aroma_candidates = value
+                aroma_candidates = aroma_dict[key]
                 aroma_top_k_candidates = aroma_candidates[:k]
 
                 if (correct_method in pyart_top_k_candidates and correct_method in aroma_top_k_candidates):
@@ -535,11 +537,27 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
                     aroma_correct_only += 1
                 else:
                     aroma_and_pyart_incorrect += 1
+                total += 1
             else :
                 continue
 
         top_k_dict[str(k)] = {"total": total, "aroma_correct_only": aroma_correct_only, "pyart_correct_only": pyart_correct_only, "aroma_and_pyart_correct": aroma_and_pyart_correct, "aroma_and_pyart_incorrect": aroma_and_pyart_incorrect}
     
+    for k,value in top_k_dict.items():
+        Aroma = set([value["aroma_correct_only"], value["aroma_and_pyart_correct"]])
+        Pyart = set([value["pyart_correct_only"], value["aroma_and_pyart_correct"]])
+        Total = set([value["total"]])
+        v = venn3([Aroma,Pyart,Total], ('Aroma', 'Pyart', 'Total'))
+
+        v.get_label_by_id('100').set_text('\n'.join(map(str,Aroma-Pyart)))
+        v.get_label_by_id('110').set_text('\n'.join(map(str,Aroma&Pyart)))
+        v.get_label_by_id('010').set_text('\n'.join(map(str,Pyart-Aroma)))
+        v.get_label_by_id('001').set_text('\n'.join(map(str,Total)))
+        v.get_patch_by_id('001').set_color('white')
+        plt.axis('on')
+        plt.title("Results for top k:" + str(k))
+        plt.show()
+
     with open("../data/comparison_" + str(top_k_list) + ".json", 'w', encoding='utf-8') as f:
             json.dump(top_k_dict, f, ensure_ascii=False)
 
