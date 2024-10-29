@@ -417,7 +417,7 @@ def test_aroma(test_csv_file_path, isEval=True):
 
     return ai.search_data(test_csv_file_path, top_k, isEval=isEval)
     
-def test_pyart(test_csv_file_path, isEval=True):
+def test_pyart(test_csv_file_path, isEval=False):
     start = timer()
     grouped_dict = defaultdict(list)
     labeled_data_tuple = get_detailed_labeling_data(test_csv_file_path)
@@ -476,12 +476,32 @@ def test_pyart(test_csv_file_path, isEval=True):
                 if tuple[0] == 1:
                     correct_api = tuple[1]   
             if (correct_api):
-                api_details_dict[(key,correct_api)] = candidates
+                string_key = ""
+                for item in key:
+                    string_key = string_key + str(item) + ":"
+                string_key = string_key + str(correct_api)
+                api_details_dict[string_key] = candidates
+
+        with open("../data/pyart_test_result.json", 'w', encoding='utf-8') as f:
+            json.dump(api_details_dict, f, ensure_ascii=False)
         return api_details_dict
 #TODO
 def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
-    pyart_dict = test_pyart(test_pyart_csv_file_path, isEval=False)
-    aroma_dict = test_aroma(test_aroma_csv_file_path, isEval=False)
+    #Pyart
+    pyart_test_result_path = "../data/pyart_test_result.json"
+    if (os.path.exists(pyart_test_result_path)):
+        with open(pyart_test_result_path, encoding='utf-8') as json_file:
+            pyart_dict = json.load(json_file)
+    else:
+        pyart_dict = test_pyart(test_pyart_csv_file_path, isEval=False)
+
+    #Aroma
+    aroma_test_result_path = "../data/aroma_test_result.json" 
+    if (os.path.exists(aroma_test_result_path)):
+        with open(aroma_test_result_path, encoding='utf-8') as json_file:
+            aroma_dict = json.load(json_file)
+    else:
+        aroma_dict = test_aroma(test_aroma_csv_file_path, isEval=False)
     
     top_k_list = [1,10]
     top_k_dict = {}
@@ -493,10 +513,13 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
         aroma_and_pyart_incorrect = 0
 
         for key,value in aroma_dict.items():
-            info = key[0]
-            correct_method = key[1]
+            info = key.split(":")
+            file_path = info[0]
+            receiver = info[1]
+            position = info[2]
+            correct_method = info[3]
 
-            if info in pyart_dict:
+            if key in pyart_dict:
                 pyart_candidates = pyart_dict[info]
                 pyart_top_k_candidates = pyart_candidates[:k]
 

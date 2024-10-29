@@ -186,13 +186,15 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
                     position_category = position.replace(" ","").split("|")
                     position_line = position_category[0].split("-")
                     position_starting = position_line[0].replace("line:","")       
-                    details_recommendation_dict[( (file_path,receiver,position_starting), method)] = list(sorted_results_dict.keys())
+                    details_recommendation_dict[( ""+file_path+":"+receiver+":"+position_starting+":"+method)] = list(sorted_results_dict.keys())
 
             if (isEval):
                 evaluate_result(recommendation_dict)
                 end = timer()
                 print(end - start, "(seconds)")   
             else:
+                with open("../data/aroma_test_result.json", 'w', encoding='utf-8') as f:
+                    json.dump(details_recommendation_dict, f, ensure_ascii=False)
                 return details_recommendation_dict
                   
 
