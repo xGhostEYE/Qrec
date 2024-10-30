@@ -180,7 +180,8 @@ def extract_data(rawfile, changed_lines_dict):
             
             if ( (object_name != None and object_name not in changed_code) or func_name not in changed_code):
                 continue
-            
+            if (object_name == None):
+                continue
             dataflows_tobe_processed[key] = value
 
     return dataflows_tobe_processed

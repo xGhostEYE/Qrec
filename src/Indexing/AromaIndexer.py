@@ -75,7 +75,7 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
             columns_to_extract = ["file_path", "position", "receiver", "method", "token_feature", "parent_feature", "sibling_feature", "variable_usage_feature", "variable_with_method_usage_feature"] 
             column_indices = [header.index(col) for col in columns_to_extract]
             
-            #Key: (true method)
+            #Key: (path:lineno:method)
             #Value: list of recommendations (sorted)
             recommendation_dict = {}
             details_recommendation_dict = {}
@@ -159,7 +159,7 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
 
                 for string_matched_document, matched_document in results_features_dict.items():
                     method_call = matched_document['method']
-                    list_score = list(range(len(fields)))
+                    list_score = [0,0,0,0,0]
                     sum = 0 
                     for index in range(len(fields)):
                         sim_score = similarity_score(matched_document[fields[index]],list_feature[index])
@@ -169,13 +169,19 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
                     if method_call not in results_dict:
                         results_dict[method_call] = (sum,list_score)
                     else:
+
                         current_sum = results_dict[method_call][0]
                         if current_sum < sum:
                             results_dict[method_call] = (sum,list_score)
 
                 sorted_results_dict = dict(sorted(results_dict.items(), key=rank, reverse=True))            
                 if (isEval):
-                    recommendation_dict[method] = list(sorted_results_dict.keys())
+                    position_category = position.replace(" ","").split("|")
+                    position_line = position_category[0].split("-")
+                    position_starting = position_line[0].replace("line:","")       
+                    recommendation_dict[( ""+file_path+":"+receiver+":"+position_starting+":"+method)] = list(sorted_results_dict.keys())
+
+                    # recommendation_dict[method] = list(sorted_results_dict.keys())
                     #Uncomment to extract the dict as json for researching purpose
                     # if (isJsonExtracted):
                     #     result_json_dict = {}
