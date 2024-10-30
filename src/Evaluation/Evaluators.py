@@ -10,7 +10,12 @@ def calculate_top_k_accuracy(api_dict, k):
     """
     correct_count = 0
     for key, value in api_dict.items():
-        if key in value[:k]:
+        info = key.split(":")
+        file_path = info[0]
+        receiver = info[1]
+        position = info[2]
+        correct_method = info[3]
+        if correct_method in value[:k]:
             correct_count += 1
 
     return (correct_count / len(api_dict)) * 100
@@ -26,8 +31,13 @@ def calculate_mrr(api_dict):
     """
     total_rr = 0
     for key, value in api_dict.items():
+        info = key.split(":")
+        file_path = info[0]
+        receiver = info[1]
+        position = info[2]
+        correct_method = info[3]
         try:
-            index = value.index(key)
+            index = value.index(correct_method)
             rank = index + 1
             total_rr = total_rr + 1/rank
         except ValueError:

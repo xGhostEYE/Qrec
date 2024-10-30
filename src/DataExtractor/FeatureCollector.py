@@ -130,7 +130,19 @@ def extract_data(rawfile, changed_lines_dict):
     """
     tree = ast.parse(rawfile.read())
 
-    dataflows = extract_data_flows(tree)
+    # Skip processing decorators
+    class DecoratorRemover(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            node.decorator_list = []
+            return node
+        def visit_ClassDef(self, node):
+            node.decorator_list = []
+            return node
+    # Apply the transformer to remove decorators
+    remover = DecoratorRemover()
+    new_tree = remover.visit(tree)
+
+    dataflows = extract_data_flows(new_tree)
     for key, value in dataflows.items():
         
         # print("key: ",key, "\nvalue: ",value)
@@ -177,13 +189,14 @@ def extract_data(rawfile, changed_lines_dict):
             object_name = key[0]
             func_name = key[1]
             changed_code = changed_lines_dict[lineno_string]
-            
-            if ( (object_name != None and object_name not in changed_code) or func_name not in changed_code):
-                continue
-            if (object_name == None):
-                continue
-            dataflows_tobe_processed[key] = value
 
+            if (object_name == None or func_name == None):
+                continue
+
+            if ((object_name != None and object_name not in changed_code) or (func_name != None and func_name not in changed_code)):
+                continue
+
+            dataflows_tobe_processed[key] = value
     return dataflows_tobe_processed
 
 
