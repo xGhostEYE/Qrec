@@ -482,6 +482,9 @@ def extract_aroma_tree(file):
             elif (isinstance(node.func, ast.Attribute)):
                 self.visit(node.func, Call_AnyTreeNode )
                         
+            elif (isinstance(node.func, ast.Call)):
+                self.visit(node.func, Call_AnyTreeNode )
+
             labels = ""
             for i in range(len(node.args)):
                 if labels == "":
@@ -523,10 +526,10 @@ def extract_aroma_tree(file):
             
         def visit_IfExp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "# if # else #"
+            label = "#if#else#"
             
             if node.orelse == None:
-                label = "# if #"
+                label = "#if#"
                 IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
                 self.visit(node.body, IfExp_AnyTreeNode)
                 self.visit(node.test, IfExp_AnyTreeNode)
@@ -1850,7 +1853,14 @@ def parent_feature(leaf_node):
 
 #start processing from the great_grand_parent of the node instead of the node itself.
 def great_grand_parent_feature(leaf_node):
-    
+    # def check_eligible(label):
+    #     match (label):
+    #         case "{#}":
+    #             return True
+    #         case "##":
+    #             return True     
+       
+
     def parent_feature(child, parent, parent_features, label):
 
         if len(parent_features) == 3:
@@ -1858,12 +1868,19 @@ def great_grand_parent_feature(leaf_node):
         
         if (parent != None):
             position = get_child_position(child, parent) 
+            num_children = len(parent.children)
             parent_label = parent.label
-            if (":#" in parent.label):
-                parent_label = ":#"
-            elif ("##" in parent.label):
-                parent_label = "#"     
-            parent_features.append( (label,position, parent_label) )
+            test_parent_label =  parent.label
+            if (position == num_children) or (":#" in parent.label) or (test_parent_label.replace("#","") == ""): 
+                if (":#" in parent.label):
+                    parent_label = ":#"
+                elif ( len(test_parent_label) > 2 and test_parent_label.replace("#","") == ""):
+                    parent_label = "#"
+                parent_features.append( (label,position,parent_label) )
+                
+                if ("#()" == parent.label or "#(#)" == parent.label or "#.#" == parent.label):
+                    parent_features.pop()
+            
             return parent_feature(parent, parent.parent, parent_features, label)
         return parent_features
         
@@ -2113,9 +2130,8 @@ def extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict):
             receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
             if (receiver_label not in changed_code):
                 continue
-
         token = token_feature(receiver)
-        parent = parent_feature(receiver)
+        parent = great_grand_parent_feature(receiver)
         sibling = sibling_feature_excluding_right_sibling(receiver, leaf_nodes)
         variable_usage = variable_usage_feature_excluding_next_usage( receiver, leaf_nodes )
         variable_with_method_usage = variable_with_method_usage_feature_excluding_next_usage(receiver, leaf_nodes)

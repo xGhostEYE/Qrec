@@ -57,7 +57,7 @@ def create_aroma_dataset_for_one_commit(commit, csv_path):
                                 json_dict = json.load(json_file)
 
                                 if file_path not in json_dict:
-                                    print("The python file to be processed does not contain new changes. Continue to process next python file")
+                                    # print("The python file to be processed does not contain new changes. Continue to process next python file")
                                     continue
                             
                                 changed_lines_dict = json_dict[file_path]
@@ -135,7 +135,7 @@ def create_pyart_dataset_for_one_commit(commit, csv_path):
                         json_dict = json.load(json_file)
 
                         if file_path not in json_dict:
-                            print("The python file to be processed does not contain new changes. Continue to process next python file")
+                            # print("The python file to be processed does not contain new changes. Continue to process next python file")
                             continue
                         
                         changed_lines_dict = json_dict[file_path]
@@ -316,7 +316,7 @@ def create_pyart_dataset(directory, csv_path):
                                 json_dict = json.load(json_file)
 
                                 if file_path not in json_dict:
-                                    print("The python file to be processed does not contain new changes. Continue to process next python file")
+                                    # print("The python file to be processed does not contain new changes. Continue to process next python file")
                                     continue
                                 
                                 changed_lines_dict = json_dict[file_path]
