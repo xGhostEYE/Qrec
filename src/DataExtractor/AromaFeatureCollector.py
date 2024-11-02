@@ -276,7 +276,6 @@ def extract_aroma_tree(file):
                 Name_AnyTreeNode = MyAnyTreeNode(value, position, parent, true_label=node.id)
             else:
                 Name_AnyTreeNode = MyAnyTreeNode(value, position, parent)
-            
             return Name_AnyTreeNode
             
         def visit_Del(self, node, parent):
@@ -481,7 +480,7 @@ def extract_aroma_tree(file):
                 MyAnyTreeNode(method_name, name_position, Call_AnyTreeNode)
             elif (isinstance(node.func, ast.Attribute)):
                 self.visit(node.func, Call_AnyTreeNode )
-                        
+
             elif (isinstance(node.func, ast.Call)):
                 self.visit(node.func, Call_AnyTreeNode )
 
@@ -793,11 +792,14 @@ def extract_aroma_tree(file):
         
         def visit_Assert(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
-            self.visit(node.test, Assert_AnyTreeNode)
-
+            
             if (node.msg):
-                self.visit(node.msg, Assert_AnyTreeNode)            
+                Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
+                self.visit(node.test, Assert_AnyTreeNode)
+                self.visit(node.msg, Assert_AnyTreeNode)  
+            else:
+                Assert_AnyTreeNode = MyAnyTreeNode("assert#", position, parent)
+                self.visit(node.test, Assert_AnyTreeNode)
             
             return Assert_AnyTreeNode
         
@@ -1327,10 +1329,10 @@ def extract_aroma_tree(file):
 
             parameter_label = ""
             for i in range(len(node.keys)):
-                if label == "":
-                    label = label + "#"
+                if parameter_label == "":
+                    parameter_label = parameter_label + "#"
                 else:
-                    label = label + ",#"
+                    parameter_label = parameter_label + ",#"
                     
             matchclass_node = MyAnyTreeNode(label, position, parent)
             self.visit(node.cls, matchclass_node)
@@ -1700,7 +1702,7 @@ def extract_aroma_tree(file):
     #Async and await¶
         def visit_AsyncFunctionDef(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
-            label = "async def##"
+            label = "async-def##"
 
             def_func_node = MyAnyTreeNode(label, position, parent)
             
@@ -1853,14 +1855,41 @@ def parent_feature(leaf_node):
 
 #start processing from the great_grand_parent of the node instead of the node itself.
 def great_grand_parent_feature(leaf_node):
-    # def check_eligible(label):
-    #     match (label):
-    #         case "{#}":
-    #             return True
-    #         case "##":
-    #             return True     
-       
-
+    def check_eligible(label):
+        test_parent_label = "" + label
+        if (":#" in label) or ("assert#,#" in label) or (test_parent_label.replace("#","") == ""):
+            return True
+        
+        match (label):
+            case "if##":
+                return True
+            case "for##":
+                return True
+            case "while##":
+                return True
+            #TODO: check if this should be allowed. ExceptHandler
+            # case "exception*#"
+            case "with##":
+                return True
+            case "match##":
+                return True
+            #TODO: check if this should be allowed. MatchClass
+            # case "#(#)"
+            case "def##":
+                return True
+            case "lambda##":
+                return True
+            case "class##":
+                return True
+            case "async-def##":
+                return True
+            case "async-for##":
+                return True
+            case "async-with##":
+                return True
+            case default:
+                return False
+    
     def parent_feature(child, parent, parent_features, label):
 
         if len(parent_features) == 3:
@@ -1869,13 +1898,15 @@ def great_grand_parent_feature(leaf_node):
         if (parent != None):
             position = get_child_position(child, parent) 
             num_children = len(parent.children)
-            parent_label = parent.label
-            test_parent_label =  parent.label
-            if (position == num_children) or (":#" in parent.label) or (test_parent_label.replace("#","") == ""): 
+            parent_label = "" + parent.label
+            test_parent_label =  "" + parent.label
+            if (position == num_children) or check_eligible(parent_label): 
                 if (":#" in parent.label):
                     parent_label = ":#"
                 elif ( len(test_parent_label) > 2 and test_parent_label.replace("#","") == ""):
                     parent_label = "#"
+                elif (position != num_children and "assert#,#" in parent.label):
+                    parent_label = "assert#"
                 parent_features.append( (label,position,parent_label) )
                 
                 if ("#()" == parent.label or "#(#)" == parent.label or "#.#" == parent.label):
@@ -2049,24 +2080,34 @@ def variable_with_method_usage_feature_excluding_next_usage(leaf_node, leaf_node
                 return (position, label)
         return ("","")
  
-    def get_parent_context(node):
-        parent = node.parent
+    def get_parent_context(child, parent, parent_features):
+        if len(parent_features) == 1:
+            return 
+        
         if (parent != None):
-            grand_parent = parent.parent
-            great_grand_parent = parent.parent.parent    
-            if great_grand_parent:
-                position = get_child_position(grand_parent, great_grand_parent)
-                return (position, great_grand_parent.label)
-        return ("","")   
+            position = get_child_position(child, parent) 
+            test_parent_label =  "" + parent.label
+            parent_label = parent.label
+            if (":#" in parent.label):
+                parent_label = ":#"
+            elif ( len(test_parent_label) > 2 and test_parent_label.replace("#","") == ""):
+                parent_label = "#"
+            parent_features.append( (position,parent_label) )
+            
+            if ("#()" == parent.label or "#(#)" == parent.label or "#.#" == parent.label):
+                parent_features.pop() 
+            return get_parent_context(parent, parent.parent, parent_features)
+        
+        return parent_features
           
     variable_usage_features = []
+
+    #the tuple inside this will be used in the dataset
+    parent_features = []
     counter = 1
     if leaf_node.label == "#VAR":
         index = leaf_nodes.index(leaf_node)
         label = leaf_node.true_label
-        if leaf_node.label == "wrapped_model" or label == "wrapped_model":
-            test = 1
-
         method_call = None
         if (index - 1 >= 0 ):
             for i in range(index - 1,0,-1):
@@ -2079,7 +2120,9 @@ def variable_with_method_usage_feature_excluding_next_usage(leaf_node, leaf_node
                 if another_leaf_node.is_receiver:
                     another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
                     if another_leaf_node_label == label and method_call:
-                        variable_usage_features.append( (get_context(another_leaf_node), get_parent_context(another_leaf_node)) )
+                        #Populate parent_features list
+                        get_parent_context(another_leaf_node, another_leaf_node.parent , parent_features)
+                        variable_usage_features.append( (get_context(another_leaf_node), parent_features[0]) )
                         counter -= 1
                         if (counter == 0):
                             break
