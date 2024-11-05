@@ -39,6 +39,16 @@ from pytype.tools.annotate_ast import annotate_ast
 # 'msvcrt','winreg','winsound','posix','pwd','spwd','grp','crypt','termios','tty','pty','fcntl','pipes',
 # 'resource','nis','optparse','imp', 'tuple', 'list', 'dict']
 stdlib = list(sys.stdlib_module_names)
+pytype_error_classes = ['import-error','annotation-type-mismatch','assert-type','attribute-error',
+                        'bad-concrete-type','bad-function-defaults','bad-return-type','bad-slots','bad-unpacking',
+                        'bad-yield-annotation','base-class-error','container-type-mismatch','dataclass-error','duplicate-keyword-argument',
+                        'final-error','ignored-abstractmethod','ignored-metaclass','ignored-type-comment','incomplete-match','invalid-annotation',
+                        'invalid-directive','invalid-function-definition','invalid-function-type-comment','invalid-namedtuple-arg','invalid-signature-mutation',
+                        'invalid-super-call','invalid-typevar','late-directive','match-error','missing-parameter','module-attr','mro-error',
+                        'name-error','not-callable','not-indexable','not-instantiable','not-supported-yet','not-writable','override-error',
+                        'paramspec-error','pyi-error','python-compiler-error','recursion-error','redundant-function-type-comment','redundant-match',
+                        'reveal-type','signature-mismatch','typed-dict-error','unbound-type-param','unsupported-operands','wrong-arg-count',
+                        'wrong-arg-types','wrong-keyword-args']
 
 #TODO - doc
 #method_dict format: {(object, api, linenumber): [variables and methods in order of data flow]}                               
@@ -48,15 +58,19 @@ def CandidatesGenerator ( file, file_path, method_dict, default_calls):
     #perform type inference
     #types_dict format: {target object: target object type}
     raw_file = file.read()
-
-    types_dict = get_inferred_type_dynamic(raw_file)
+    types_dict = {}
+    try:
+        types_dict = get_inferred_type_dynamic(raw_file)
+    except:
+        pass
     API_candidates_for_object = {} 
     for key in method_dict.keys():
         the_object = key[0]
+        line = key[2]
         if the_object != None:
             type = None
             try:
-                type = types_dict[the_object]
+                type = types_dict[(line,the_object)]
             except KeyError as e:
                 pass
             #get list of calls in the type inference
@@ -305,9 +319,12 @@ def get_inferred_type_static(rawfile,filePath):
 def get_inferred_type_dynamic(source):
 
     def get_annotations_dict(tree, module):
-        moduleDict = {get_module_node_key(node): node.resolved_annotation
-            for node in ast.walk(module)
-            if hasattr(node, 'resolved_type')}
+        
+        moduleDict = {}
+        if module != None:
+            moduleDict = {get_module_node_key(node): node.resolved_annotation
+                for node in ast.walk(module)
+                if hasattr(node, 'resolved_type')}
         
         treeObjectDict={}
         for nodetree in ast.walk(tree):
@@ -348,7 +365,12 @@ def get_inferred_type_dynamic(source):
     source = textwrap.dedent(source.lstrip('\n'))
     ast_factory = ast
     pytype_options = config.Options.create()
-    module = annotate_ast.annotate_source(source, ast_factory, pytype_options)
+    pytype_options.ignore_missing_imports = True
+    pytype_options.disable = pytype_error_classes
+    try:
+        module = annotate_ast.annotate_source(source, ast_factory, pytype_options)
+    except:
+        module = None
     annotations_dict = get_annotations_dict(ast.parse(source), module)
     return annotations_dict
 
