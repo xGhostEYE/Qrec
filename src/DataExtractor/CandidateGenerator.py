@@ -7,6 +7,7 @@ from pytype.tools import traces
 import textwrap
 import ast
 from pytype import config
+import builtins
 from pytype.tools.annotate_ast import annotate_ast
 
 # stdlib=['string','re','difflib','textwrap','unicodedata','stringprep','readline','rlcompleter',
@@ -74,7 +75,7 @@ def CandidatesGenerator ( file, file_path, method_dict, default_calls):
             except KeyError as e:
                 pass
             #get list of calls in the type inference
-            calls = get_calls(the_object,type)
+            calls = get_calls(the_object,type, file_path)
             if ( len(calls) == 0):
                 calls = default_calls
             line_number = key[2]
@@ -88,38 +89,48 @@ def CandidatesGenerator ( file, file_path, method_dict, default_calls):
     return API_candidates_for_object
         
         
-def get_calls(object, type):
+def get_calls(object, type, file_path):
     calls = set()
     if (type != None and type != "None" and type != "Any"):
-        for call in get_calls_from_valid_type(object, type):
+        for call in get_calls_from_valid_type(object, type,file_path):
             if call.startswith('__') or re.match('[A-Z0-9_]+$',call) or call.strip()=='_':
                 continue
             calls.add(call)
     return calls   
     
-def get_calls_from_valid_type(object,the_type):
+def get_calls_from_valid_type(object,the_type, file_path):
     calls = set()
     if (the_type == 'module'):
-        #object is a string. We need to convert it into a class object
-        module = importlib.import_module(object)
-        #if object is type "module" then we can just get the calls straight from the object
-        return dir(module)
+        try:
+            #object is a string. We need to convert it into a class object
+            module = importlib.import_module(object)
+            #if object is type "module" then we can just get the calls straight from the object
+            return dir(module)
+        except:
+            imported_module = get_imports_as(file_path, object)
+            if imported_module != None:
+                try:
+                    module = importlib.import_module(imported_module)
+                    return dir(module)
+                except:
+                    return calls
     try:
-        #Since importlib.import_module returns a module of name "str" for type str. Which we won't get calls for a string
-        #We explicitly implement this case
-        if (the_type != "str"):
-            module = importlib.import_module(the_type)
+        types = ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "complex"]
+        matching_type = [type for type in types if the_type.find(type) == 0]
+        if (len(matching_type) != 0):
+            calls.update(set(dir(getattr(builtins, matching_type[0]))))
         else:
-            module = the_type
-        calls.update(set(dir(module)))
+            module = importlib.import_module(the_type)        
+            calls.update(set(dir(module)))
     
     except Exception as error_1:
         print(error_1)
         print("Proceed to install potential missing modules for type: ", the_type)
         package = the_type.split(".")
         try:
-            subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-
+            result = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+            if (result != 0):
+                subprocess.run(['pip3', 'install', package[0].lower()], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
             #Usually the naming format of a type is capitalized. We need to do lowercase on them
             lower = the_type.lower()
             module = importlib.import_module(lower)
@@ -174,7 +185,16 @@ def get_calls_from_standard_libs():
 
     return calls
          
+def get_imports_as(file_path, alias):
+    with open(file_path) as file:        
+        tree = ast.parse(file.read())
+    
+    for node in ast.walk(tree):
+        if isinstance(node, ast.alias):
+            if node.asname == alias:
+                return node.name
 
+    return None
 def get_calls_from_third_party_libs(file_path):
     def get_imports(file_path):
         with open(file_path) as file:        
