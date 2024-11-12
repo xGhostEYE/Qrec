@@ -114,6 +114,7 @@ def get_calls_from_valid_type(object,the_type, file_path):
                     return dir(module)
                 except:
                     return calls
+            return calls
     try:
         types = ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "complex"]
         matching_type = [type for type in types if the_type.find(type) == 0]
