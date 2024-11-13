@@ -27,6 +27,8 @@ def extract_data_flows(node):
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
 
+        elif isinstance(call_node.func, ast.Call):
+            return
         call_args = [ast.unparse(arg) for arg in call_node.args]
         if call_object:
             call_repr = call_args + [func_name, call_object]

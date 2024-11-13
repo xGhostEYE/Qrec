@@ -67,19 +67,19 @@ def CandidatesGenerator ( file, file_path, method_dict, default_calls):
     API_candidates_for_object = {} 
     for key in method_dict.keys():
         the_object = key[0]
-        line = key[2]
+        true_method = key[1]
+        line_number = key[2]
         if the_object != None:
             type = None
             try:
-                type = types_dict[(line,the_object)]
+                type = types_dict[(line_number,the_object)]
             except KeyError as e:
                 pass
             #get list of calls in the type inference
             calls = get_calls(the_object,type, file_path)
             if ( len(calls) == 0):
                 calls = default_calls
-            line_number = key[2]
-            API_candidates_key = (the_object, line_number )
+            API_candidates_key = (the_object, line_number,  true_method)
             API_candidates_for_object[API_candidates_key] = calls
     
     #Check if we get the correct dict
@@ -139,6 +139,7 @@ def get_calls_from_valid_type(object,the_type, file_path):
         except subprocess.CalledProcessError as error_1:
             print("Encountered error when installing third party library name: " + package[0] + ". This library is used to provide type: " + the_type + " .Error: ", error_1)
             print("Returning empty list of calls for type: " + the_type + " due to exception")
+            calls = set()
 
         except Exception as error_2:
             print(error_2)
@@ -264,7 +265,7 @@ def get_calls_from_third_party_libs(file_path):
 
                 except Exception as e:
                     print("Encountered exception when getting calls from library name: " + package[0] + ". Proceed to use whatever calls we have scraped from this task. Error:", e)
-        
+                
         #Get calls from the module in 'import' keyword
         if len(import_modules) > 0:
 

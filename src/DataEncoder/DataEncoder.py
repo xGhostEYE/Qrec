@@ -49,7 +49,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                         current_index = index + 1
                     break
             
-            candidates = candidate_dict[(the_object,line_number)]
+            candidates = candidate_dict[(the_object,line_number,true_api)]
             candidates.add(true_api)
             
             method_count += 1
