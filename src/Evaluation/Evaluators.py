@@ -13,8 +13,8 @@ def calculate_top_k_accuracy(api_dict, k):
         info = key.split(":")
         file_path = info[0]
         receiver = info[1]
-        position = info[2]
-        correct_method = info[3]
+        correct_method = info[2]
+        position = info[3]
         if correct_method in value[:k]:
             correct_count += 1
 
@@ -34,8 +34,8 @@ def calculate_mrr(api_dict):
         info = key.split(":")
         file_path = info[0]
         receiver = info[1]
-        position = info[2]
-        correct_method = info[3]
+        correct_method = info[2]
+        position = info[3]
         try:
             index = value.index(correct_method)
             rank = index + 1
