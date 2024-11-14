@@ -181,7 +181,7 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
                 if (isJsonExtracted):   
                     #Uncomment to extract the dict as json for researching purpose
                     result_json_dict = {}
-                    result_json_dict[method] = sorted_results_dict
+                    result_json_dict[ ""+file_path+":"+receiver+":"+method+":"+position_starting] = sorted_results_dict
                     with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
                         json.dump(result_json_dict, f, ensure_ascii=False)
             
