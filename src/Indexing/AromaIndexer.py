@@ -77,7 +77,6 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
             
             #Key: (path:lineno:method)
             #Value: list of recommendations (sorted)
-            recommendation_dict = {}
             details_recommendation_dict = {}
 
             for row in data_reader:
@@ -175,27 +174,19 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
                             results_dict[method_call] = (sum,list_score)
 
                 sorted_results_dict = dict(sorted(results_dict.items(), key=rank, reverse=True))            
-                if (isEval):
-                    position_category = position.replace(" ","").split("|")
-                    position_line = position_category[0].split("-")
-                    position_starting = position_line[0].replace("line:","")       
-                    recommendation_dict[( ""+file_path+":"+receiver+":"+method+":"+position_starting)] = list(sorted_results_dict.keys())
-
-                    # recommendation_dict[method] = list(sorted_results_dict.keys())
+                position_category = position.replace(" ","").split("|")
+                position_line = position_category[0].split("-")
+                position_starting = position_line[0].replace("line:","")    
+                details_recommendation_dict[( ""+file_path+":"+receiver+":"+method+":"+position_starting)] = list(sorted_results_dict.keys())
+                if (isJsonExtracted):   
                     #Uncomment to extract the dict as json for researching purpose
-                    # if (isJsonExtracted):
-                    #     result_json_dict = {}
-                    #     result_json_dict[method] = sorted_results_dict
-                    #     with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
-                    #         json.dump(result_json_dict, f, ensure_ascii=False)
-                else:
-                    position_category = position.replace(" ","").split("|")
-                    position_line = position_category[0].split("-")
-                    position_starting = position_line[0].replace("line:","")       
-                    details_recommendation_dict[( ""+file_path+":"+receiver+":"+method+":"+position_starting)] = list(sorted_results_dict.keys())
-
+                    result_json_dict = {}
+                    result_json_dict[method] = sorted_results_dict
+                    with open("../data/results_topk_" + str(top_k) + ".json", 'a', encoding='utf-8') as f:
+                        json.dump(result_json_dict, f, ensure_ascii=False)
+            
             if (isEval):
-                evaluate_result(recommendation_dict)
+                evaluate_result(details_recommendation_dict)
                 end = timer()
                 print(end - start, "(seconds)")   
             else:
