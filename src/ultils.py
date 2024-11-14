@@ -457,7 +457,6 @@ def test_pyart(test_csv_file_path, isEval=True):
                 string_key = ""
                 for item in key:
                     string_key = string_key + str(item) + ":"
-                string_key = string_key + str(correct_api)
                 api_details_dict[string_key] = candidates
 
         first_recommendation_set_true_api = list(api_details_dict.keys())[0]

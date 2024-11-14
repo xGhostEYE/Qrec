@@ -192,7 +192,7 @@ def search_data(test_csv_file_path, top_k = None, isJsonExtracted = False, isEva
                     position_category = position.replace(" ","").split("|")
                     position_line = position_category[0].split("-")
                     position_starting = position_line[0].replace("line:","")       
-                    details_recommendation_dict[( ""+file_path+":"+receiver+":"+position_starting+":"+method)] = list(sorted_results_dict.keys())
+                    details_recommendation_dict[( ""+file_path+":"+receiver+":"+method+":"+position_starting)] = list(sorted_results_dict.keys())
 
             if (isEval):
                 evaluate_result(recommendation_dict)
