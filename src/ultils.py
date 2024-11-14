@@ -78,7 +78,7 @@ def create_pyart_dataset_for_one_commit(commit, csv_path):
     #clear csv file
     file = open(csv_path, "w+")
     # writing headers (field names)
-    fields = ["file_path", "object", "api", "line_number", "is_true_api", "x1", "x2", "x3", "x4"]
+    fields = ["file_path", "object", "api", "line_number", "is_true_api", "true_api","x1", "x2", "x3", "x4"]
     writer = csv.DictWriter(file, fieldnames=fields)
     writer.writeheader()
     file.close()
@@ -241,7 +241,7 @@ def create_pyart_dataset(directory, csv_path):
     file = open(csv_path, "w+")
     
     # writing headers (field names)
-    fields = ["file_path", "object", "api", "line_number", "is_true_api", "x1", "x2", "x3", "x4"]
+    fields = ["file_path", "object", "api", "line_number", "is_true_api", "true_api","x1", "x2", "x3", "x4"]
     writer = csv.DictWriter(file, fieldnames=fields)
     writer.writeheader()
     file.close()
@@ -375,11 +375,11 @@ def write_method_calls_aroma_csv_data_set(csv_file_path, file_path ,method_dict_
 
 
 def write_pyart_csv_data(data_dict, csv_file_path, file_path):
-    fields = ["file_path", "object", "api", "line_number", "is_true_api", "x1", "x2", "x3", "x4"]
+    fields = ["file_path", "object", "api", "line_number", "is_true_api", "true_api", "x1", "x2", "x3", "x4"]
     with open(csv_file_path, 'a') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fields)
         for key, value in data_dict.items():
-            writer.writerow({"file_path": file_path, "object": key[0], "api": key[1], "line_number": key[2], "is_true_api": key[3], "x1": value[0], "x2": value[1], "x3": value[2], "x4": value[3]})
+            writer.writerow({"file_path": file_path, "object": key[0], "api": key[1], "line_number": key[2], "is_true_api": key[3], "true_api": key[4], "x1": value[0], "x2": value[1], "x3": value[2], "x4": value[3]})
 
     
 def SortTuples(tuples):
@@ -389,7 +389,7 @@ def SortTuples(tuples):
 def get_labeled_data(csv_path):
     data = pd.read_csv(csv_path, header=None,  dtype=str)
     labels = data.loc[1:, 4:4]
-    features = data.loc[1:, 5:]
+    features = data.loc[1:, 6:]
 
     # for key,value in data_dict.items():
     #     labels.append(key[3])
@@ -398,8 +398,8 @@ def get_labeled_data(csv_path):
 def get_detailed_labeling_data(csv_path):
     data = pd.read_csv(csv_path, header=None, dtype=str)
 
-    labels = data.loc[1:, :4]
-    features = data.loc[1:, 5:]
+    labels = data.loc[1:, :5]
+    features = data.loc[1:, 6:]
 
     # for key,value in data_dict.items():
     #     labels.append(key[3])
@@ -433,8 +433,8 @@ def test_pyart(test_csv_file_path, isEval=True):
     
     # Group objects by their key values
     for index in tqdm(range(len(labels))):
-        file_path, object_name, api_name, line_number, is_true_api = list(labels.iloc[index].values)
-        grouped_dict[(file_path, object_name, line_number)].append((int(is_true_api), api_name, probabilities[index][1]))
+        file_path, object_name, api_name, line_number, is_true_api, true_api = list(labels.iloc[index].values)
+        grouped_dict[(file_path, object_name, true_api, line_number)].append((int(is_true_api), api_name, probabilities[index][0]))
 
     if grouped_dict == None:
         exit(1)

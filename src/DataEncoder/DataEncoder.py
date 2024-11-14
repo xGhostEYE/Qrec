@@ -68,7 +68,7 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 x4 = get_x4(file_dict, filepath, candidate, set_of_S,occurrence_files_dict, occurrence_file_dict)
                 x = [x1,x2,x3,x4]
 
-                data_dict[ (the_object, candidate, line_number, isTrue)] = x
+                data_dict[ (the_object, candidate, line_number, isTrue, true_api)] = x
             print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
 
             try:

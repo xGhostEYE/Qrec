@@ -35,11 +35,11 @@ public class MainCSVFile {
 
             String [] headers_tobe_used;
             if (run_type.equals("PYART")){
-                String [] headers = {"file_path","object","api","line_number","is_true_api","x1","x2","x3","x4"};
+                String [] headers = {"file_path","object","api","line_number","is_true_api","true_api","x1","x2","x3","x4"};
                 headers_tobe_used = headers;
             }
             else{
-                String [] headers = {"file_path","position","receiver","method","token_feature","parent_feature","sibling_feature","variable_usage_feature"};
+                String [] headers = {"file_path","position","receiver","method","token_feature","parent_feature","sibling_feature","variable_usage_feature","variable_with_method_usage_feature"};
                 headers_tobe_used = headers;
             }
             

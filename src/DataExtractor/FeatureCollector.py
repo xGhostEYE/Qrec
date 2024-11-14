@@ -26,7 +26,7 @@ def extract_data_flows(node):
                 call_object = ast.unparse(call_node.func.value)
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
-
+        
         elif isinstance(call_node.func, ast.Call):
             return
         call_args = [ast.unparse(arg) for arg in call_node.args]
@@ -52,7 +52,6 @@ def extract_data_flows(node):
         return []
 
     for node in ast.walk(node):
-        
         # handle method calls
         if isinstance(node, ast.Call):
             process_call(node)
@@ -767,7 +766,8 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
             if (list_of_tokens):
                 if node in list_of_tokens:
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes +list_of_tokens[index+1:]
+                    tobe_added = list_of_tokens[0:index] + new_nodes +list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = tobe_added
                 else:
                     list_of_tokens.extend(new_nodes)
             else:
@@ -866,11 +866,11 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
             
             name = node.value
-            new_tokens = [name]
+            new_tokens = [str(name)]
             if(list_of_tokens):
                 if (node in list_of_tokens):
-                        index = list_of_tokens.index(node)
-                        list_of_tokens[index] = name
+                    index = list_of_tokens.index(node)
+                    list_of_tokens[index] = name
                 else:
                     list_of_tokens.extend(new_tokens)
             else:
