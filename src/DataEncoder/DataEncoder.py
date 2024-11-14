@@ -37,18 +37,21 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 current_line_number = set_of_S_line_num[index]
                 tokens = bag_of_tokens[current_line_number]
                 if (current_line_number < line_number):
-                    set_of_S.append(tokens)
+                    valid_tokens = valid_string_token_list(tokens)
+                    set_of_S.append(valid_tokens)
                     continue
 
                 if (current_line_number >= line_number):
                     if (true_api in tokens):
-                        set_of_S.append(tokens[0: tokens.index(true_api)])
+                        valid_tokens = valid_string_token_list(tokens[0: tokens.index(true_api)])
+                        set_of_S.append(valid_tokens)
                         current_index = index + 1
                     else:
-                        set_of_S.append(tokens)    
+                        valid_tokens = valid_string_token_list(tokens)
+                        set_of_S.append(valid_tokens)    
                         current_index = index + 1
                     break
-            
+
             candidates = candidate_dict[(the_object,line_number,true_api)]
             candidates.add(true_api)
             
@@ -70,12 +73,30 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
 
             try:
                 continue_index = tokens.index(true_api)
-                set_of_S[-1].extend(tokens[continue_index: ])
+                valid_tokens = valid_string_token_list(tokens[continue_index: ])
+                set_of_S[-1].extend(valid_tokens)
             except Exception as e:
                 print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
                 print("Proceed to not appending the left-out tokens")
                 
-    return data_dict        
+    return data_dict
+
+def valid_string_token_list(tokens):
+    try:
+        valid_token_list = []
+        for token in tokens:
+            if (isinstance(token,str)):
+                valid_token_list.append(token)
+            elif (isinstance(token, list)):
+                token_list = token
+                for each_token in token_list:
+                    if (isinstance(each_token,str)):
+                        valid_token_list.append(each_token)
+
+        return valid_token_list
+    except:
+        print("Encountered error when retrieving bag of tokens for a code line. Returning empty list of that code line ")
+        return []
 def get_x1(candidates, dataflow, true_api):
     ngram_scores = {}
     model = kenlm.Model("../../Qrec/trainfile.arpa")
@@ -218,9 +239,10 @@ def get_n_x3(file_dict, file_path, object, frequency_files_dict, frequency_file_
 def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occurrence_file_dict):
 
     total_confidence = 0
-    
+    total_token = 0
     for i in range(len(set_of_S)):
         for j in range(len(set_of_S[i])):
+            total_token+=1
             confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
             distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
         
@@ -229,7 +251,7 @@ def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occ
 
             total_confidence = total_confidence + confidence/distance
 
-    return (1/len(set_of_S)) * total_confidence
+    return (1/total_token) * total_confidence
 
 def get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict):
     nx_api = get_n_x4_api(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
@@ -288,7 +310,7 @@ def get_n_x4_api(file_dict, file_path, token, candidate, occurrence_files_dict, 
         occurrence_files_dict[(token, candidate)] = total_count
 
         return total_count - count_current_file
-            
+        
     
 
 def get_n_x4(file_dict, file_path, token, occurrence_files_dict, occurrence_file_dict):
