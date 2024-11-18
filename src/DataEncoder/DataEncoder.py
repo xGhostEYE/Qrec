@@ -38,23 +38,25 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 tokens = bag_of_tokens[current_line_number]
                 if (current_line_number < line_number):
                     valid_tokens = valid_string_token_list(tokens)
-                    set_of_S.append(valid_tokens)
+                    set_of_S.extend(valid_tokens)
+                    set_of_S = list(dict.fromkeys(set_of_S))
                     continue
 
                 if (current_line_number >= line_number):
                     if (true_api in tokens):
                         valid_tokens = valid_string_token_list(tokens[0: tokens.index(true_api)])
-                        set_of_S.append(valid_tokens)
-                        current_index = index + 1
+                        set_of_S.extend(valid_tokens)
+                        set_of_S = list(dict.fromkeys(set_of_S))
+                        current_index = index
                     else:
                         valid_tokens = valid_string_token_list(tokens)
-                        set_of_S.append(valid_tokens)    
-                        current_index = index + 1
+                        set_of_S.extend(valid_tokens)
+                        set_of_S = list(dict.fromkeys(set_of_S))   
+                        current_index = index
                     break
-
+       
             candidates = candidate_dict[(the_object,line_number,true_api)]
             candidates.add(true_api)
-            
             method_count += 1
             print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total) + " (methods to be processed)")            
             x1_dict = get_x1(candidates, value,true_api)
@@ -72,9 +74,11 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
             print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
 
             try:
-                continue_index = tokens.index(true_api)
-                valid_tokens = valid_string_token_list(tokens[continue_index: ])
-                set_of_S[-1].extend(valid_tokens)
+                if true_api in tokens:
+                    continue_index = tokens.index(true_api)
+                    valid_tokens = valid_string_token_list(tokens[continue_index: ])
+                    set_of_S.extend(valid_tokens)
+                    set_of_S = list(dict.fromkeys(set_of_S)) 
             except Exception as e:
                 print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
                 print("Proceed to not appending the left-out tokens")
@@ -239,18 +243,27 @@ def get_n_x3(file_dict, file_path, object, frequency_files_dict, frequency_file_
 def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occurrence_file_dict):
 
     total_confidence = 0
-    total_token = 0
-    for i in range(len(set_of_S)):
-        for j in range(len(set_of_S[i])):
-            total_token+=1
-            confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
-            distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
-        
-            if distance == 0:
-                continue
+    total_token = len(set_of_S)
+    if total_token == 0:
+        return 0
+    
+    list_of_S = list(set_of_S)
+    for i in range(total_token):
+        token = list_of_S[i]
+        confidence = get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
+        distance = len(list_of_S) - i
+        total_confidence = total_confidence + confidence/distance
 
-            total_confidence = total_confidence + confidence/distance
 
+    # for i in range(len(set_of_S)):
+    #     for j in range(len(set_of_S[i])):
+    #         total_token+=1
+    #         confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
+    #         distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
+    #         if distance == 0:
+    #             continue
+    #         total_confidence = total_confidence + confidence/distance
+    
     return (1/total_token) * total_confidence
 
 def get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict):

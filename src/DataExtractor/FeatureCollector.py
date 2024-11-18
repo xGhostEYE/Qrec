@@ -1,6 +1,4 @@
 import ast
-import json
-import sys
 def extract_data_flows(node):
     """
     Extract function calls and their line numbers, including the context leading up to those calls.
@@ -867,6 +865,8 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
             
             name = node.value
             new_tokens = [str(name)]
+            if name == "":
+                return 
             if(list_of_tokens):
                 if (node in list_of_tokens):
                     index = list_of_tokens.index(node)
@@ -1132,8 +1132,17 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
                 pass
                 
             super().generic_visit(node)
-        
+            
+    def clearn_docstrings(node):  
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and isinstance(node.body, list) and len(node.body) > 0 and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) and isinstance(node.body[0].value.value, str): 
+           node.body[0].value.value = ""
+
+        for child in ast.iter_child_nodes(node): 
+            clearn_docstrings(child)
+        return
+    
     tree = ast.parse(file.read())
+    clearn_docstrings(tree)
     visitor = MyVisitor()
     visitor.visit(tree)
     return bag_of_tokens
