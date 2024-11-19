@@ -8,7 +8,7 @@ import kenlm
 def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
     data_dict = {}
-    set_of_S = []
+    set_of_S = OrderedDict()
 
     bag_of_tokens = file_dict[filepath]
     
@@ -38,20 +38,17 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 tokens = bag_of_tokens[current_line_number]
                 if (current_line_number < line_number):
                     valid_tokens = valid_string_token_list(tokens)
-                    set_of_S.extend(valid_tokens)
-                    set_of_S = list(dict.fromkeys(set_of_S))
+                    populate_set_of_S(set_of_S, valid_tokens)
                     continue
 
                 if (current_line_number >= line_number):
                     if (true_api in tokens):
                         valid_tokens = valid_string_token_list(tokens[0: tokens.index(true_api)])
-                        set_of_S.extend(valid_tokens)
-                        set_of_S = list(dict.fromkeys(set_of_S))
+                        populate_set_of_S(set_of_S, valid_tokens)
                         current_index = index
                     else:
                         valid_tokens = valid_string_token_list(tokens)
-                        set_of_S.extend(valid_tokens)
-                        set_of_S = list(dict.fromkeys(set_of_S))   
+                        populate_set_of_S(set_of_S, valid_tokens)
                         current_index = index
                     break
        
@@ -77,14 +74,19 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                 if true_api in tokens:
                     continue_index = tokens.index(true_api)
                     valid_tokens = valid_string_token_list(tokens[continue_index: ])
-                    set_of_S.extend(valid_tokens)
-                    set_of_S = list(dict.fromkeys(set_of_S)) 
+                    populate_set_of_S(set_of_S, valid_tokens)
+ 
             except Exception as e:
                 print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
                 print("Proceed to not appending the left-out tokens")
                 
     return data_dict
 
+def populate_set_of_S(set_of_S, tokens):
+    if len(tokens) == 0:
+        return
+    for token in tokens:
+        set_of_S[token] = None
 def valid_string_token_list(tokens):
     try:
         valid_token_list = []
@@ -247,11 +249,13 @@ def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occ
     if total_token == 0:
         return 0
     
-    list_of_S = list(set_of_S)
+    list_of_S = list(set_of_S.keys())
     for i in range(total_token):
         token = list_of_S[i]
         confidence = get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
-        distance = len(list_of_S) - i
+        distance = total_token - i
+        if distance == 0:
+            continue
         total_confidence = total_confidence + confidence/distance
 
 
