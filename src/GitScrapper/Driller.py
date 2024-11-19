@@ -1,9 +1,14 @@
+import configparser
+import json
 from git import Repo
 from pydriller import Repository
 
 import os
 import shutil
 
+config = configparser.ConfigParser()
+# Read the configuration file
+config.read('../config.ini')
 
 def Git_Train_RepoScrapper(repo_url):
     repo_url_split = repo_url.split('/')
@@ -21,7 +26,9 @@ def Git_Train_RepoScrapper(repo_url):
 
     # Initialize the repository object with GitPython
     repo = Repo(local_repo_path)
-
+    repo.git.checkout('main')
+    
+    
     # Collect commits using PyDriller
     commits = list(Repository(local_repo_path).traverse_commits())
 
@@ -31,23 +38,54 @@ def Git_Train_RepoScrapper(repo_url):
 
     # Process each commit
     for index, commit in enumerate(commits[:cutoff]):
-        # Define the folder to save this commit's snapshot
-        commit_folder = os.path.join(save_dir, f"commit_{index+1}_{commit.hash[:7]}")
-        if not os.path.exists(commit_folder):
-            os.makedirs(commit_folder)
+        if (not commit.merge):
+            # Define the folder to save this commit's snapshot
+            commit_folder = os.path.join(save_dir, f"commit_{index+1}_{commit.hash[:7]}")
+            if not os.path.exists(commit_folder):
+                os.makedirs(commit_folder)        
 
-        # Checkout the commit using GitPython
-        repo.git.checkout(commit.hash)
+            # Checkout the commit using GitPython
+            repo.git.checkout(commit.hash)
 
-        # Copy all files to the folder
-        for item in os.listdir(local_repo_path):
-            item_path = os.path.join(local_repo_path, item)
-            if os.path.isfile(item_path):
-                shutil.copy(item_path, commit_folder)
-            elif os.path.isdir(item_path) and item not in ['.git', '.gitignore']:
-                shutil.copytree(item_path, os.path.join(commit_folder, item), symlinks=True)
+            # Skip populating the commit folder if it is not empty
+            list_directories = os.listdir(commit_folder) 
+            if ( len(list_directories) == 0 ):
+                # Copy all files to the folder
+                for item in os.listdir(local_repo_path):
+                    item_path = os.path.join(local_repo_path, item)
+                    if os.path.isfile(item_path):
+                        shutil.copy(item_path, commit_folder)
+                    elif os.path.isdir(item_path) and item not in ['.git', '.gitignore']:
+                        shutil.copytree(item_path, os.path.join(commit_folder, item), symlinks=True)
+            else:
+                print(f"Commit folder is already populated. Skipped populating commit folder {commit_folder}")
+            
+            #Populate json dict file if not exist
+            json_file_name = config.get("User", "json_file_name")
+            json_file_path = commit_folder + "/" + json_file_name 
 
-        print(f"Saved commit {commit.hash} to {commit_folder}")
+            if (not os.path.isfile(json_file_path)):            
+                modified_file_dict = {}
+                for modified_file in commit.modified_files:
+                    if modified_file.filename.endswith(".py"):
+                        
+                        if (modified_file.change_type.name == "MODIFY" or modified_file.change_type.name == "RENAME" or modified_file.change_type.name == "ADD"):
+                            modified_line_dict = {}
+                            for item in modified_file.diff_parsed["added"]:
+                                line_no = item[0]
+                                changed_code = item[1]
+                                modified_line_dict[line_no] = changed_code
+
+                            modified_file_path = os.path.join(commit_folder,modified_file.new_path)
+                            modified_file_dict[modified_file_path] = modified_line_dict
+                file = open(json_file_path, "w+")   
+                file.close()             
+                with open(json_file_path, 'a', encoding='utf-8') as f:
+                    json.dump(modified_file_dict, f, ensure_ascii=False)
+            else:
+                print(f"Json file is already created. Skipped creating json file for commit_folder {commit_folder}")
+
+            print(f"Done saving commit {commit.hash} to {commit_folder}\n")
 
     # Checkout to the main branch again if needed
     repo.git.checkout('main')
@@ -58,7 +96,7 @@ def Git_Test_RepoScrapper(repo_url):
     repo_url_split = repo_url.split('/')
     
     # Directory where you want to save the commit snapshots
-    save_dir = '../test/'+repo_url_split[-1]+'_training'
+    save_dir = '../test/'+repo_url_split[-1]+'_testing'
     local_repo_path = '../'+repo_url_split[-1]+'_original'
     
     # Clone the repository if it's not already cloned
@@ -70,35 +108,69 @@ def Git_Test_RepoScrapper(repo_url):
 
     # Initialize the repository object with GitPython
     repo = Repo(local_repo_path)
+    repo.git.checkout('main')
 
     # Collect commits using PyDriller
     commits = list(Repository(local_repo_path).traverse_commits())
 
-    # Calculate 90% of the commits
+    # Calculate the last 10% of commits, using [cutoff:] where cutoff = 90% of num commits
     num_commits = len(commits)
     cutoff = int(num_commits * 0.9)
 
     # Process each commit
     for index, commit in enumerate(commits[cutoff:]):
-        # Define the folder to save this commit's snapshot
-        commit_folder = os.path.join(save_dir, f"commit_{index+1}_{commit.hash[:7]}")
-        if not os.path.exists(commit_folder):
-            os.makedirs(commit_folder)
+        if (not commit.merge):
+            # Define the folder to save this commit's snapshot
+            commit_folder = os.path.join(save_dir, f"commit_{index+1}_{commit.hash[:7]}")
+            if not os.path.exists(commit_folder):
+                os.makedirs(commit_folder)
 
-        # Checkout the commit using GitPython
-        repo.git.checkout(commit.hash)
+            # Checkout the commit using GitPython
+            repo.git.checkout(commit.hash)
+            
+            # Skip populating the commit folder if it is not empty
+            list_directories = os.listdir(commit_folder) 
+            if ( len(list_directories) == 0 ):
+                # Copy all files to the folder
+                for item in os.listdir(local_repo_path):
+                    item_path = os.path.join(local_repo_path, item)
+                    if os.path.isfile(item_path):
+                        shutil.copy(item_path, commit_folder)
+                    elif os.path.isdir(item_path) and item not in ['.git', '.gitignore']:
+                        shutil.copytree(item_path, os.path.join(commit_folder, item), symlinks=True)
+            else:
+                print(f"Commit folder is already populated. Skipped populating commit folder {commit_folder}")
+            
+            #Populate json dict file if not exist
+            json_file_name = config.get("User", "json_file_name")
+            json_file_path = commit_folder + "/" + json_file_name 
 
-        # Copy all files to the folder
-        for item in os.listdir(local_repo_path):
-            item_path = os.path.join(local_repo_path, item)
-            if os.path.isfile(item_path):
-                shutil.copy(item_path, commit_folder)
-            elif os.path.isdir(item_path) and item not in ['.git', '.gitignore']:
-                shutil.copytree(item_path, os.path.join(commit_folder, item), symlinks=True)
+            if (not os.path.isfile(json_file_path)):
+                modified_file_dict = {}
+                for modified_file in commit.modified_files:
+                    if modified_file.filename.endswith(".py"):
+                    
+                        if (modified_file.change_type.name == "MODIFY" or modified_file.change_type.name == "RENAME" or modified_file.change_type.name == "ADD"):
+                            modified_line_dict = {}
+                            for item in modified_file.diff_parsed["added"]:
+                                line_no = item[0]
+                                changed_code = item[1]
+                                modified_line_dict[line_no] = changed_code
 
-        print(f"Saved commit {commit.hash} to {commit_folder}")
+                            modified_file_path = os.path.join(commit_folder,modified_file.new_path)
+                            modified_file_dict[modified_file_path] = modified_line_dict 
+
+                file = open(json_file_path, "w+")
+                file.close()             
+                with open(json_file_path, 'a', encoding='utf-8') as f:
+                    json.dump(modified_file_dict, f, ensure_ascii=False)
+            else:
+                print(f"Json file is already created. Skipped creating json file for commit_folder {commit_folder}")
+
+            print(f"Done saving commit {commit.hash} to {commit_folder}\n")
 
     # Checkout to the main branch again if needed
     repo.git.checkout('main')
 
-    print(f"Saved 90% of commits: {cutoff} out of {num_commits} total commits.")
+    last_cutoff = num_commits - cutoff
+    print(f"Saved the last 10% of commits: last {last_cutoff} out of {num_commits} total commits.")

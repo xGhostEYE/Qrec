@@ -1,5 +1,4 @@
 import ast
-import sys
 def extract_data_flows(node):
     """
     Extract function calls and their line numbers, including the context leading up to those calls.
@@ -9,6 +8,7 @@ def extract_data_flows(node):
     assign_lines = []
 
     def process_call(call_node):
+        
         func_name = None
         call_object = None
         call_args = []
@@ -24,7 +24,9 @@ def extract_data_flows(node):
                 call_object = ast.unparse(call_node.func.value)
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
-
+        
+        elif isinstance(call_node.func, ast.Call):
+            return
         call_args = [ast.unparse(arg) for arg in call_node.args]
         if call_object:
             call_repr = call_args + [func_name, call_object]
@@ -48,7 +50,6 @@ def extract_data_flows(node):
         return []
 
     for node in ast.walk(node):
-        
         # handle method calls
         if isinstance(node, ast.Call):
             process_call(node)
@@ -117,20 +118,30 @@ def extract_data_flows(node):
             
     return data_flows
 
-def extract_data(rawfile):
+def extract_data(rawfile, changed_lines_dict):
     """
     dictionary format:
-        key:[method name, function name, line number]
-            - method name would be foo in this case (foo.bar())
-            - method name would be bar in the above example
+        key:[object name, function name, line number]
+            - object name would be foo in this case (foo.bar())
+            - function name would be bar in the above example
             - line number for the line the code is at
-        value:[follows the data flow]
-        
-        
-    
+        value:[follows the data flow] 
     """
     tree = ast.parse(rawfile.read())
-    dataflows = extract_data_flows(tree)
+
+    # Skip processing decorators
+    class DecoratorRemover(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            node.decorator_list = []
+            return node
+        def visit_ClassDef(self, node):
+            node.decorator_list = []
+            return node
+    # Apply the transformer to remove decorators
+    remover = DecoratorRemover()
+    new_tree = remover.visit(tree)
+
+    dataflows = extract_data_flows(new_tree)
     for key, value in dataflows.items():
         
         # print("key: ",key, "\nvalue: ",value)
@@ -166,11 +177,27 @@ def extract_data(rawfile):
                 words.replace(')', "")
         dataflows[key] = new_words
     # sys.exit()
-    return dataflows
 
+    #Filter out data flows of code that are not new
+    dataflows_tobe_processed = {}
+    for key,value in dataflows.items():
+        lineno_string = str(key[2])
+        if (lineno_string not in changed_lines_dict):
+            continue
+        else:
+            object_name = key[0]
+            func_name = key[1]
+            changed_code = changed_lines_dict[lineno_string]
 
-# with open("/home/melvin/runshit/QrecVersion2/Qrec/test/training_test/train/training.py") as file:
-#     extract_data(file)
+            if (object_name == None or func_name == None):
+                continue
+
+            if ((object_name != None and object_name not in changed_code) or (func_name != None and func_name not in changed_code)):
+                continue
+
+            dataflows_tobe_processed[key] = value
+    return dataflows_tobe_processed
+
 
 def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
     """
@@ -737,7 +764,8 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
             if (list_of_tokens):
                 if node in list_of_tokens:
                     index = list_of_tokens.index(node)
-                    bag_of_tokens[node.lineno] = list_of_tokens[0:index] + new_nodes +list_of_tokens[index+1:]
+                    tobe_added = list_of_tokens[0:index] + new_nodes +list_of_tokens[index+1:]
+                    bag_of_tokens[node.lineno] = tobe_added
                 else:
                     list_of_tokens.extend(new_nodes)
             else:
@@ -836,11 +864,13 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
             list_of_tokens = bag_of_tokens[node.lineno] if node.lineno in bag_of_tokens else None
             
             name = node.value
-            new_tokens = [name]
+            new_tokens = [str(name)]
+            if name == "":
+                return 
             if(list_of_tokens):
                 if (node in list_of_tokens):
-                        index = list_of_tokens.index(node)
-                        list_of_tokens[index] = name
+                    index = list_of_tokens.index(node)
+                    list_of_tokens[index] = name
                 else:
                     list_of_tokens.extend(new_tokens)
             else:
@@ -1102,8 +1132,17 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
                 pass
                 
             super().generic_visit(node)
-        
+            
+    def clearn_docstrings(node):  
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and isinstance(node.body, list) and len(node.body) > 0 and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) and isinstance(node.body[0].value.value, str): 
+           node.body[0].value.value = ""
+
+        for child in ast.iter_child_nodes(node): 
+            clearn_docstrings(child)
+        return
+    
     tree = ast.parse(file.read())
+    clearn_docstrings(tree)
     visitor = MyVisitor()
     visitor.visit(tree)
     return bag_of_tokens

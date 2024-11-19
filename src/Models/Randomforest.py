@@ -69,9 +69,42 @@ def FitRandomForest(X, y):
     X_train = X
     y_train = y
     # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=42)
+
+    #Option 0: Original implementation. Would run into memory problem if dataset is huge:
+    # rf = RandomForestClassifier(n_jobs=-1)
+    # rf.fit(X_train, y_train)
+
+    #Option 1: Set n_jobs to 1 to use only one core. It might slow down the process.
+    # rf = RandomForestClassifier(n_jobs=1)
+    # rf.fit(X_train, y_train)
+
+    #Option 2: Using warm start to reuse previous trained version of rf to continue training: 
+    chunks = 1000
+    x_train_chunks = np.array_split(X_train, chunks)
+    y_train_chunks = np.array_split(y_train,chunks)
+    n_estimators_default = 100
+    rf = RandomForestClassifier(warm_start = True, n_estimators = n_estimators_default, n_jobs=-1)
+
+    for i in range (chunks):
+        X = x_train_chunks[i]
+        y = y_train_chunks[i]
+        rf.fit(X, y)
+        n_estimators_default += 100
+        rf.set_params(n_estimators = n_estimators_default)
     
-    rf = RandomForestClassifier(n_jobs=-1)
-    rf.fit(X_train, y_train)
+    #Option 3: Create trained model for each chunk of data, then concatenate them trained models
+    # rf_original = None
+    # for i in range (chunks):
+    #     X = x_train_chunks[i]
+    #     y = y_train_chunks[i]
+    #     rf = RandomForestClassifier( n_jobs=-1)
+    #     rf.fit(X, y)
+    #     if rf_original == None:
+    #         rf_original = rf
+    #     else:
+    #         rf_original.estimators_ += rf.estimators_
+    #         rf_original.n_estimators = len(rf_original.estimators_)
+            
     dump(rf, model_path)
 
     

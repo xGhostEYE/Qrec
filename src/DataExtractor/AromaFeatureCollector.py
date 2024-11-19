@@ -276,7 +276,6 @@ def extract_aroma_tree(file):
                 Name_AnyTreeNode = MyAnyTreeNode(value, position, parent, true_label=node.id)
             else:
                 Name_AnyTreeNode = MyAnyTreeNode(value, position, parent)
-            
             return Name_AnyTreeNode
             
         def visit_Del(self, node, parent):
@@ -481,7 +480,10 @@ def extract_aroma_tree(file):
                 MyAnyTreeNode(method_name, name_position, Call_AnyTreeNode)
             elif (isinstance(node.func, ast.Attribute)):
                 self.visit(node.func, Call_AnyTreeNode )
-                        
+
+            elif (isinstance(node.func, ast.Call)):
+                self.visit(node.func, Call_AnyTreeNode )
+
             labels = ""
             for i in range(len(node.args)):
                 if labels == "":
@@ -516,17 +518,17 @@ def extract_aroma_tree(file):
                 keyword_AnyTreeNode = MyAnyTreeNode(label, position, parent)
                 keyword_AnyTreeNode_Children = MyAnyTreeNode("#VAR", position, keyword_AnyTreeNode, true_label=node.arg)
                 self.visit(node.value, keyword_AnyTreeNode)
+                return keyword_AnyTreeNode
             else:
-                self.visit(node.value, parent)       
-                
-            return keyword_AnyTreeNode
+                self.visit(node.value, parent)                      
+                return parent
             
         def visit_IfExp(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "# if # else #"
+            label = "#if#else#"
             
             if node.orelse == None:
-                label = "# if #"
+                label = "#if#"
                 IfExp_AnyTreeNode = MyAnyTreeNode(label, position, parent)
                 self.visit(node.body, IfExp_AnyTreeNode)
                 self.visit(node.test, IfExp_AnyTreeNode)
@@ -549,7 +551,8 @@ def extract_aroma_tree(file):
                 object.is_receiver = True
 
             Attribute_AnyTreeNode_Attribute = MyAnyTreeNode(node.attr, position, Attribute_AnyTreeNode)
-            
+            if (parent.is_method_call):
+                Attribute_AnyTreeNode_Attribute.is_method_call = True
             return Attribute_AnyTreeNode
         
         def visit_NamedExpr(self, node, parent):
@@ -576,15 +579,23 @@ def extract_aroma_tree(file):
 
         def visit_Slice(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            label = "#:#"
             
+            label = ""
+            if (node.lower):
+                label = label + "#"
+            if (node.upper):
+                label = label + ":#"
             if (node.step):
                 label = label + ":#"
-
+            
             Slice_AnyTreeNode = MyAnyTreeNode(label, position, parent)
             
-            self.visit(node.lower,Slice_AnyTreeNode)
-            self.visit(node.upper,Slice_AnyTreeNode)
+            if (node.lower):
+                self.visit(node.lower,Slice_AnyTreeNode)
+            
+            if (node.upper):
+                self.visit(node.upper,Slice_AnyTreeNode)
+
             if (node.step):
                 self.visit(node.step, Slice_AnyTreeNode)
 
@@ -710,7 +721,10 @@ def extract_aroma_tree(file):
                 is_assignment_in_global[0] = True
                 
             self.visit(node.target, AnnAssign_AnyTreeNode)
-            self.visit(node.annotation, AnnAssign_AnyTreeNode)
+            ann_node = self.visit(node.annotation, AnnAssign_AnyTreeNode)
+            if (ann_node.label == "#VAR"):
+                ann_node.label = ann_node.true_label
+                ann_node.true_label = None
 
             if node.value != None:
                 self.visit(node.value, AnnAssign_AnyTreeNode)
@@ -778,9 +792,14 @@ def extract_aroma_tree(file):
         
         def visit_Assert(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
-            Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
-            self.visit(node.test, Assert_AnyTreeNode)
-            self.visit(node.msg, Assert_AnyTreeNode)            
+            
+            if (node.msg):
+                Assert_AnyTreeNode = MyAnyTreeNode("assert#,#", position, parent)
+                self.visit(node.test, Assert_AnyTreeNode)
+                self.visit(node.msg, Assert_AnyTreeNode)  
+            else:
+                Assert_AnyTreeNode = MyAnyTreeNode("assert#", position, parent)
+                self.visit(node.test, Assert_AnyTreeNode)
             
             return Assert_AnyTreeNode
         
@@ -1034,8 +1053,15 @@ def extract_aroma_tree(file):
                 for i in range ( len(node.finalbody)):
                     finally_body_label = finally_body_label + "#"
 
-                finally_lineno = node.orelse[-1].end_lineno + 1
-  
+                if (len(node.orelse) != 0):
+                    finally_lineno = node.orelse[-1].end_lineno + 1
+                elif (len(node.handlers) != 0):
+                    finally_lineno = node.handlers[-1].end_lineno + 1
+                else:
+                    finally_lineno = node.lineno
+
+
+                #Position won't be accurate because of node.end_col_offset
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
 
@@ -1089,8 +1115,14 @@ def extract_aroma_tree(file):
                 for i in range ( len(node.finalbody)):
                     finally_body_label = finally_body_label + "#"
 
-                finally_lineno = node.orelse[-1].end_lineno + 1
-  
+                if (len(node.orelse) != 0):
+                    finally_lineno = node.orelse[-1].end_lineno + 1
+                elif (len(node.handlers) != 0):
+                    finally_lineno = node.handlers[-1].end_lineno + 1
+                else:
+                    finally_lineno = node.lineno
+
+                #Position won't be accurate because of node.end_col_offset
                 position = Position(finally_lineno, node.col_offset, node.end_lineno, node.end_col_offset)
                 finally_body_AnyTreeNode = MyAnyTreeNode(finally_body_label, position, finally_AnyTreeNode)
 
@@ -1102,14 +1134,25 @@ def extract_aroma_tree(file):
         def visit_ExceptHandler(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)                
             
+            label = "exception"
+
             if type(parent) is tuple and len(parent) == 2 and parent[1] == "star":
-                except_AnyTreeNode = MyAnyTreeNode("exception*##", position, parent[0])
+                if (node.type):
+                    label = label + "*##"
+                else:
+                    label = label + "*#"
+                except_AnyTreeNode = MyAnyTreeNode(label, position, parent[0])
             else:
-                except_AnyTreeNode = MyAnyTreeNode("exception##", position, parent)
+                if (node.type):
+                    label = label + "##"
+                else:
+                    label = label + "#"
+                except_AnyTreeNode = MyAnyTreeNode(label, position, parent)
 
-            exception_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, except_AnyTreeNode)
-
-            self.visit(node.type, exception_conditional_AnyTreeNode)
+            #If exception type is specified
+            if (node.type):
+                exception_conditional_AnyTreeNode = MyAnyTreeNode("(#)", position, except_AnyTreeNode)
+                self.visit(node.type, exception_conditional_AnyTreeNode)
             
             exception_body_label = ":"
             for i in range ( len(node.body)):
@@ -1286,10 +1329,10 @@ def extract_aroma_tree(file):
 
             parameter_label = ""
             for i in range(len(node.keys)):
-                if label == "":
-                    label = label + "#"
+                if parameter_label == "":
+                    parameter_label = parameter_label + "#"
                 else:
-                    label = label + ",#"
+                    parameter_label = parameter_label + ",#"
                     
             matchclass_node = MyAnyTreeNode(label, position, parent)
             self.visit(node.cls, matchclass_node)
@@ -1401,7 +1444,10 @@ def extract_aroma_tree(file):
                 self.visit(node.args, parameter_func_node)
 
             if (node.returns):
-                self.visit(node.returns, parameter_func_node)
+                ann_node = self.visit(node.returns, parameter_func_node)
+                if (ann_node.label == "#VAR"):
+                    ann_node.label = ann_node.true_label
+                    ann_node.true_label = None
 
             #Body
             body_label = ":"
@@ -1509,7 +1555,11 @@ def extract_aroma_tree(file):
                 label = "#:#"
                 arg_node = MyAnyTreeNode(label, position, parent)
                 MyAnyTreeNode("#VAR", position, arg_node, true_label=node.arg)
-                self.visit(node.annotation, arg_node)
+                ann_node = self.visit(node.annotation, arg_node)
+
+                if (ann_node.label == "#VAR"):
+                    ann_node.label = ann_node.true_label
+                    ann_node.true_label = None
 
             else:
                 label = str(node.arg)
@@ -1523,11 +1573,15 @@ def extract_aroma_tree(file):
         def visit_Return(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
 
-            label = "return#"
+            label = "return"
+
+            if (node.value):
+                label = label + "#"
 
             return_node = MyAnyTreeNode(label, position, parent)
-
-            self.visit(node.value, return_node)
+            
+            if (node.value):
+                self.visit(node.value, return_node)
 
             return return_node
         
@@ -1539,7 +1593,8 @@ def extract_aroma_tree(file):
 
             yield_node = MyAnyTreeNode(label, position, parent)
 
-            self.visit(node.value, yield_node)
+            if (node.value):
+                self.visit(node.value, yield_node)
 
             return yield_node
     
@@ -1550,7 +1605,8 @@ def extract_aroma_tree(file):
 
             yield_node = MyAnyTreeNode(label, position, parent)
 
-            self.visit(node.value, yield_node)
+            if (node.value):
+                self.visit(node.value, yield_node)
 
             return yield_node 
 
@@ -1646,7 +1702,7 @@ def extract_aroma_tree(file):
     #Async and await¶
         def visit_AsyncFunctionDef(self, node, parent):
             position = Position(node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)  
-            label = "async def##"
+            label = "async-def##"
 
             def_func_node = MyAnyTreeNode(label, position, parent)
             
@@ -1797,6 +1853,75 @@ def parent_feature(leaf_node):
     parent_feature(leaf_node, leaf_node.parent, parent_features, leaf_node.label)
     return parent_features
 
+#start processing from the great_grand_parent of the node instead of the node itself.
+def great_grand_parent_feature(leaf_node):
+    def check_eligible(label):
+        test_parent_label = "" + label
+        if (":#" in label) or ("assert#,#" in label) or (test_parent_label.replace("#","") == ""):
+            return True
+        
+        match (label):
+            case "if##":
+                return True
+            case "for##":
+                return True
+            case "while##":
+                return True
+            #TODO: check if this should be allowed. ExceptHandler
+            # case "exception*#"
+            case "with##":
+                return True
+            case "match##":
+                return True
+            #TODO: check if this should be allowed. MatchClass
+            # case "#(#)"
+            case "def##":
+                return True
+            case "lambda##":
+                return True
+            case "class##":
+                return True
+            case "async-def##":
+                return True
+            case "async-for##":
+                return True
+            case "async-with##":
+                return True
+            case default:
+                return False
+    
+    def parent_feature(child, parent, parent_features, label):
+
+        if len(parent_features) == 3:
+            return 
+        
+        if (parent != None):
+            position = get_child_position(child, parent) 
+            num_children = len(parent.children)
+            parent_label = "" + parent.label
+            test_parent_label =  "" + parent.label
+            if (position == num_children) or check_eligible(parent_label): 
+                if (":#" in parent.label):
+                    parent_label = ":#"
+                elif ( len(test_parent_label) > 2 and test_parent_label.replace("#","") == ""):
+                    parent_label = "#"
+                elif (position != num_children and "assert#,#" in parent.label):
+                    parent_label = "assert#"
+                parent_features.append( (label,position,parent_label) )
+                
+                if ("#()" == parent.label or "#(#)" == parent.label or "#.#" == parent.label):
+                    parent_features.pop()
+            
+            return parent_feature(parent, parent.parent, parent_features, label)
+        return parent_features
+        
+    parent_features = []
+    #Check if it have great grand parent
+    if (leaf_node.parent and leaf_node.parent.parent):
+        node = leaf_node.parent.parent
+        parent_feature(node, node.parent, parent_features, leaf_node.label)
+    return parent_features
+
 def sibling_feature(leaf_node, leaf_nodes):
     index = leaf_nodes.index(leaf_node)
     sibling_features = []
@@ -1811,6 +1936,18 @@ def sibling_feature(leaf_node, leaf_nodes):
         sibling_features.append( (leaf_node.label, right_sibling.label))
 
     return sibling_features
+
+#Only extract features only up to current "leaf_node", hence only left siblings.
+def sibling_feature_excluding_right_sibling(leaf_node, leaf_nodes):
+    index = leaf_nodes.index(leaf_node)
+    sibling_features = []
+    left_index = index - 1
+    if (left_index >= 0):
+        left_sibling = leaf_nodes[left_index]
+        sibling_features.append( (left_sibling.label, leaf_node.label) )
+    
+    return sibling_features
+
 def get_child_position(child, parent):
         
         position = 1
@@ -1819,6 +1956,7 @@ def get_child_position(child, parent):
                 if child == the_child:
                     return position
                 position = position + 1
+
 
 def variable_usage_feature(leaf_node, leaf_nodes):
 
@@ -1864,6 +2002,135 @@ def variable_usage_feature(leaf_node, leaf_nodes):
         
     return variable_usage_features
 
+
+#Only extract features only up to current "leaf_node", hence only previous usage.
+#To accompany the lost of next_usage we will conduct some experiments:
+#Experiment 1: Also scrape the "second" closest previous usage
+#Experiment 2: Don't scrape the second closest previous usage
+def variable_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
+
+    def get_context(node):
+        parent = node.parent
+        if (parent != None):
+            position = get_child_position(node, parent)
+
+            if parent.label != "#.#":
+                return (position, parent.label)
+
+            else:
+                children = parent.leaves
+                label = ""
+                for child in children:
+                    if child.label != "#VAR":
+                        label = child.label
+                        break
+
+                return (position, label)
+        return ("","")
+    
+    def get_parent_context(node):
+        parent = node.parent
+        if parent:
+            grand_parent = parent.parent
+            if grand_parent:
+                position = get_child_position(parent, grand_parent)
+                return (position, grand_parent.label)
+                
+        return ("","")
+          
+    variable_usage_features = []
+    counter = 2
+    if leaf_node.label == "#VAR":
+        index = leaf_nodes.index(leaf_node)
+        label = leaf_node.true_label
+
+        #Only extract the previous usage
+        if (index - 1 >= 0 ):
+            for i in range(index - 1,0,-1):
+                
+                another_leaf_node = leaf_nodes[i]
+                another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
+                if another_leaf_node_label == label:       
+                    variable_usage_features.append( (get_context(another_leaf_node), get_parent_context(another_leaf_node)) )
+                    counter -= 1
+                    if (counter == 0):
+                        break
+        
+        
+    return variable_usage_features
+
+def variable_with_method_usage_feature_excluding_next_usage(leaf_node, leaf_nodes):
+
+    def get_context(node):
+        parent = node.parent
+        if (parent != None):
+            position = get_child_position(node, parent)
+
+            if parent.label != "#.#":
+                return (position, parent.label)
+
+            else:
+                children = parent.leaves
+                label = ""
+                for child in children:
+                    if child.label != "#VAR":
+                        label = child.label
+                        break
+
+                return (position, label)
+        return ("","")
+ 
+    def get_parent_context(child, parent, parent_features):
+        if len(parent_features) == 1:
+            return 
+        
+        if (parent != None):
+            position = get_child_position(child, parent) 
+            test_parent_label =  "" + parent.label
+            parent_label = parent.label
+            if (":#" in parent.label):
+                parent_label = ":#"
+            elif ( len(test_parent_label) > 2 and test_parent_label.replace("#","") == ""):
+                parent_label = "#"
+            parent_features.append( (position,parent_label) )
+            
+            if ("#()" == parent.label or "#(#)" == parent.label or "#.#" == parent.label):
+                parent_features.pop() 
+            return get_parent_context(parent, parent.parent, parent_features)
+        
+        return parent_features
+          
+    variable_usage_features = []
+
+    #the tuple inside this will be used in the dataset
+    parent_features = []
+    counter = 1
+    if leaf_node.label == "#VAR":
+        index = leaf_nodes.index(leaf_node)
+        label = leaf_node.true_label
+        method_call = None
+        if (index - 1 >= 0 ):
+            for i in range(index - 1,0,-1):
+                
+                another_leaf_node = leaf_nodes[i]
+                if (another_leaf_node.is_method_call):
+                    method_call = another_leaf_node
+
+                
+                if another_leaf_node.is_receiver:
+                    another_leaf_node_label = another_leaf_node.label if leaf_nodes[i].label != "#VAR" else leaf_nodes[i].true_label
+                    if another_leaf_node_label == label and method_call:
+                        #Populate parent_features list
+                        get_parent_context(another_leaf_node, another_leaf_node.parent , parent_features)
+                        variable_usage_features.append( (get_context(another_leaf_node), parent_features[0]) )
+                        counter -= 1
+                        if (counter == 0):
+                            break
+                    else:
+                        method_call = None
+        
+    return variable_usage_features
+
 def extract_aroma_features(aromatree):
     leaf_nodes = aromatree.leaves
     aroma_dict = {}
@@ -1891,18 +2158,27 @@ def get_method_calls(leaf_nodes):
 
     return method_call
 
-def extract_aroma_features_for_method_calls(aroma_tree):
+def extract_aroma_features_for_method_calls(aroma_tree, changed_lines_dict):
     leaf_nodes = aroma_tree.leaves
     method_calls = get_method_calls(aroma_tree.leaves)
     aroma_dict = {}
     for method_call in method_calls:
         receiver = method_call[0]
+        
+        lineno_string = str(receiver.position.lineno)
+        if (lineno_string not in changed_lines_dict):
+            continue
+        else:
+            changed_code = changed_lines_dict[lineno_string]
+            receiver_label = receiver.label if receiver.label != "#VAR" else receiver.true_label
+            if (receiver_label not in changed_code):
+                continue
         token = token_feature(receiver)
-        parent = parent_feature(receiver)
-        sibling = sibling_feature(receiver, leaf_nodes)
-        variable_usage = variable_usage_feature ( receiver, leaf_nodes )
-
-        features = [token, parent, sibling, variable_usage]
+        parent = great_grand_parent_feature(receiver)
+        sibling = sibling_feature_excluding_right_sibling(receiver, leaf_nodes)
+        variable_usage = variable_usage_feature_excluding_next_usage( receiver, leaf_nodes )
+        variable_with_method_usage = variable_with_method_usage_feature_excluding_next_usage(receiver, leaf_nodes)
+        features = [token, parent, sibling, variable_usage, variable_with_method_usage]
         aroma_dict[method_call] = features
         
     return aroma_dict
