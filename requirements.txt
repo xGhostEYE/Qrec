@@ -6,4 +6,8 @@ scikit-learn
 torch
 GitPython
 anytree
+matplotlib-venn
+pytype
+Whoosh
+strsimpy
 https://github.com/kpu/kenlm/archive/master.zip
