@@ -30,7 +30,7 @@ The [FLAGS] options are: <br/>
 `-c` or `--scrape_test`: A flag to request srapping projects for test data <br/>
 `-i` or `--train`: A flag to request running training <br/>
 `-o` or `--test`: A flag to request running testing <br/>
-
+`-j` or `--compare`: To compare between Pyart result and Aroma result. A venn diagram comparing top 1 and top 10 results between Pyart and Aroma will be produced<br/>
 For example, if you want to run the program with every options, you can run: <br/>
 ```python3 parserproject.py --all``` or ```python3 parserproject.py -a``` <br/>
 
