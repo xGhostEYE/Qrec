@@ -4,6 +4,7 @@ import re
 import configparser
 from collections import OrderedDict
 import kenlm
+import ultils as ult
 
 def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
@@ -22,65 +23,70 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
     method_count = 0
     list_keys = [key for key in method_dict.keys() if key[0] != None]
     total = len(list_keys)
-
-    #method_dict is not sorted. 
-    #We sort it by the line number (key[2]) so we can add new tokens in to set of S each line at a time from top to bottom
-    ordered_method_dict = dict(sorted(method_dict.items(), key=lambda t: t[0][2])) #t is the item, t[0] = key and t[1] = value
-    for key, value in ordered_method_dict.items():
-        the_object = key[0]
-        if the_object != None:
-            true_api = key[1]
-            line_number = key[2]
-            
-            tokens = []
-            for index in range(current_index ,len(set_of_S_line_num)):
-                current_line_number = set_of_S_line_num[index]
-                tokens = bag_of_tokens[current_line_number]
-                if (current_line_number < line_number):
-                    valid_tokens = valid_string_token_list(tokens)
-                    populate_set_of_S(set_of_S, valid_tokens)
-                    continue
-
-                if (current_line_number >= line_number):
-                    if (true_api in tokens):
-                        valid_tokens = valid_string_token_list(tokens[0: tokens.index(true_api)])
-                        populate_set_of_S(set_of_S, valid_tokens)
-                        current_index = index
-                    else:
+    try:
+        #method_dict is not sorted. 
+        #We sort it by the line number (key[2]) so we can add new tokens in to set of S each line at a time from top to bottom
+        ordered_method_dict = dict(sorted(method_dict.items(), key=lambda t: t[0][2])) #t is the item, t[0] = key and t[1] = value
+        for key, value in ordered_method_dict.items():
+            the_object = key[0]
+            if the_object != None:
+                true_api = key[1]
+                line_number = key[2]
+                
+                tokens = []
+                for index in range(current_index ,len(set_of_S_line_num)):
+                    current_line_number = set_of_S_line_num[index]
+                    tokens = bag_of_tokens[current_line_number]
+                    if (current_line_number < line_number):
                         valid_tokens = valid_string_token_list(tokens)
                         populate_set_of_S(set_of_S, valid_tokens)
-                        current_index = index
-                    break
-       
-            candidates = candidate_dict[(the_object,line_number,true_api)]
-            candidates.add(true_api)
-            method_count += 1
-            print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total) + " (methods to be processed)")            
-            x1_dict = get_x1(candidates, value,true_api)
-            for candidate in candidates:
-                isTrue = 0
-                if (candidate == true_api):
-                    isTrue = 1         
-                x1 = x1_dict[candidate]
-                x2 = get_x2(candidate, value, true_api)
-                x3 = get_x3(file_dict, filepath, the_object, candidate, frequency_files_dict, frequency_file_dict)
-                x4 = get_x4(file_dict, filepath, candidate, set_of_S,occurrence_files_dict, occurrence_file_dict)
-                x = [x1,x2,x3,x4]
+                        continue
 
-                data_dict[ (the_object, candidate, line_number, isTrue, true_api)] = x
-            print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
+                    if (current_line_number >= line_number):
+                        if (true_api in tokens):
+                            valid_tokens = valid_string_token_list(tokens[0: tokens.index(true_api)])
+                            populate_set_of_S(set_of_S, valid_tokens)
+                            current_index = index
+                        else:
+                            valid_tokens = valid_string_token_list(tokens)
+                            populate_set_of_S(set_of_S, valid_tokens)
+                            current_index = index
+                        break
+        
+                candidates = candidate_dict[(the_object,line_number,true_api)]
+                candidates.add(true_api)
+                method_count += 1
+                print("Extracting features for the candidates of method call: " + the_object + "." + true_api, "| Progress: " + str(method_count) + "/" + str(total) + " (methods to be processed)")            
+                x1_dict = get_x1(candidates, value,true_api)
+                for candidate in candidates:
+                    isTrue = 0
+                    if (candidate == true_api):
+                        isTrue = 1         
+                    x1 = x1_dict[candidate]
+                    x2 = get_x2(candidate, value, true_api)
+                    x3 = get_x3(file_dict, filepath, the_object, candidate, frequency_files_dict, frequency_file_dict)
+                    x4 = get_x4(file_dict, filepath, candidate, set_of_S,occurrence_files_dict, occurrence_file_dict)
+                    x = [x1,x2,x3,x4]
 
-            try:
-                if true_api in tokens:
-                    continue_index = tokens.index(true_api)
-                    valid_tokens = valid_string_token_list(tokens[continue_index: ])
-                    populate_set_of_S(set_of_S, valid_tokens)
- 
-            except Exception as e:
-                print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
-                print("Proceed to not appending the left-out tokens")
+                    data_dict[ (the_object, candidate, line_number, isTrue, true_api)] = x
+                print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
+                print(len(candidates))
+                raise Exception("test")
+                try:
+                    if true_api in tokens:
+                        continue_index = tokens.index(true_api)
+                        valid_tokens = valid_string_token_list(tokens[continue_index: ])
+                        populate_set_of_S(set_of_S, valid_tokens)
+                
+                except Exception as e:
+                    print("Enountered error when appending missing tokens (that was left out during the current encoding process) into the set of S")
+                    print("Proceed to not appending the left-out tokens")
+                    ult.write_error_log(e, filepath)
+    except Exception as e:
+        ult.write_error_log(e, filepath)
                 
     return data_dict
+
 
 def populate_set_of_S(set_of_S, tokens):
     if len(tokens) == 0:
@@ -243,32 +249,36 @@ def get_n_x3(file_dict, file_path, object, frequency_files_dict, frequency_file_
 
 
 def get_x4(file_dict, file_path, candidate, set_of_S, occurrence_files_dict, occurrence_file_dict):
+    try:
+        total_confidence = 0
+        total_token = len(set_of_S)
+        if total_token == 0:
+            return 0
+        
+        list_of_S = list(set_of_S.keys())
+        for i in range(total_token):
+            token = list_of_S[i]
+            confidence = get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
+            distance = total_token - i
+            if distance == 0:
+                continue
+            total_confidence = total_confidence + confidence/distance
+            
 
-    total_confidence = 0
-    total_token = len(set_of_S)
-    if total_token == 0:
+
+        # for i in range(len(set_of_S)):
+        #     for j in range(len(set_of_S[i])):
+        #         total_token+=1
+        #         confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
+        #         distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
+        #         if distance == 0:
+        #             continue
+        #         total_confidence = total_confidence + confidence/distance
+        
+        return (1/total_token) * total_confidence
+    except Exception as e:
+        ult.write_error_log(e, file_path)
         return 0
-    
-    list_of_S = list(set_of_S.keys())
-    for i in range(total_token):
-        token = list_of_S[i]
-        confidence = get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
-        distance = total_token - i
-        if distance == 0:
-            continue
-        total_confidence = total_confidence + confidence/distance
-
-
-    # for i in range(len(set_of_S)):
-    #     for j in range(len(set_of_S[i])):
-    #         total_token+=1
-    #         confidence = get_x4_confidence(file_dict, file_path, set_of_S[i][j], candidate, occurrence_files_dict, occurrence_file_dict)
-    #         distance = get_distance(i, set_of_S, j, len(set_of_S[i]))
-    #         if distance == 0:
-    #             continue
-    #         total_confidence = total_confidence + confidence/distance
-    
-    return (1/total_token) * total_confidence
 
 def get_x4_confidence(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict):
     nx_api = get_n_x4_api(file_dict, file_path, token, candidate, occurrence_files_dict, occurrence_file_dict)
@@ -346,8 +356,7 @@ def get_n_x4(file_dict, file_path, token, occurrence_files_dict, occurrence_file
         count_current_file = 0
         for key, value in file_dict.items():
             occurrence_current_file_dict = occurrence_file_dict[key]
-            found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict = occurrence_file_dict[file_path]
-)
+            found_token = get_current_file_token_occurrence(token, occurrence_current_file_dict = occurrence_file_dict[file_path])
             if found_token:
                 total_count += 1
                 if (key == file_path):

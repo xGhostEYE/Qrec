@@ -68,10 +68,12 @@ def create_aroma_dataset_for_one_commit(commit, csv_path):
                     except Exception as e:
                         print(f"Error processing file '{file_path}': {e}")
                         traceback.print_exc()
+                        write_error_log(e, file_path)
         
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         traceback.print_exc() 
+        write_error_log(e, file_path)
 
 def create_pyart_dataset_for_one_commit(commit, csv_path):
         
@@ -122,6 +124,7 @@ def create_pyart_dataset_for_one_commit(commit, csv_path):
                     except Exception as e:
                         print(f"Error processing file dictionary for '{file_path}': {e}")
                         traceback.print_exc()   
+                        write_error_log(e, file_path)
 
         list_all_file_path = list(file_dict.keys())
 
@@ -158,12 +161,16 @@ def create_pyart_dataset_for_one_commit(commit, csv_path):
                 print("Encoding data...")
                 data_dict = de.DataEncoder(method_dict,candidate_dict, file_dict, list_all_file_path, file_path, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict)
                 write_pyart_csv_data(data_dict, csv_path, file_path)
+            
             except Exception as e:
                 print(f"Error processing during data encoding stage for '{file_path}': {e}")
                 traceback.print_exc()
+                write_error_log(e, file_path)
+    
     except Exception as e:
         print(e)
         traceback.print_exc()
+        write_error_log(e, file_path)
 
     print("\n")
 
@@ -225,12 +232,14 @@ def create_aroma_dataset(directory, csv_path):
                                 except Exception as e:
                                     print(f"Error processing file '{file_path}': {e}")
                                     traceback.print_exc()
+                                    write_error_log(e, file_path)
                                     exit(1)   
 
                     
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
                     traceback.print_exc()
+                    write_error_log(e, file_path)
                     exit(1)   
 
 def create_pyart_dataset(directory, csv_path):
@@ -301,6 +310,7 @@ def create_pyart_dataset(directory, csv_path):
                             except Exception as e:
                                 print(f"Error processing file dictionary for '{file_path}': {e}")
                                 traceback.print_exc()  
+                                write_error_log(e, file_path)
                                 exit(1) 
 
                 list_all_file_path = list(file_dict.keys())
@@ -342,10 +352,12 @@ def create_pyart_dataset(directory, csv_path):
                     except Exception as e:
                         print(f"Error processing during data encoding stage for '{file_path}': {e}")
                         traceback.print_exc()
+                        write_error_log(e, file_path)
                         exit(1)
             except Exception as e:
                 print(e)
                 traceback.print_exc()
+                write_error_log(e, file_path)
                 exit(1)
 
             print("\n")
@@ -419,7 +431,7 @@ def test_aroma(test_csv_file_path, isEval=True):
 
     return ai.search_data(test_csv_file_path, top_k, isEval=isEval)
     
-def test_pyart(test_csv_file_path, isEval=True):
+def test_pyart(test_csv_file_path, isEval=False):
     start = timer()
     grouped_dict = defaultdict(list)
     labeled_data_tuple = get_detailed_labeling_data(test_csv_file_path)
@@ -489,6 +501,13 @@ def test_pyart(test_csv_file_path, isEval=True):
         with open("../data/pyart_test_result.json", 'w', encoding='utf-8') as f:
             json.dump(api_details_dict, f, ensure_ascii=False)
         return api_details_dict
+
+def write_error_log(e, filepath):
+
+    with open("../data/error_log.txt", "a") as file:
+        file.write("Error at " + filepath + ":\n")
+        file.write("Full traceback: " + traceback.format_exc()+"\n")
+        file.write("\n")
 #TODO
 def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
     #Pyart
