@@ -71,7 +71,6 @@ def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, file
                     data_dict[ (the_object, candidate, line_number, isTrue, true_api)] = x
                 print("Finished extracting features for the candidates of method call: " + the_object + "." + true_api)            
                 print(len(candidates))
-                raise Exception("test")
                 try:
                     if true_api in tokens:
                         continue_index = tokens.index(true_api)
