@@ -1,7 +1,7 @@
 joblib
-numpy=1.26.4
+numpy==1.26.4
 pydriller
-pandas=2.2.1
+pandas==2.2.1
 scikit-learn
 torch
 GitPython
