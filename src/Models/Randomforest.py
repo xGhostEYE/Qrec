@@ -1,5 +1,4 @@
 import configparser
-import pandas as pd, numpy as np
 from joblib import dump, load
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split

@@ -1,7 +1,7 @@
 joblib
-numpy
+numpy=1.26.4
 pydriller
-pandas
+pandas=2.2.1
 scikit-learn
 torch
 GitPython
@@ -10,4 +10,5 @@ matplotlib-venn
 pytype
 Whoosh
 strsimpy
+tqdm
 https://github.com/kpu/kenlm/archive/master.zip

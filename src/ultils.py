@@ -646,6 +646,7 @@ def Run_file_prediction():
                                 file_dict[file_path] = fc.extract_bag_of_tokens(file)
             except Exception as e:
                 print("Encountered exception when getting a file dict: ", e)
+                write_error_log(e, file_path)
 
         with open(file_path, encoding='utf-8') as file:
                     method_dict = fc.extract_data(file)
@@ -666,4 +667,5 @@ def Run_file_prediction():
         return grouped_dict
 
     except Exception as e:
-        traceback.print_exc()        
+        traceback.print_exc()
+        write_error_log(e, file_path)
