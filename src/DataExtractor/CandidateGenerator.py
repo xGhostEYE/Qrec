@@ -128,10 +128,11 @@ def get_calls_from_valid_type(object,the_type, file_path):
         print(error_1)
         print("Proceed to install potential missing modules for type: ", the_type)
         package = the_type.split(".")
-        try:
-            result = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        
+        try:    
+            result = subprocess.run(['pip3', 'install', package[0]], "--no-deps", stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
             if (result != 0):
-                subprocess.run(['pip3', 'install', package[0].lower()], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+                subprocess.run(['pip3', 'install', package[0].lower(), "--no-deps"], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
             #Usually the naming format of a type is capitalized. We need to do lowercase on them
             lower = the_type.lower()
             module = importlib.import_module(lower)
@@ -244,13 +245,14 @@ def get_calls_from_third_party_libs(file_path):
         if from_module != None:
             package = from_module.split(".")
             #1. install module in 'from' keyword
-            try:
-                status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
-                if (status.returncode != 0):
-                    print("Status code of library installation was " +  status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'from' keyword")
-            except Exception as e:
-                    print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error: ", e)
-            
+            if package[0] != "numpy":
+                try:
+                    status = subprocess.run(['pip3', 'install', package[0], "--no-deps"], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                    if (status.returncode != 0):
+                        print("Status code of library installation was " +  status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'from' keyword")
+                except Exception as e:
+                        print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error: ", e)
+                
             #2. Extract methods from the installed module
             try: 
                 moduleObject = importlib.import_module(from_module)
@@ -268,18 +270,18 @@ def get_calls_from_third_party_libs(file_path):
                 
         #Get calls from the module in 'import' keyword
         if len(import_modules) > 0:
-
-            #1. install module in import keyword
             for import_module in import_modules:
                 package = import_module.split(".")
-
-                try:
-                        status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                
+                #1. install module in import keyword
+                if package[0] != "numpy":
+                    try:
+                        status = subprocess.run(['pip3', 'install', package[0], "--no-deps"], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
                         if (status.returncode != 0):
                             print("Status code of library installation was " + status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'import' keyword")
-                except Exception as e:
+                    except Exception as e:
                         print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error:", e)
-                
+                    
                 #2. Extract methods from the installed module
                 try:
                     moduleObject = importlib.import_module(import_module)
