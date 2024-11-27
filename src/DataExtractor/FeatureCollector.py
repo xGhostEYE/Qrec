@@ -1142,7 +1142,6 @@ def extract_bag_of_tokens(file, tokens_frequency_dict, tokens_occurrence_dict):
         return
     
     tree = ast.parse(file.read())
-    # file.close()
     clean_docstrings(tree)
     visitor = MyVisitor()
     visitor.visit(tree)

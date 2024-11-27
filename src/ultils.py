@@ -2,7 +2,6 @@ from collections import defaultdict
 import configparser
 import csv
 import json
-import math
 import os.path as op
 import os
 
@@ -455,22 +454,23 @@ def test_pyart(test_csv_file_path, isEval=False):
     sorted_data = {key: SortTuples(value) for key, value in grouped_dict.items()}
     print("Done sorting data")
 
+    # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
+    api_details_dict = {}
+    for key, value in sorted_data.items():
+        candidates = []
+        correct_api = None
+        for tuple in value:
+            candidates.append(tuple[1])
+            if tuple[0] == 1:
+                correct_api = tuple[1]   
+        if (correct_api):
+            string_key = ""
+            for item in key:
+                string_key = string_key + str(item) + ":"
+            string_key = string_key[:-1]
+            api_details_dict[string_key] = candidates
+            
     if (isEval):
-        # get the index +1 of the sorted dictionary value list that has '1' as the first tuple value
-        api_details_dict = {}
-        for key, value in sorted_data.items():
-            candidates = []
-            correct_api = None
-            for tuple in value:
-                candidates.append(tuple[1])
-                if tuple[0] == 1:
-                    correct_api = tuple[1]   
-            if (correct_api):
-                string_key = ""
-                for item in key:
-                    string_key = string_key + str(item) + ":"
-                api_details_dict[string_key] = candidates
-
         first_recommendation_set_true_api = list(api_details_dict.keys())[0]
         first_recommendation_set = api_details_dict[first_recommendation_set_true_api]
         print("\ncorrect apis: ", list(api_details_dict.keys())[0])
@@ -484,20 +484,6 @@ def test_pyart(test_csv_file_path, isEval=False):
         end = timer()
         print(end - start, "(seconds)")
     else:
-        api_details_dict = {}
-        for key, value in sorted_data.items():
-            candidates = []
-            correct_api = None
-            for tuple in value:
-                candidates.append(tuple[1])
-                if tuple[0] == 1:
-                    correct_api = tuple[1]   
-            if (correct_api):
-                string_key = ""
-                for item in key:
-                    string_key = string_key + str(item) + ":"
-                api_details_dict[string_key] = candidates
-
         with open("../data/pyart_test_result.json", 'w', encoding='utf-8') as f:
             json.dump(api_details_dict, f, ensure_ascii=False)
         return api_details_dict
@@ -536,6 +522,7 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
         pyart_correct_only = 0
         aroma_and_pyart_correct = 0
         aroma_and_pyart_incorrect = 0
+        missed_case = 0
 
     #     for key,value in pyart_dict.items():
     #         info = key.split(":")
@@ -568,14 +555,15 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
             info = key.split(":")
             file_path = info[0]
             receiver = info[1]
-            position = info[2]
-            correct_method = info[3]
-
-            if key in pyart_dict:
+            correct_method = info[2]
+            position = info[3]
+            
+            pyart_key = file_path+":"+receiver+":"+correct_method+":"+position
+            if pyart_key in pyart_dict:
                 aroma_candidates = value
                 aroma_top_k_candidates = aroma_candidates[:k]
 
-                pyart_candidates = pyart_dict[key]
+                pyart_candidates = pyart_dict[pyart_key]
                 pyart_top_k_candidates = pyart_candidates[:k]
 
                 if (correct_method in pyart_top_k_candidates and correct_method in aroma_top_k_candidates):
@@ -589,11 +577,11 @@ def pyart_vs_aroma(test_pyart_csv_file_path, test_aroma_csv_file_path):
                     aroma_and_pyart_incorrect += 1
                 total += 1
             else :
-                # print(file_path,receiver,position)
+                missed_case += 1
                 continue
 
         top_k_dict[str(k)] = {"total": total, "aroma_correct_only": aroma_correct_only, "pyart_correct_only": pyart_correct_only, "aroma_and_pyart_correct": aroma_and_pyart_correct, "aroma_and_pyart_incorrect": aroma_and_pyart_incorrect}
-    
+        print ("Missed case:", missed_case)
     for k,value in top_k_dict.items():
         Aroma = set([value["aroma_correct_only"], value["aroma_and_pyart_correct"]])
         Pyart = set([value["pyart_correct_only"], value["aroma_and_pyart_correct"]])
@@ -648,6 +636,7 @@ def Run_file_prediction():
                 print("Encountered exception when getting a file dict: ", e)
                 write_error_log(e, file_path)
 
+
         with open(file_path, encoding='utf-8') as file:
                     method_dict = fc.extract_data(file)
 
@@ -669,3 +658,4 @@ def Run_file_prediction():
     except Exception as e:
         traceback.print_exc()
         write_error_log(e, file_path)
+        
