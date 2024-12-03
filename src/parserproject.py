@@ -58,14 +58,14 @@ if __name__ == "__main__":
         output_file = None
 
     if (config.get("User", "type").upper() == "PYART"):
-        create_data_set = ult.create_pyart_dataset_for_one_commit
+        create_data_set = ult.create_pyart_dataset
         train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
         test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
         train = ult.train_pyart
         test = ult.test_pyart
         create_data_set_for_one_commit = ult.create_pyart_dataset_for_one_commit
     elif (config.get("User", "type").upper() == "AROMA"):
-        create_data_set = ult.create_aroma_dataset_for_one_commit
+        create_data_set = ult.create_aroma_dataset
         train_csv_file_path = config.get("User", "training_data_aroma_csv_path")
         test_csv_file_path = config.get("User", "testing_data_aroma_csv_path")
         train = ult.train_aroma
@@ -113,14 +113,14 @@ if __name__ == "__main__":
     # create_data_set(test_dir, test_csv_file_path)
     if (is_csv_test):
         print("Creating test dataset...")
-        # create_data_set(test_dir, test_csv_file_path)
+        create_data_set(test_dir, test_csv_file_path)
 
     # train(train_csv_file_path)
     if (is_train):
         print("Training...")
         train(train_csv_file_path)
     
-    # test(test_csv_file_path)
+    test(test_csv_file_path)
     if (is_test):
         print("Testing...")
         test(test_csv_file_path)
