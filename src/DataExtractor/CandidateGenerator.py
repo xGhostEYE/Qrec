@@ -169,8 +169,15 @@ def get_module(module):
     try:
         module = importlib.import_module(module)
         return module
-    except:
+    except (ModuleNotFoundError, ImportError):
         return None
+    except:
+        try:    
+            result = subprocess.run(['pip3', 'uninstall', module , '-y'], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+            return None
+        except:
+            return None
+
 def find_class_module(class_name): # Iterate through all modules in sys.path 
     for module_info in pkgutil.iter_modules(): 
         module_name = module_info.name 
