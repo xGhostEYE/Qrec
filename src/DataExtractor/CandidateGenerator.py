@@ -1,5 +1,6 @@
 import importlib
 import os
+import pkgutil
 import re
 import subprocess
 import sys
@@ -100,6 +101,7 @@ def get_calls(object, type, file_path):
     
 def get_calls_from_valid_type(object,the_type, file_path):
     calls = set()
+    #Module type
     if (the_type == 'module'):
         try:
             #object is a string. We need to convert it into a class object
@@ -115,38 +117,70 @@ def get_calls_from_valid_type(object,the_type, file_path):
                 except:
                     return calls
             return calls
-    try:
-        types = ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "complex"]
-        matching_type = [type for type in types if the_type.find(type) == 0]
-        if (len(matching_type) != 0):
-            calls.update(set(dir(getattr(builtins, matching_type[0]))))
-        else:
-            module = importlib.import_module(the_type)        
-            calls.update(set(dir(module)))
-    
-    except Exception as error_1:
-        print(error_1)
-        print("Proceed to install potential missing modules for type: ", the_type)
-        package = the_type.split(".")
-        
-        try:    
-            result = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-            if (result != 0):
-                subprocess.run(['pip3', 'install', package[0].lower()], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-            #Usually the naming format of a type is capitalized. We need to do lowercase on them
-            lower = the_type.lower()
-            module = importlib.import_module(lower)
-            calls.update(dir(module))
-        except subprocess.CalledProcessError as error_1:
-            print("Encountered error when installing third party library name: " + package[0] + ". This library is used to provide type: " + the_type + " .Error: ", error_1)
-            print("Returning empty list of calls for type: " + the_type + " due to exception")
-            calls = set()
+    #Other types
+    else:
+        try:
+            types = ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "complex"]
+            matching_type = [type for type in types if the_type.find(type) == 0]
+            if (len(matching_type) != 0):
+                calls.update(set(dir(getattr(builtins, matching_type[0]))))
+            else:
+                package = the_type.split(".")
+                #Only the name of the class is given
+                if (len(package) == 1):
+                    module = find_class_module(the_type)
+                    if (module):
+                        cls = getattr(module, the_type)
+                        calls.update(dir(cls))
 
-        except Exception as error_2:
-            print(error_2)
-            print("Returning empty list of calls for type: " + the_type + " due to exception")
+                #Nested modules
+                else:
+                    *module_path, class_name = the_type.rsplit('.', 1) 
+                    module_name = '.'.join(module_path)
+                    module = get_module(module_name)
+                    if (module):
+                        cls = getattr(module, class_name)
+                        calls.update(dir(cls))
+                    else:
+                        print("Proceed to install potential missing modules for type: ", the_type)
+                        try:    
+                            result = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+                            if (result != 0):
+                                subprocess.run(['pip3', 'install', package[0].lower()], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+                            module = get_module(module_name)
+                            if (module):
+                                cls = getattr(module, class_name)
+                                calls.update(dir(cls))
+                            else:
+                                print("Cannot retrieve the methods for the type: " + the_type + "Returning empty list of calls")
+                                calls = set()
+
+                        except subprocess.CalledProcessError as error_1:
+                            print("Encountered error when installing third party library name: " + package[0] + ". This library is used to provide type: " + the_type + " .Error: ", error_1)
+                            print("Returning empty list of calls for type: " + the_type + " due to exception")
+                            calls = set()
+
+        except Exception as error_1:
+            print("Returning empty list of calls for type: " + the_type + " due to exception: ", error_1)
             calls = set()
     return calls
+
+def get_module(module):
+    try:
+        module = importlib.import_module(module)
+        return module
+    except:
+        return None
+def find_class_module(class_name): # Iterate through all modules in sys.path 
+    for module_info in pkgutil.iter_modules(): 
+        module_name = module_info.name 
+        try: 
+            module = importlib.import_module(module_name) 
+            if hasattr(module, class_name): 
+                return module_name 
+        except ImportError: 
+            pass 
+    return None
 
 #Return calls from:
 #1. standard libraries, 
@@ -240,63 +274,50 @@ def get_calls_from_third_party_libs(file_path):
     calls = set()
     imports = get_imports(file_path)
 
-    #Get calls from the module in 'from' keyword
-    for from_module, import_modules in imports.items():
-        if from_module != None:
-            package = from_module.split(".")
-            #1. install module in 'from' keyword
-            if package[0] != "numpy":
-                try:
-                    status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
-                    if (status.returncode != 0):
-                        print("Status code of library installation was " +  status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'from' keyword")
-                except Exception as e:
-                        print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error: ", e)
-                
-            #2. Extract methods from the installed module
-            try: 
-                moduleObject = importlib.import_module(from_module)
-                calls.update(set(dir(moduleObject)))
-
-            except Exception as e:
-                #If failed, attempt to get calls from the main package. 
-                #For example, instead of extracting methods in 'camera.Camera', we extract methods in 'camera' (excluding the sub packages after dot)
-                try:
-                    moduleObject = importlib.import_module(package[0])
+    try:
+        #Get calls from the module in 'from' keyword
+        for from_module, import_modules in imports.items():
+            if from_module != None:
+                moduleObject = get_module(from_module)
+                if moduleObject:
                     calls.update(set(dir(moduleObject)))
-
-                except Exception as e:
-                    print("Encountered exception when getting calls from library name: " + package[0] + ". Proceed to use whatever calls we have scraped from this task. Error:", e)
-                
-        #Get calls from the module in 'import' keyword
-        if len(import_modules) > 0:
-            for import_module in import_modules:
-                package = import_module.split(".")
-                
-                #1. install module in import keyword
-                if package[0] != "numpy":
-                    try:
-                        status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
-                        if (status.returncode != 0):
-                            print("Status code of library installation was " + status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'import' keyword")
-                    except Exception as e:
-                        print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error:", e)
+                else:
+                    package = from_module.split(".")
+                    if package[0] != "numpy":
+                        try:
+                            status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                            if (status.returncode != 0):
+                                print("Status code of library installation was " +  status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'from' keyword")
+                            else:
+                                moduleObject = get_module(from_module)
+                                if moduleObject:
+                                    calls.update(set(dir(moduleObject)))
+                        except Exception as e:
+                                print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'from' keyword. Error: ", e)
                     
-                #2. Extract methods from the installed module
-                try:
-                    moduleObject = importlib.import_module(import_module)
-                    calls.update(set(dir(moduleObject)))
-
-                except Exception as e:
-                    try:
-                        #Try to get calls from the package. 
-                        #For example, instead of extracting methods in camera.Camera, we extract methods in camera (excluding the sub packages after dot)
-                        moduleObject = importlib.import_module(package[0])
+     
+            #Get calls from the module in 'import' keyword
+            if from_module == None and len(import_modules) > 0:
+                for import_module in import_modules:             
+                    moduleObject = get_module(import_module)
+                    if (moduleObject):
                         calls.update(set(dir(moduleObject)))
-
-                    except Exception as e:
-                        print("Encountered exception when getting calls from library name: " + package[0] + ". Proceed to use whatever calls we have scraped from this task. Error:", e)
-
+                    else:
+                        package = import_module.split(".")
+                    
+                        if package[0] != "numpy":
+                            try:
+                                status = subprocess.run(['pip3', 'install', package[0]], stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL, check=True)
+                                if (status.returncode != 0):
+                                    print("Status code of library installation was " + status.returncode + " (zero means sucess). This happens during the installation of library name: " + from_module[0] + ". This library is used in the 'import' keyword")
+                                else:
+                                    moduleObject = get_module(import_module)
+                                    if moduleObject:
+                                        calls.update(set(dir(moduleObject)))
+                            except Exception as e:
+                                print("Encountered error when installing third party library name: " + package[0] + ". This library is used in the 'import' keyword. Error:", e)
+    except Exception as e:
+        print("Encountered exception when getting calls from third party libraries:", e)
 
     return calls
 

@@ -2,7 +2,7 @@ joblib
 numpy==1.26.4
 PyDriller==2.6
 pandas==2.2.1
-scikit-learn=1.2.1
+scikit-learn==1.2.1
 torch
 GitPython
 anytree
