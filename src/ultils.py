@@ -445,7 +445,7 @@ def test_pyart(test_csv_file_path, isEval=False):
     # Group objects by their key values
     for index in tqdm(range(len(labels))):
         file_path, object_name, api_name, line_number, is_true_api, true_api = list(labels.iloc[index].values)
-        grouped_dict[(file_path, object_name, true_api, line_number)].append((int(is_true_api), api_name, probabilities[index][0]))
+        grouped_dict[(file_path, object_name, true_api, line_number)].append((int(is_true_api), api_name, probabilities[index][1]))
 
     if grouped_dict == None:
         exit(1)
