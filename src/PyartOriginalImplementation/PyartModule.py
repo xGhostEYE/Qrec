@@ -163,6 +163,7 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 	comment_flag=0
 	calls=[]
 
+	dataflow_tobe_processed={}
 	for line in lines:
 		#print(line)
 		lno+=1
@@ -271,12 +272,19 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 				continue
 		
 			current_dataflow=DataFlow.get_current_dataflow(current_context,caller)
-			if len(current_dataflow)==0:
-				precode+=line
-				continue
+			if len(current_dataflow) != 0:
+				dataflow_tobe_processed[caller,callee,str(lno)] = current_dataflow
+			# if len(current_dataflow)==0:
+		precode+=line
+		continue
 				
 				# maxflow=max(current_dataflow,key=len)
-		
+
+def get_caller_and_callee_info(rec):
+	dict = {}
+	#TODO: find a way to extract callers and their callee for a code line
+	return dict
+
 def recheck2(l):
 	line=l
 	line=re.sub('return ','',line)
