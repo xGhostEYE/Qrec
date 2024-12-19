@@ -1,3 +1,4 @@
+import ast
 import os
 import re
 import sys
@@ -151,6 +152,7 @@ def check_try(code,trycache):
 	return ret
 
 def extract_data_pyart_original(rawfile, changed_lines_dict):
+	
 	with open(rawfile) as f:
 		lines=f.readlines()
 		#print(lines)
@@ -167,6 +169,9 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 	for line in lines:
 		#print(line)
 		lno+=1
+		if lno not in changed_lines_dict:
+			continue
+		
 		if line.strip().startswith('#'):
 			continue
 		if re.match('[bru]*\'\'\'$',line.strip()) or re.match('[bru]*\"\"\"$',line.strip()):
@@ -281,8 +286,56 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 				# maxflow=max(current_dataflow,key=len)
 
 def get_caller_and_callee_info(rec):
+	class CallerAndCalleeExtractor (ast.NodeVisitor):  
+		def visit_Name(self,node):
+			return node.id
+			
+		def visit_Constant(self, node):
+			return str(node.value)
+								
+		def visit_Attribute(self, node):
+			name = super().visit(node.value)
+			if name != None:
+				name = name + "." + node.attr
+			return name
+			
+		
+		def visit_Call(self,node):
+			func_name = self.visit(node.func)
+			if func_name:
+				index = func_name.rfind(".")
+				caller = func_name[:index]
+				callee = func_name[index+1:]
+				rcallee = callee + "("
+				for arg in node.args:
+					rcallee += self.visit(arg)
+				rcallee +=")"
+				dict[caller] = (callee,rcallee)
+			
+			# return super().visit(node.ar)
+		
+		
+		def visit(self, node ):
+			"""Visit a node."""
+			method = 'visit_' + node.__class__.__name__
+			visitor = getattr(self, method, self.generic_visit)
+			return visitor(node)
+		
+		def generic_visit(self, node ):
+			"""Called if no explicit visitor function exists for a node."""
+			for field, value in ast.iter_fields(node):
+				if isinstance(value, list):
+					for item in value:
+						if isinstance(item, ast.AST):
+							return self.visit(item)
+				elif isinstance(value, ast.AST):
+					return self.visit(value)
+
 	dict = {}
-	#TODO: find a way to extract callers and their callee for a code line
+	tree = ast.parse("sys.path.insert(0)")
+	caller_and_callee_extractor = CallerAndCalleeExtractor()
+	caller_and_callee_extractor.generic_visit(tree)
+
 	return dict
 
 def recheck2(l):
