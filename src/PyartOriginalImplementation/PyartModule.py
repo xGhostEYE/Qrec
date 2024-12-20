@@ -2,7 +2,7 @@ import ast
 import os
 import re
 import sys
-import PyartDataflowExtraction as DataFlow
+import PyartOriginalImplementation.PyartDataflowExtraction as DataFlow
 
 '''
 	This contents of this file was modified and ported from Python API Recommendation in Real-Time: https://github.com/PYART0/PyART-demo
@@ -153,8 +153,8 @@ def check_try(code,trycache):
 
 def extract_data_pyart_original(rawfile, changed_lines_dict):
 	
-	with open(rawfile) as f:
-		lines=f.readlines()
+	# with open(rawfile) as f:
+	lines=rawfile.readlines()
 		#print(lines)
 	precode=''
 	trynum=0
@@ -169,8 +169,8 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 	for line in lines:
 		#print(line)
 		lno+=1
-		if lno not in changed_lines_dict:
-			continue
+		# if lno not in changed_lines_dict:
+		# 	continue
 		
 		if line.strip().startswith('#'):
 			continue
@@ -208,17 +208,20 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 			continue
 
 		rec=recobj[0]
-		caller_and_callee_info_dict = get_caller_and_callee_info(rec)
+		caller_and_callee_info_list = get_caller_and_callee_info(rec)
 		
-		for caller, callee_info in caller_and_callee_info_dict.items():
+		for caller_callee_info in caller_and_callee_info_list:
+			caller = caller_callee_info[0]
+			callee = caller_callee_info[1]
+			rcallee = caller_callee_info[2]
+
 			if caller.startswith('['):
 				caller=caller[1:]
 			
-			callee,rcallee=callee_info
 
-			# if callee.startswith('_') or re.match('[A-Z0-9_]+$',callee) or callee.strip()=='_':
-			# 	# precode+=line
-			# 	continue
+			if callee.startswith('_') or re.match('[A-Z0-9_]+$',callee) or callee.strip()=='_':
+				precode+=line
+				continue
 			# cp=caller+'.'+callee
 			# if cp in calls:
 			# 	# precode+=line
@@ -227,7 +230,7 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 			# 	calls.append(cp) 
 
 			i=0
-			latest_line=line.replace(rcallee,'unknown_api()')
+			latest_line=line.replace(", ", ",").replace(" ,", ",").replace(" )",")").replace(" (", "(").replace(rcallee,'unknown_api()')
 			#print('NOTE!',latest_line)
 			
 			tpp=precode.strip()
@@ -284,6 +287,7 @@ def extract_data_pyart_original(rawfile, changed_lines_dict):
 		continue
 				
 				# maxflow=max(current_dataflow,key=len)
+	return dataflow_tobe_processed
 
 def get_caller_and_callee_info(rec):
 	class CallerAndCalleeExtractor (ast.NodeVisitor):  
@@ -298,31 +302,32 @@ def get_caller_and_callee_info(rec):
 			if name != None:
 				name = name + "." + node.attr
 			return name
-			
-		
+
 		def visit_Call(self,node):
 			func_name = self.visit(node.func)
-			if func_name:
+			string_to_return = func_name
+			if func_name and not ("(" in func_name and ")" in func_name):
 				index = func_name.rfind(".")
 				caller = func_name[:index]
 				callee = func_name[index+1:]
 				rcallee = callee + "("
 				for arg in node.args:
-					rcallee += self.visit(arg)
+					str_arg = self.visit(arg)
+					rcallee += str_arg + ","
+				rcallee = rcallee[:-1]
 				rcallee +=")"
-				dict[caller] = (callee,rcallee)
-			
-			# return super().visit(node.ar)
+				dict.append((caller,callee,rcallee))
+				string_to_return = caller + "." +rcallee
+			return string_to_return
+		
 		
 		
 		def visit(self, node ):
-			"""Visit a node."""
 			method = 'visit_' + node.__class__.__name__
 			visitor = getattr(self, method, self.generic_visit)
 			return visitor(node)
-		
+			
 		def generic_visit(self, node ):
-			"""Called if no explicit visitor function exists for a node."""
 			for field, value in ast.iter_fields(node):
 				if isinstance(value, list):
 					for item in value:
@@ -331,11 +336,10 @@ def get_caller_and_callee_info(rec):
 				elif isinstance(value, ast.AST):
 					return self.visit(value)
 
-	dict = {}
-	tree = ast.parse("sys.path.insert(0)")
+	dict = []
+	tree = ast.parse(rec)
 	caller_and_callee_extractor = CallerAndCalleeExtractor()
 	caller_and_callee_extractor.generic_visit(tree)
-
 	return dict
 
 def recheck2(l):

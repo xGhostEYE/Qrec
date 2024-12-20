@@ -13,6 +13,7 @@ import DataExtractor.AromaFeatureCollector as afc
 import DataExtractor.CandidateGenerator as cg
 import DataEncoder.DataEncoder as de
 import Indexing.AromaIndexer as ai
+import PyartOriginalImplementation.PyartModule as pm
 import traceback
 from timeit import default_timer as timer
 

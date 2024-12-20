@@ -2,6 +2,7 @@
 from collections import OrderedDict
 import kenlm
 import ultils as ult
+import PyartOriginalImplementation.PyartDataflowExtraction as pdfe
 
 def DataEncoder(method_dict, candidate_dict, file_dict, list_all_file_path, filepath, frequency_files_dict, frequency_file_dict, occurrence_files_dict, occurrence_file_dict):
 
@@ -111,11 +112,13 @@ def valid_string_token_list(tokens):
 def get_x1(candidates, dataflow, true_api):
     ngram_scores = {}
     model = kenlm.Model("../../Qrec/trainfile.arpa")
+    normalized_data_flow = dataflow.replace("|","-->").replace("(","-->").replace(")","").split("-->")
+
     for candidate in candidates:
         input = ""
-        for data in dataflow:
+        for data in normalized_data_flow:
             token = data
-            if token == true_api:
+            if token == "unknown_api":
                 token = candidate
             if not input or input.split(" ")[-1] == "\n":
                 input = input + token
@@ -136,17 +139,19 @@ def get_x1(candidates, dataflow, true_api):
           
 
 def get_x2(candidate, dataflow, true_api):
-    sum = 0
-    true_api_idx = dataflow.index(true_api)
-    for data in dataflow:
-        if (data != true_api):
-            data_idx = dataflow.index(data)
-            d = abs(true_api_idx - data_idx)
-            sum = sum + sim(candidate, data, d)
+    # sum = 0
+    # true_api_idx = dataflow.index(true_api)
+    # for data in dataflow:
+    #     if (data != true_api):
+    #         data_idx = dataflow.index(data)
+    #         d = abs(true_api_idx - data_idx)
+    #         sum = sum + sim(candidate, data, d)
 
-    if (len(dataflow) -1 == 0):
-        return 0
-    return float(sum/ (len(dataflow) -1))
+    # if (len(dataflow) -1 == 0):
+    #     return 0
+    # return float(sum/ (len(dataflow) -1))
+    maxflow=max(dataflow,key=len)
+    return pdfe.get_tosim_score(candidate,maxflow)
 
 def sim(candidate, data, d):
     #Longest common sub-sequence: https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/
