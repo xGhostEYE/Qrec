@@ -31,6 +31,7 @@ public class CommitProcessingTask {
                 String resultFilePath  = new File("data").getCanonicalPath() + "/thread_" + String.valueOf(threadId) + "_result" + ".csv";
                 StringBuilder command = new StringBuilder("python3 parserproject.py");  
                 String relativeCommitFilePath = "../" + (new File("").toURI().relativize(commitFile.toURI()));
+                System.out.print("check" + relativeCommitFilePath);
                 command.append(" --commit " + relativeCommitFilePath);
                 command.append(" --outputfile " + resultFileName);
 

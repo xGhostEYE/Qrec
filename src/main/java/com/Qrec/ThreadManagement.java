@@ -17,14 +17,13 @@ public class ThreadManagement {
 
         List<CommitThread> threads = new ArrayList<CommitThread>();
         long startTime = System.nanoTime();    
-
         try{
             File fileToParse = new File("config.ini");
             Ini ini = new Ini(fileToParse);
     
             String dirRelativePath = ini.get("User", "multi_thread_dir");
             int numWorkers = Integer.parseInt(ini.get("System", "num_cores"));
-    
+            
             //https://stackoverflow.com/questions/2683676/generating-a-canonical-path
             File trainDirFile = new File("src").getAbsoluteFile(); 
             String delimiters = "" + '\\' + '/';         
@@ -76,8 +75,18 @@ public class ThreadManagement {
                 File thread_result_file;
                 File thread_log_file;
                 try {
-                    thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv");
-                    thread_result_file.delete();
+                    File fileToParse = new File("config.ini");
+                    Ini ini = new Ini(fileToParse);
+                    String is_original_run = ini.get("User", "is_original_run");
+
+                    if ("TRUE".equals(is_original_run.toUpperCase())){
+                        thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_data" + ".csv");
+                        thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_label" + ".csv");
+                    }
+                    else{
+                        thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv");
+                        thread_result_file.delete();
+                    }
 
                     thread_log_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_log" + ".txt");
                     thread_log_file.delete();
