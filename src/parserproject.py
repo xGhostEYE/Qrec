@@ -10,13 +10,14 @@ config.read('../config.ini')
 
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--all', action='store_true', help="A flag to request everything (except for --commit and --outputfile). This flag has the highest priority")    
     parser.add_argument('-r', '--run', action='store_true', help="A flag to request running training and testing only for the default train and test dataset")    
     
     parser.add_argument('-p', '--commit', help="A flag to specify the commit to be extracted. Run with --outputfile flag to specify the output file")  
     parser.add_argument('-f', '--outputfile', help="A flag to specify the csv file name for the extracted dataset. Run with --commit flag to specify the commit to be extracted")  
-
+    
     parser.add_argument('-n', '--csv_train', action='store_true', help="A flag to request creating training dataset (in csv)")    
     parser.add_argument('-t', '--csv_test', action='store_true', help="A flag to request creating testing dataset (in csv)")    
     parser.add_argument('-d', '--scrape_train', action='store_true', help="A flag to request scrapping commits for train data ")    
@@ -64,6 +65,7 @@ if __name__ == "__main__":
         train = ult.train_pyart
         test = ult.test_pyart
         create_data_set_for_one_commit = ult.create_pyart_dataset_for_one_commit
+        
     elif (config.get("User", "type").upper() == "AROMA"):
         create_data_set = ult.create_aroma_dataset
         train_csv_file_path = config.get("User", "training_data_aroma_csv_path")
@@ -75,8 +77,20 @@ if __name__ == "__main__":
     else:
         print("Error: type of run is not defined in the config file")
         exit(1)
-        
+
+    #uncomment to debug this feature by running debugger on this file
+    # ult.pyart_original_train("../test/allennlp_testing/commit_100_436c52d/", "../data/"+output_file)
+
     if (commit is not None and output_file is not None):
+        original_type = config.get("User", "original_type").upper()
+        is_run_original = config.get("User", "is_original").upper()
+
+        if (is_run_original == "TRUE" and original_type == "TRAIN"):
+            ult.pyart_original_train(commit, "../data/"+output_file)
+        elif (is_run_original == "TRUE" and original_type == "TEST"):
+            # utils.pyart_original_test
+            print("TODO: Modify pyart original test file to work")
+        else:
             create_data_set_for_one_commit(commit, "../data/" + output_file)
             exit(0)
 

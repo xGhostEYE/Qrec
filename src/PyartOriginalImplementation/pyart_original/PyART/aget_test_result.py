@@ -277,6 +277,7 @@ def get_item_methods(modulename,itname):
 def deal_with_current_module(modulename,file,names):
 
 	modulename=modulename.strip()
+	#current_file='/home/user/PRIAN/targetProj/abu/abupy/TLineBu/ABuTLExecute.py'
 	current_file=file
 	layer=0
 	for c in modulename:
@@ -555,10 +556,10 @@ def check(newcontext):
 		return newcontext+addc
 		
 
-def get_type(finalc,file,thread=""):
+def get_type(finalc,file):
 
 	lindex=file.rfind('/')
-	tmp=file[:lindex]+'/tmp_' + thread + '.py'
+	tmp=file[:lindex]+'/tmp.py'
 
 	with open(tmp,'w+') as f:
 		f.write(finalc)
@@ -566,11 +567,11 @@ def get_type(finalc,file,thread=""):
 		#f2.write(finalc)
 	try:
 		#os.system('pytype '+tmp)
-		os.system('pytype '+tmp+' > type_file_' + thread + '.txt')
+		os.system('pytype '+tmp+' > log.txt')
 		#os.system('rm '+tmp)
 	except Exception:
 		sys.exit()
-	with open('type_file_' + thread + '.txt') as f:
+	with open('log.txt') as f:
 		lines=f.readlines()
 	vtype='None'
 	for line in lines:
@@ -624,7 +625,7 @@ def get_typeshed_apis(ft):
 	ret=[]
 	ft=ft.strip()
 	ft=re.sub('\[.*\]','',ft)
-	with open('PyartOriginalImplementation/pyart_original/PYART/typeshed.txt') as f:
+	with open('typeshed.txt') as f:
 		lines=f.readlines()
 	s1='.'+ft+'.'
 	s2=ft+'.'
@@ -896,10 +897,79 @@ def get_conum_scores(aps,naming_context,file):
 		conum_scores[api]=con_ret
 	return conum_scores
 	
+	
+def get_results(arr):
+	print('Ranks :'+str(arr))
+	mrr=0.0
+	top1=0
+	top2=0
+	top3=0
+	top4=0
+	top5=0
+	top10=0
+	top20=0
+	for i in range(0,len(arr)):
+		mrr+=float(1.0/float(arr[i]))
+		if arr[i]==1:
+			top1+=1
+			top2+=1
+			top3+=1
+			top4+=1
+			top5+=1
+			top10+=1
+			top20+=1
+		elif arr[i]==2:
+			top2+=1
+			top3+=1
+			top4+=1
+			top5+=1
+			top10+=1
+			top20+=1
+		elif arr[i]==3:
+			top3+=1
+			top4+=1
+			top5+=1
+			top10+=1
+			top20+=1
+		elif arr[i]==4:
+			top4+=1
+			top5+=1
+			top10+=1
+			top20+=1
+		elif arr[i]==5:
+			top5+=1
+			top10+=1
+			top20+=1
+		elif arr[i]<=10:
+			top10+=1
+			top20+=1
+		elif arr[i]<=20:
+			top20+=1
+	tp1=float(top1/len(arr))
+	tp2=float(top2/len(arr))
+	tp3=float(top3/len(arr))
+	tp4=float(top4/len(arr))
+	tp5=float(top5/len(arr))
+	tp10=float(top10/len(arr))
+	tp20=float(top20/len(arr))
+	mrr=float(mrr/float(len(arr)))
+	print("Top-k:",top1,top2,top3,top4,top5,top10,top20,len(arr))
+	print("Top-k+mrr:",tp1,tp2,tp3,tp4,tp5,tp10,tp20,mrr)
+	s=str(tp1)+','+str(tp2)+','+str(tp3)+','+str(tp4)+','+str(tp5)+','+str(tp10)+','+str(tp20)+','+str(mrr)+'\n'
+	with open('testdata/'+CURRENT_PROJ+'_result.txt','w+') as ft:
+		ft.write(s)
+	
+def get_time(ts):
+	totalt=0.0
+	for t in ts:
+		totalt+=t
+	ret=float(totalt/float(len(ts)))
+	print('Average time: ',ret)
+	with open('testdata/'+CURRENT_PROJ+'_result.txt','a+') as ft:
+		ft.write(str(ret)+'\n')
 
 
-
-def get_rec_point(file,changed_lines_dict,thread=""):
+def get_rec_point(file):
 
 	print('DEAL-WITH:'+file)
 	#with open('types/types.txt','a+') as ff:
@@ -920,11 +990,6 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 	for line in lines:
 		#print(line)
 		lno+=1
-
-		#Only process changed code
-		if (str(lno) not in changed_lines_dict):
-			continue
-
 		if line.strip().startswith('#'):
 			continue
 		if re.match('[bru]*\'\'\'$',line.strip()) or re.match('[bru]*\"\"\"$',line.strip()):
@@ -987,6 +1052,7 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 
 			newcontext=tpp[:-1]
 			finalc=check(newcontext)
+			#print(finalc)
 			current_context=finalc+'\n'+latest_line
 
 			prelast=precode.strip().split('\n')[-1]
@@ -1000,6 +1066,8 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 			newcontext=tpp
 			finalc=check(newcontext)
 			current_context=finalc+'\n'+latest_line
+			
+			#print(finalc)
 			prelast=precode.strip().split('\n')[-1]
 			for i in range(0,len(prelast)):
 				if prelast[i]!=' ':
@@ -1010,6 +1078,8 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 			for i in range(0,len(line)):
 				if line[i]!=' ':
 					break
+			#print(i)
+			#print(line)
 			newcontext=tpp
 			finalc=check(newcontext)
 			finalc+='\n'+line[:i]+'reveal_type('+caller+')'
@@ -1023,15 +1093,18 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 		#if '.' in caller:
 			#ft='Any'
 		#else:
-		ft=get_type(finalc,file,thread)
+		
+		
+		ft=get_type(finalc,file)
 		ft=ft.strip()
 	
 		print(line.strip())
 		print(file+'#'+str(lno)+'#'+caller+':'+ft+'#'+callee)
-		print(Nonenum,Anynum,OKnum)
+		#print(Nonenum,Anynum,OKnum)
 
 		
 		aps=[]
+
 
 		if ft=='None' or ft=='Any':
 			if caller=='self':
@@ -1058,8 +1131,8 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 				else:
 					xattr=caller
 					fc=caller
-				print('check module:',fc)
-				print('check attr:',xattr)
+				#print('check module:',fc)
+				#print('check attr:',xattr)
 				if fc in stdlib:
 					ft='module'
 					print('stdlib!',fc)
@@ -1092,14 +1165,7 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 			precode+=line
 			continue
 		
-		'''
-		global apirecpoints
-		atag=0
-		if file in apirecrets:
-			if callee in apirecrets[file]:
-				apirecpoints+=1
-				atag=1
-		'''
+
 		global pranks,ptimes,pinranks
 		
 		if re.match('[A-Z]+[A-Za-z]+',callee) or callee.startswith('_'):
@@ -1126,7 +1192,7 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 			#ss=ss+ap+','
 		#ss=ss[:-1]+'\n'
 		#s=caller+':'+ft+'#'+callee+'\n'	
-
+		s1=time.time()
 		#print('[Process[2] : Constructing dataflow hints.]')
 		current_dataflow=get_dataflow.get_current_dataflow2(current_context,caller)
 		#print(maxflow)
@@ -1137,7 +1203,7 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 		#print(maxflow)
 		
 
-		dataflow_scores=get_dataflow.get_dataflow_scores(aps,maxflow,current_dataflow,ft,callee,thread)
+		dataflow_scores=get_dataflow.get_dataflow_scores(aps,maxflow,current_dataflow,ft,callee)
 		tosim_scores=get_dataflow.get_tosim_scores(aps,maxflow,current_dataflow,ft,callee)
 
 		try:
@@ -1152,15 +1218,21 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 		naming_context=precode
 		line_scores=get_line_scores(aps,naming_line,naming_context,file)
 
+		e1=time.time()
+		print(e1-s1)
 
 
-		flag=0
+		
 		label=0
-		global csvdatas,csvlabels
+		apis=[]
+		with open('test.csv','w+') as f:
+			f.write('f1,f2,f3,f4\n')
+			
+		start=time.time()
 
 		if ft=='None' or ft=='Any' or ft=='nothing':
 
-			flag=0
+		
 			
 			for api in aps:
 				if api.startswith('__') or re.match('[A-Z0-9_]+$',api) or api.strip()=='_':
@@ -1169,24 +1241,15 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 					label=1
 				else:
 					label=0
-
+				apis.append(api)
 				try:
 					s=str(dataflow_scores[api])+','+str(tosim_scores[api])+','+str(line_scores[api])+',0.0\n'
-					csvdatas+=s
-					csvlabels+=str(label)+'\n'
-					with open(datakfile,'w+') as f:
-						f.write(csvdatas)		
-					with open(labelkfile,'w+') as f:
-						f.write(csvlabels)
+					with open('test.csv','a+') as f:
+						f.write(s)
 				except Exception as err:
 					print(err)
-					sys.exit(0)
-					flag=1
-					break
+					sys.exit(0)	
 				
-			if flag==1:
-				precode+=line
-				continue
 		else:
 			flag=0
 			conum_scores=get_conum_scores(aps,naming_context,file)
@@ -1197,26 +1260,66 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 					label=1
 				else:
 					label=0
-
+				apis.append(api)
 				try:
 					s=str(dataflow_scores[api])+','+str(tosim_scores[api])+','+str(line_scores[api])+','+str(conum_scores[api])+'\n'
-					#s=str(dataflow_scores[api])+','+str(line_scores[api])+','+str(conum_scores[api])+'\n'
-					csvdatas+=s
-					csvlabels+=str(label)+'\n'
-					with open(datakfile,'w+') as f:
-						f.write(csvdatas)		
-					with open(labelkfile,'w+') as f:
-						f.write(csvlabels)
+					with open('test.csv','a+') as f:
+						f.write(s)
 				except Exception as err:
 					print(err)
 					sys.exit(0)
-					flag=1
-					break
 				
-			if flag==1:
-				print('This is not a recommendation point.')
-				precode+=line
-				continue
+					
+		test_data=pd.read_csv('test.csv')
+		#print(apis)
+		#print(len(apis))
+		#print(test_data)
+		clf=joblib.load('traincsv/'+CURRENT_PROJ+'1.pkl')
+		result=clf.predict_proba(test_data)
+
+		candidates={}
+		for i in range(0,len(apis)):
+			candidates[apis[i]]=result[i][1]
+			
+			
+			
+		cans=sorted(candidates.items(), key=lambda x: x[1], reverse=True)
+		#print(cans)
+
+		end = time.time()
+		ts=end - start
+		print(ts)
+
+		print('Recommend List')
+		lenthk=len(cans)
+		if lenthk > 10:
+			lenthk = 10
+		for i in range(0,lenthk):
+			print(str(i+1)+' : '+cans[i][0])
+
+		rank=21
+		for k in range(0,len(cans)):
+			if cans[k][0]==callee:
+				rank=k+1
+		#print('Ranked '+str(rank))
+		if rank > 20:
+			pranks.append(rank)
+			#if atag==1:
+				#aranks.append(rank)
+			# Record: PRIAN cannot recommend, jumo to next recommendation.
+		else:
+			# PRIAN successfully recommends.
+			pranks.append(rank)
+			#if atag==1:
+				#aranks.append(rank)
+			ptimes.append(ts)
+			#alltimes+=ts+'\n'
+		pinranks.append(rank)
+		precode+=line
+		get_results(pinranks)
+		get_results(pranks)
+		#get_time(ptimes)	
+			
 
 
 
@@ -1228,7 +1331,7 @@ def count_all_apis():
 			if (not f.startswith('__')) and (not re.match('[A-Z0-9]+',f)) and (not f in ret):
 				ret.append(f)
 	#print(ret)
-	with open('PyartOriginalImplementation/pyart_original/PYART/testJson/'+"allennlp" + '.json') as f:
+	with open('testJson/'+CURRENT_PROJ+'.json') as f:
 		lines=f.readlines()
 
 	for line in lines:
@@ -1239,7 +1342,7 @@ def count_all_apis():
 			ret.append(item)
 
 
-	with open('PyartOriginalImplementation/pyart_original/PYART/builtin.txt') as f2:
+	with open('builtin.txt') as f2:
 		l2=f2.readlines()
 	for line2 in l2:
 		it=line2.strip()
@@ -1248,7 +1351,7 @@ def count_all_apis():
 
 	return {'all_apis':ret}
 
-def dealwith(curfile,changed_lines_dict,thread=""):
+def dealwith(curfile):
 	global module_apis,all_apis	
 	module_apis={}
 	all_apis={}
@@ -1258,13 +1361,16 @@ def dealwith(curfile,changed_lines_dict,thread=""):
 	tmpx.extend(all_apis_add)
 	tmpx=list(set(tmpx))
 	all_apis['all_apis']=tmpx	
-	get_rec_point(curfile,changed_lines_dict,thread)
+	get_rec_point(curfile)
 
 
 	
 	
 def get_all_apis():
 	return all_apis
+	
+
+
 
 
 def get_proj_tokens(iret_list):
@@ -1311,6 +1417,12 @@ def get_proj_tokens(iret_list):
 				proj_token_no[token]=no
 
 
+
+###main entry###
+
+# if __name__=="main":
+# __main__(CURRENT_PROJ,filePath)
+
 ret_list=[]
 proj_token_count={}
 proj_token_no={}
@@ -1326,15 +1438,47 @@ root_path=''
 Nonenum=Anynum=OKnum=0
 all_defs=[]
 all_recs=''
-datakfile=''
-labelkfile=''
-csvdatas=''
-csvlabels=''
+#alltimes=''
+
+CURRENT_PROJ='flask'
+filePath='testdata/'
+
+with open('test.csv','w+') as f:
+	f.write('')
+
+Nonenum=Anynum=OKnum=0
+
+pranks=[]
+ptimes=[]
+pinranks=[]
+all_apis_add=[]
+
+	
+
+	
+root_path = filePath+CURRENT_PROJ
+print('LOAD-PROJ:',root_path)
+
+
 file_list = dir_list = []
 ret_list=[]
+get_file_path(root_path,file_list,dir_list)
+#ret_list=list(set(ret_list))
+print(len(ret_list))
+trainlen=int(len(ret_list)/10*9)
+#print(trainlen)
+train_list=ret_list[:trainlen]
+test_list=ret_list[trainlen:]
+print(train_list)
+print(test_list)
+
+#sys.exit()
+#proj_tokens={}
 proj_token_count={}
 proj_token_no={}
 proj_depends={}
+get_proj_tokens(ret_list)
+
 module_apis={}
 
 id=0
@@ -1343,45 +1487,11 @@ if_from_current_proj=0
 callps=[]
 
 all_apis={}
-#standard_apis=[]
-#current_apis=[]
-
-
-times=[]
-
-#Entry function
-def run(commit,output_file, json_dict):
-	root_path = commit
-	print('LOAD-PROJ:',root_path)
-	output_file_name = output_file.replace(".csv", "")
-
-	thread_name = output_file_name.replace("../data/","")
-
-	datakfile=output_file_name+'_data.csv'
-	labelkfile=output_file_name+'_label.csv'
-
-	csvdatas=''
-	csvlabels=''
-
-
-	get_file_path(root_path,file_list,dir_list)
-
-	# trainlen=int(len(ret_list)/10*9)
-	#print(trainlen)
-	# train_list=ret_list[:trainlen]
-	# test_list=ret_list[trainlen:]
-	# print(train_list)
-	#print(test_list)
-
-	#sys.exit()
-	#proj_tokens={}
-
-	get_proj_tokens(ret_list)
 
 
 
 	#======MAIN FUNC ENTRY======
-	for ifile in ret_list:
-		if (infile in json_dict)
-		    changed_lines_dict = json_dict[infile]
-			dealwith(ifile,changed_lines_dict,thread_name)
+for ifile in test_list:
+	dealwith(ifile)
+		#with open('/home/user/PyART/testdatak/'+CURRENT_PROJ+'_time.txt','w+') as f:
+			#f.write(str(ptimes))
