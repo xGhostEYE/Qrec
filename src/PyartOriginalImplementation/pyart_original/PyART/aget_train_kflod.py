@@ -1357,8 +1357,12 @@ def run(commit,output_file, json_dict):
 
 	thread_name = output_file_name.replace("../data/","")
 
+	#create new data and label files
 	datakfile=output_file_name+'_data.csv'
+    file = open(datakfile, "w+")
 	labelkfile=output_file_name+'_label.csv'
+    file = open(labelkfile, "w+")
+
 
 	csvdatas=''
 	csvlabels=''
