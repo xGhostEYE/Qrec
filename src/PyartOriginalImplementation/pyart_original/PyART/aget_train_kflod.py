@@ -1359,9 +1359,9 @@ def run(commit,output_file, json_dict):
 
 	#create new data and label files
 	datakfile=output_file_name+'_data.csv'
-    file = open(datakfile, "w+")
+	file = open(datakfile, "w+")
 	labelkfile=output_file_name+'_label.csv'
-    file = open(labelkfile, "w+")
+	file = open(labelkfile, "w+")
 
 
 	csvdatas=''
@@ -1386,6 +1386,6 @@ def run(commit,output_file, json_dict):
 
 	#======MAIN FUNC ENTRY======
 	for ifile in ret_list:
-		if (infile in json_dict)
-		    changed_lines_dict = json_dict[infile]
+		if (ifile in json_dict):
+			changed_lines_dict = json_dict[ifile]
 			dealwith(ifile,changed_lines_dict,thread_name)

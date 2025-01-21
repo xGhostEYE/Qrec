@@ -35,11 +35,11 @@ config.read('../config.ini')
 
 def pyart_original_train(commit, csv_path):
     json_file_name = config.get("User", "json_file_name")
-	json_file_path = os.path.join(commit, json_file_name)
-
-	with open(json_file_path, encoding='utf-8') as json_file:
-		json_dict = json.load(json_file)
-	
+    json_file_path = os.path.join(commit, json_file_name)
+    
+    with open(json_file_path, encoding='utf-8') as json_file:
+        json_dict = json.load(json_file)
+    
     aget_train_kflod.run(commit, csv_path, json_dict)
 
 def create_aroma_dataset_for_one_commit(commit, csv_path):
