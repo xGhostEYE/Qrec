@@ -1,0 +1,16 @@
+allennlp.data.dataset_readers.DatasetReader.read
+allennlp.data.dataset_readers.DatasetReader.text_to_instance
+allennlp.data.tokenizers.Tokenizer.tokenize
+allennlp.data.vocabulary.Vocabulary.from_files
+allennlp.data.vocabulary.Vocabulary.save_to_files
+allennlp.models.Model.forward
+allennlp.models.Model.load
+allennlp.modules.token_embedders.TokenEmbedder.forward
+allennlp.modules.seq2seq_encoders.Seq2SeqEncoder.forward
+allennlp.modules.seq2vec_encoders.Seq2VecEncoder.forward
+allennlp.training.trainer.Trainer.train
+allennlp.training.metrics.Metric.get_metric
+allennlp.predictors.Predictor.predict
+allennlp.predictors.Predictor.predict_batch_instance
+allennlp.commands.train.train_model
+allennlp.commands.evaluate.evaluate

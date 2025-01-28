@@ -1186,7 +1186,7 @@ def standard(scsk):
 		return scsk
 	return scs
 
-def run_ngram_score_kenlm(flow):
+def run_ngram_score_kenlm(model, flow):
 	total_logprob = 0
 	for result in list(model.full_scores(flow)):
 		if result[2] == False:
@@ -1205,7 +1205,7 @@ def get_ngram_score_kenlm(apis,current_dataflow,baseflag,basetype,callee,thread=
 			#print(api)
 			flow=basetype+' '+api
 			# flows.append(flow)
-			score = run_ngram_score_kenlm(flow)
+			score = run_ngram_score_kenlm(model, flow)
 			ngram_scores[api] = score
 
 		#ngram_score=get_basetype_score(flow)
@@ -1221,7 +1221,7 @@ def get_ngram_score_kenlm(apis,current_dataflow,baseflag,basetype,callee,thread=
 				flow2=re.sub('-->',' ',flow1)
 				#print(flow2)
 				# flows.append(flow2)
-				score = run_ngram_score_kenlm(flow2)
+				score = run_ngram_score_kenlm(model, flow2)
 				ngram_scores[api] = score
 	return ngram_scores
 
@@ -1375,7 +1375,7 @@ def get_dataflow_scores(apis,maxflow,current_dataflow,ft,callee,thread=""):
 		baseflag=1
 
 	#Use SRILM
-	dataflow_ngram_scores=get_ngram_score(apis,current_dataflow,baseflag,ft,callee,thread)
+	# dataflow_ngram_scores=get_ngram_score(apis,current_dataflow,baseflag,ft,callee,thread)
 	
 	#UseKenlm
 	dataflow_ngram_scores=get_ngram_score_kenlm(apis,current_dataflow,baseflag,ft,callee,thread)

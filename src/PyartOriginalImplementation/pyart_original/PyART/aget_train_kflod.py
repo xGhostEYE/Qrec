@@ -567,7 +567,7 @@ def get_type(finalc,file,thread=""):
 	try:
 		#os.system('pytype '+tmp)
 		os.system('pytype '+tmp+' > type_file_' + thread + '.txt')
-		#os.system('rm '+tmp)
+		os.system('rm '+tmp)
 	except Exception:
 		sys.exit()
 	with open('type_file_' + thread + '.txt') as f:
@@ -591,6 +591,9 @@ def get_type(finalc,file,thread=""):
 		Anynum+=1
 	else:
 		OKnum+=1
+	
+	os.system('rm '+'type_file_' + thread + '.txt')
+
 	return vtype
 
 
@@ -1139,7 +1142,6 @@ def get_rec_point(file,changed_lines_dict,thread=""):
 
 		dataflow_scores=get_dataflow.get_dataflow_scores(aps,maxflow,current_dataflow,ft,callee,thread)
 		tosim_scores=get_dataflow.get_tosim_scores(aps,maxflow,current_dataflow,ft,callee)
-
 		try:
 			naming_line=re.sub(callee,'',line)
 		except Exception as err:
@@ -1326,8 +1328,8 @@ root_path=''
 Nonenum=Anynum=OKnum=0
 all_defs=[]
 all_recs=''
-datakfile=''
-labelkfile=''
+# datakfile=''
+# labelkfile=''
 csvdatas=''
 csvlabels=''
 file_list = dir_list = []
@@ -1358,8 +1360,11 @@ def run(commit,output_file, json_dict):
 	thread_name = output_file_name.replace("../data/","")
 
 	#create new data and label files
+	global datakfile
 	datakfile=output_file_name+'_data.csv'
 	file = open(datakfile, "w+")
+
+	global labelkfile
 	labelkfile=output_file_name+'_label.csv'
 	file = open(labelkfile, "w+")
 

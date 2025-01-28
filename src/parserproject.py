@@ -79,11 +79,11 @@ if __name__ == "__main__":
         exit(1)
 
     #uncomment to debug this feature by running debugger on this file
-    # ult.pyart_original_train("../test/allennlp_testing/commit_100_436c52d/", "../data/"+output_file)
+    # ult.pyart_original_train("../test/allennlp_testing/commit_1_de61100/", "../data/"+"test_functionality.csv")
 
     if (commit is not None and output_file is not None):
         original_type = config.get("User", "original_type").upper()
-        is_run_original = config.get("User", "is_original").upper()
+        is_run_original = config.get("User", "is_original_run").upper()
 
         if (is_run_original == "TRUE" and original_type == "TRAIN"):
             ult.pyart_original_train(commit, "../data/"+output_file)
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         print("Training...")
         train(train_csv_file_path)
     
-    test(test_csv_file_path)
+    # test(test_csv_file_path)
     if (is_test):
         print("Testing...")
         test(test_csv_file_path)

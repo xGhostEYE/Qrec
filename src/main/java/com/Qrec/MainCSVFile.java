@@ -29,8 +29,8 @@ public class MainCSVFile {
             String is_original_run = ini.get("User", "is_original_run");
 
             if ("TRUE".equals(is_original_run.toUpperCase())){
-                File outputDataFile = new File( new File("data").getCanonicalPath() + "/" + outputFileName.replaceAll(".csv","") + "data.csv" );
-                File outputLabelFile = new File( new File("data").getCanonicalPath() + "/" + outputFileName.replaceAll(".csv","") + "label.csv" );
+                File outputDataFile = new File( new File("data").getCanonicalPath() + "/" + outputFileName.replaceAll(".csv","") + "_data.csv" );
+                File outputLabelFile = new File( new File("data").getCanonicalPath() + "/" + outputFileName.replaceAll(".csv","") + "_label.csv" );
 
                 this.outputDataFile = outputDataFile;
                 this.outputLabelFile = outputLabelFile;
