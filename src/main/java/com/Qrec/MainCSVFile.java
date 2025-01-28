@@ -76,7 +76,7 @@ public class MainCSVFile {
                     String [] headers = {"file_path","object","api","line_number","is_true_api","true_api","x1","x2","x3","x4"};
                     headers_tobe_used = headers;
                 }
-                else{
+                else {
                     String [] headers = {"file_path","position","receiver","method","token_feature","parent_feature","sibling_feature","variable_usage_feature","variable_with_method_usage_feature"};
                     headers_tobe_used = headers;
                 }          
@@ -109,22 +109,25 @@ public class MainCSVFile {
                 
             }
             else{
+                String [] headers_data = {"f1","f2","f3","f4"};
+                String [] headers_label = {"label"};
+
                 //Append to the main csv file if exists. So threads result won't override each other
                 if( (outputDataFile.exists() && !outputDataFile.isDirectory()) || (outputLabelFile.exists() && !outputLabelFile.isDirectory()) ) {                 
                     fw1 = new FileWriter(outputDataFile, true);
-                    outputFileFormat1 = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
+                    outputFileFormat1 = CSVFormat.DEFAULT.builder().setHeader(headers_data).setSkipHeaderRecord(true).build();
 
                     fw2 = new FileWriter(outputLabelFile, true);
-                    outputFileFormat2 = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
+                    outputFileFormat2 = CSVFormat.DEFAULT.builder().setHeader(headers_label).setSkipHeaderRecord(true).build();
                 }
                 
                 //Create the main csv file if it does not exist
                 else{
                     fw1 = new FileWriter(outputDataFile);
-                    outputFileFormat1 = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
+                    outputFileFormat1 = CSVFormat.DEFAULT.builder().setHeader(headers_data).build();
 
                     fw2 = new FileWriter(outputLabelFile);
-                    outputFileFormat2 = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).build();
+                    outputFileFormat2 = CSVFormat.DEFAULT.builder().setHeader(headers_label).build();
                 } 
                 
                 String resultDataFilePath = resultFilePath.replaceAll(".csv","") + "_data.csv";
