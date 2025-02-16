@@ -8,6 +8,8 @@ config = configparser.ConfigParser()
 # Read the configuration file
 config.read('../config.ini')
 
+original_type = config.get("User", "original_type").upper()
+is_run_original = config.get("User", "is_original_run").upper()
 
 if __name__ == "__main__":
     
@@ -59,12 +61,19 @@ if __name__ == "__main__":
         output_file = None
 
     if (config.get("User", "type").upper() == "PYART"):
-        create_data_set = ult.create_pyart_dataset
         train_csv_file_path = config.get("User", "training_data_pyart_csv_path")
         test_csv_file_path = config.get("User", "testing_data_pyart_csv_path")
-        train = ult.train_pyart
-        test = ult.test_pyart
-        create_data_set_for_one_commit = ult.create_pyart_dataset_for_one_commit
+        
+        if (is_run_original == "TRUE"):
+            train = ult.train_pyart_original
+            test = ult.test_pyart_original
+            create_data_set_for_one_commit = ult.create_pyart_original_dataset_for_one_commit
+
+        else:
+            create_data_set = ult.create_pyart_dataset    
+            train = ult.train_pyart
+            test = ult.test_pyart
+            create_data_set_for_one_commit = ult.create_pyart_dataset_for_one_commit
         
     elif (config.get("User", "type").upper() == "AROMA"):
         create_data_set = ult.create_aroma_dataset
@@ -79,17 +88,15 @@ if __name__ == "__main__":
         exit(1)
 
     #uncomment to debug this feature by running debugger on this file
-    # ult.pyart_original_train("../test/allennlp_testing/commit_1_de61100/", "../data/"+"test_functionality.csv")
+    # create_data_set_for_one_commit("../test/allennlp_testing/commit_1_de61100/", "../data/"+"test_functionality.csv","TEST")
 
     if (commit is not None and output_file is not None):
-        original_type = config.get("User", "original_type").upper()
-        is_run_original = config.get("User", "is_original_run").upper()
-
         if (is_run_original == "TRUE" and original_type == "TRAIN"):
-            ult.pyart_original_train(commit, "../data/"+output_file)
+            create_data_set_for_one_commit(commit, "../data/"+output_file, "TRAIN")
         elif (is_run_original == "TRUE" and original_type == "TEST"):
             # utils.pyart_original_test
-            print("TODO: Modify pyart original test file to work")
+            create_data_set_for_one_commit(commit, "../data/"+output_file, "TEST")
+
         else:
             create_data_set_for_one_commit(commit, "../data/" + output_file)
             exit(0)
@@ -132,12 +139,22 @@ if __name__ == "__main__":
     # train(train_csv_file_path)
     if (is_train):
         print("Training...")
-        train(train_csv_file_path)
+        if (is_run_original == "TRUE"):
+            data_file = train_csv_file_path.replace(".csv", "_data.csv")
+            label_file = train_csv_file_path.replace(".csv", "_label.csv")
+            train(data_file,label_file)
+        else:
+            train(train_csv_file_path)
     
     # test(test_csv_file_path)
     if (is_test):
         print("Testing...")
-        test(test_csv_file_path)
+        if (is_run_original == "TRUE"):
+            pranks = test_csv_file_path + "_pinranks.txt"
+            pinranks = test_csv_file_path + "_pranks.txt"
+            test(pranks,pinranks)
+        else:
+            test(test_csv_file_path)
 
 
     # test_pyart_csv_file_path = config.get("User", "testing_data_pyart_csv_path")

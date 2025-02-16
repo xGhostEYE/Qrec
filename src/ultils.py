@@ -22,7 +22,7 @@ from Evaluation import Evaluators as ev
 from matplotlib_venn import venn3 
 from matplotlib import pyplot as plt 
 from tqdm import tqdm
-from PyartOriginalImplementation.pyart_original.PyART import aget_train_kflod
+from PyartOriginalImplementation.pyart_original.PyART import aget_train_kflod, aget_test_result, generateclf, get_results
 
 
 # from GetFiles import GetFilesInDirectory
@@ -33,14 +33,22 @@ config = configparser.ConfigParser()
 # Read the configuration file
 config.read('../config.ini')
 
-def pyart_original_train(commit, csv_path):
+def create_pyart_original_dataset_for_one_commit(commit, csv_path, mode=""):
     json_file_name = config.get("User", "json_file_name")
     json_file_path = os.path.join(commit, json_file_name)
     
     with open(json_file_path, encoding='utf-8') as json_file:
         json_dict = json.load(json_file)
     
-    aget_train_kflod.run(commit, csv_path, json_dict)
+    try:
+        if mode == "" or mode == "TRAIN":
+            aget_train_kflod.run(commit, csv_path, json_dict)
+        else:
+            aget_test_result.run(commit,csv_path,json_dict)
+    except Exception as e:
+        write_error_log(e,commit)
+
+
 
 def create_aroma_dataset_for_one_commit(commit, csv_path):
     #clear csv file
@@ -431,17 +439,22 @@ def get_detailed_labeling_data(csv_path):
 def train_aroma(train_csv_file_path):
     ai.index_data(train_csv_file_path, True)
 
+def train_pyart_original(data_file, label_file):
+    generateclf.FitRandomForest(data_file,label_file)
+
 def train_pyart(train_csv_file_path):
     labeled_data_tuple = get_labeled_data(train_csv_file_path)
     X =  labeled_data_tuple[0].astype(float)
     y = labeled_data_tuple[1].astype(float).values.ravel()
-    FitRandomForest(X, y)  
+    FitRandomForest(X, y)
 
 def test_aroma(test_csv_file_path, isEval=True):
     top_k = config.get("User", "top_k")
 
     return ai.search_data(test_csv_file_path, top_k, isEval=isEval)
-    
+def test_pyart_original(pranks, pinranks):
+    return get_results.run(pranks, pinranks)
+
 def test_pyart(test_csv_file_path, isEval=False):
     start = timer()
     grouped_dict = defaultdict(list)

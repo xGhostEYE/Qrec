@@ -78,10 +78,23 @@ public class ThreadManagement {
                     File fileToParse = new File("config.ini");
                     Ini ini = new Ini(fileToParse);
                     String is_original_run = ini.get("User", "is_original_run");
-
+                    String orignal_type = ini.get("User", "original_type");
                     if ("TRUE".equals(is_original_run.toUpperCase())){
-                        thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_data" + ".csv");
-                        thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_label" + ".csv");
+
+                        if ("TRAIN".equals(orignal_type.toUpperCase())){
+                            File thread_result_data_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_data" + ".csv");
+                            thread_result_data_file.delete();
+    
+                            File thread_result_label_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result_label" + ".csv");
+                            thread_result_label_file.delete();
+                        }
+                        else{
+                            File thread_result_pranks_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_pranks" + ".txt");
+                            thread_result_pranks_file.delete();
+    
+                            File thread_result_pinranks_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_pinranks" + ".txt");
+                            thread_result_pinranks_file.delete();
+                        }
                     }
                     else{
                         thread_result_file = new File( new File("data").getCanonicalPath() + "/thread_" + String.valueOf(thread.getThreadId()) + "_result" + ".csv");
